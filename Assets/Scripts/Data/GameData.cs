@@ -3,13 +3,13 @@ using UnityEngine;
 
 namespace SpaceGame
 {
-    public enum SlotType { High, Mid, Low, Web, Disruptor, Claw }
-    public enum ModuleKind { Miner, Weapon, ShieldBooster, Afterburner, Passive, Web, Disruptor, Claw }
+    public enum SlotType { High, Mid, Low, Web, Disruptor, Claw, Drone }
+    public enum ModuleKind { Miner, Weapon, ShieldBooster, Afterburner, Passive, Web, Disruptor, Claw, Drone }
 
     /// <summary>All fittable slot categories, in display/rack order.</summary>
     public static class Slots
     {
-        public static readonly SlotType[] All = { SlotType.High, SlotType.Mid, SlotType.Low, SlotType.Web, SlotType.Disruptor, SlotType.Claw };
+        public static readonly SlotType[] All = { SlotType.High, SlotType.Mid, SlotType.Low, SlotType.Web, SlotType.Disruptor, SlotType.Claw, SlotType.Drone };
     }
     public enum ObjKind { Sun, Planet, Belt, Station, Gate, Asteroid, Npc, Wreck }
 
@@ -34,7 +34,7 @@ namespace SpaceGame
         public string Id, Name, Class, Desc;
         public long Price;
         public float Cargo;
-        public int HighSlots, MidSlots, LowSlots, WebSlots, DisruptorSlots, ClawSlots;
+        public int HighSlots, MidSlots, LowSlots, WebSlots, DisruptorSlots, ClawSlots, DroneSlots;
         public float Shield, Armor, Hull;
         public float Cap, CapRegen;
         public float Speed;        // units/s (1 unit = 100 m)
@@ -266,6 +266,13 @@ namespace SpaceGame
                 Id = "claw1", Name = "Mining Claw I", Short = "CLAW", Slot = SlotType.Claw,
                 Kind = ModuleKind.Claw, Price = 21000, Cycle = 3f, Yield = 26f, Range = 10f, CapUse = 5f,
                 Desc = "Hydraulic rock claw. 26 m3 per 3s cycle, but you must be ON the rock (0 km). Requires a claw hardpoint (Claw hulls).",
+            };
+            Modules["drone1"] = new ModuleDef
+            {
+                Id = "drone1", Name = "Drone Controller I", Short = "DRN", Slot = SlotType.Drone,
+                Kind = ModuleKind.Drone, Price = 24000, Cycle = 2.5f, Dmg = 12f, Range = 200f, CapUse = 2f,
+                Tracking = 3f,
+                Desc = "Launches an attack drone that hunts your locked target on its own — steady damage that ignores transversal. Requires a drone hardpoint (Talon hulls).",
             };
 
             Npcs["rookie"] = new NpcDef

@@ -10,7 +10,8 @@ namespace SpaceGame
     public static class ShipGen
     {
         public static bool IsGeneratedId(string id)
-            => HiveGenerator.IsHiveId(id) || FinGenerator.IsFinId(id) || ClawGenerator.IsClawId(id);
+            => HiveGenerator.IsHiveId(id) || FinGenerator.IsFinId(id)
+               || ClawGenerator.IsClawId(id) || TalonGenerator.IsTalonId(id);
 
         public static ShipDef ResolveGenerated(string id)
         {
@@ -20,36 +21,44 @@ namespace SpaceGame
                 return FinGenerator.Def(FinGenerator.HashFromId(id), FinGenerator.ClassFromId(id));
             if (ClawGenerator.IsClawId(id))
                 return ClawGenerator.Def(ClawGenerator.HashFromId(id), ClawGenerator.ClassFromId(id));
+            if (TalonGenerator.IsTalonId(id))
+                return TalonGenerator.Def(TalonGenerator.HashFromId(id), TalonGenerator.ClassFromId(id));
             return null;
         }
 
         public static ShipDef Def(Blueprint bp)
             => bp.TypeId == FinGenerator.TypeId ? FinGenerator.Def(bp.Hash, bp.Class)
              : bp.TypeId == ClawGenerator.TypeId ? ClawGenerator.Def(bp.Hash, bp.Class)
+             : bp.TypeId == TalonGenerator.TypeId ? TalonGenerator.Def(bp.Hash, bp.Class)
              : HiveGenerator.Def(bp.Hash, bp.Class);
 
         public static Dictionary<string, float> MaterialCost(Blueprint bp)
             => bp.TypeId == FinGenerator.TypeId ? FinGenerator.MaterialCost(bp.Class)
              : bp.TypeId == ClawGenerator.TypeId ? ClawGenerator.MaterialCost(bp.Class)
+             : bp.TypeId == TalonGenerator.TypeId ? TalonGenerator.MaterialCost(bp.Class)
              : HiveGenerator.MaterialCost(bp.Class);
 
         public static long Fee(Blueprint bp)
             => bp.TypeId == FinGenerator.TypeId ? FinGenerator.Fee(bp.Class)
              : bp.TypeId == ClawGenerator.TypeId ? ClawGenerator.Fee(bp.Class)
+             : bp.TypeId == TalonGenerator.TypeId ? TalonGenerator.Fee(bp.Class)
              : HiveGenerator.Fee(bp.Class);
 
-        /// <summary>Wreck loot: Fins drop often, Claws feed industry, Hives carry the exotics.</summary>
+        /// <summary>Wreck loot: Fins drop often, Claws feed industry, Talons
+        /// command the flock, Hives carry the exotics.</summary>
         public static Blueprint RollBlueprint(string npcId)
         {
             float r = Random.value;
-            if (r < 0.40f) return FinGenerator.RollBlueprint(npcId);
-            if (r < 0.62f) return ClawGenerator.RollBlueprint(npcId);
+            if (r < 0.32f) return FinGenerator.RollBlueprint(npcId);
+            if (r < 0.52f) return ClawGenerator.RollBlueprint(npcId);
+            if (r < 0.70f) return TalonGenerator.RollBlueprint(npcId);
             return HiveGenerator.RollBlueprint(npcId);
         }
 
         static string TypeName(Blueprint bp)
             => bp.TypeId == FinGenerator.TypeId ? "Fin"
-             : bp.TypeId == ClawGenerator.TypeId ? "Claw" : "Hive";
+             : bp.TypeId == ClawGenerator.TypeId ? "Claw"
+             : bp.TypeId == TalonGenerator.TypeId ? "Talon" : "Hive";
 
         public static string DescribeBlueprint(Blueprint bp)
         {
@@ -65,6 +74,8 @@ namespace SpaceGame
                 return FinShipMesh.Build(FinGenerator.HashFromId(hullId), FinGenerator.ClassFromId(hullId), shipRoot);
             if (ClawGenerator.IsClawId(hullId))
                 return ClawShipMesh.Build(ClawGenerator.HashFromId(hullId), ClawGenerator.ClassFromId(hullId), shipRoot);
+            if (TalonGenerator.IsTalonId(hullId))
+                return TalonShipMesh.Build(TalonGenerator.HashFromId(hullId), TalonGenerator.ClassFromId(hullId), shipRoot);
             return HiveShipMesh.Build(HiveGenerator.HashFromId(hullId), HiveGenerator.ClassFromId(hullId), shipRoot);
         }
     }

@@ -469,6 +469,7 @@ namespace SpaceGame
                 string slotName = slot == SlotType.Web ? "Web"
                     : slot == SlotType.Disruptor ? "Disruptor"
                     : slot == SlotType.Claw ? "Claw"
+                    : slot == SlotType.Drone ? "Drone"
                     : slot == SlotType.High && p.Hull.TurretOnly ? "Turret" : slot.ToString();
                 for (int i = 0; i < arr.Length; i++)
                 {
@@ -546,6 +547,7 @@ namespace SpaceGame
                 GUILayout.Label("    " + def.Class + " · Turrets " + def.HighSlots + " · Webs " + def.WebSlots
                     + (def.DisruptorSlots > 0 ? " · Disr " + def.DisruptorSlots : "")
                     + (def.ClawSlots > 0 ? " · Claws " + def.ClawSlots : "")
+                    + (def.DroneSlots > 0 ? " · Drones " + def.DroneSlots : "")
                     + " · " + Mathf.Round(def.Speed * GameData.UnitsToMs) + " m/s", _smallStyle);
                 string blocker = GM.ManufactureBlocker(bp);
                 if (blocker == null)

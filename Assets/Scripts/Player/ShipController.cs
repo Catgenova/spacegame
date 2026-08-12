@@ -81,7 +81,7 @@ namespace SpaceGame
         public void RefreshRack()
         {
             Rack.Clear();
-            foreach (var slot in new[] { SlotType.High, SlotType.Mid, SlotType.Web, SlotType.Disruptor, SlotType.Claw })
+            foreach (var slot in new[] { SlotType.High, SlotType.Mid, SlotType.Web, SlotType.Disruptor, SlotType.Claw, SlotType.Drone })
             {
                 if (!P.Fitting.ContainsKey(slot)) continue;
                 var arr = P.Fitting[slot];
@@ -101,9 +101,26 @@ namespace SpaceGame
             DeactivateAll();
         }
 
+        readonly System.Collections.Generic.Dictionary<RackEntry, DroneUnit> _drones
+            = new System.Collections.Generic.Dictionary<RackEntry, DroneUnit>();
+
+        void ReleaseDrone(RackEntry r)
+        {
+            if (_drones.TryGetValue(r, out var d))
+            {
+                if (d != null) d.Target = null; // flies home and despawns
+                _drones.Remove(r);
+            }
+        }
+
         public void DeactivateAll()
         {
-            foreach (var r in Rack) { r.Active = false; r.T = 0f; }
+            foreach (var r in Rack)
+            {
+                if (r.Active && r.Def.Kind == ModuleKind.Drone) ReleaseDrone(r);
+                r.Active = false;
+                r.T = 0f;
+            }
         }
 
         // ---------- commands ----------
@@ -155,13 +172,15 @@ namespace SpaceGame
             var r = Rack[rackIndex];
             if (r.Active)
             {
+                if (r.Def.Kind == ModuleKind.Drone) ReleaseDrone(r);
                 r.Active = false;
                 r.T = 0f;
                 return;
             }
             var m = r.Def;
             if ((m.Kind == ModuleKind.Miner || m.Kind == ModuleKind.Claw || m.Kind == ModuleKind.Weapon
-                || m.Kind == ModuleKind.Web || m.Kind == ModuleKind.Disruptor) && !ValidTarget(m))
+                || m.Kind == ModuleKind.Web || m.Kind == ModuleKind.Disruptor
+                || m.Kind == ModuleKind.Drone) && !ValidTarget(m))
             {
                 var sel = GM.Selected;
                 bool wantsRock = m.Kind == ModuleKind.Miner || m.Kind == ModuleKind.Claw;
@@ -192,7 +211,8 @@ namespace SpaceGame
             float d = Vector3.Distance(transform.position, sel.transform.position);
             if (m.Kind == ModuleKind.Miner || m.Kind == ModuleKind.Claw)
                 return sel is AsteroidBody && d <= m.Range && GM.Locked;
-            if (m.Kind == ModuleKind.Weapon || m.Kind == ModuleKind.Web || m.Kind == ModuleKind.Disruptor)
+            if (m.Kind == ModuleKind.Weapon || m.Kind == ModuleKind.Web || m.Kind == ModuleKind.Disruptor
+                || m.Kind == ModuleKind.Drone)
                 return sel is NpcPirate && d <= m.Range && GM.Locked;
             return true;
         }
@@ -338,6 +358,7 @@ namespace SpaceGame
                 else if (m.Kind == ModuleKind.Weapon) CompleteWeaponCycle(m, r);
                 else if (m.Kind == ModuleKind.Web) CompleteWebCycle(m, r);
                 else if (m.Kind == ModuleKind.Disruptor) CompleteDisruptCycle(m, r);
+                else if (m.Kind == ModuleKind.Drone) CompleteDroneCycle(m, r);
                 else if (m.Kind == ModuleKind.ShieldBooster)
                     P.Shield = Mathf.Min(P.ComputeStats().MaxShield, P.Shield + m.BoostAmount);
 
@@ -345,8 +366,10 @@ namespace SpaceGame
                 if (r.Active)
                 {
                     if ((m.Kind == ModuleKind.Miner || m.Kind == ModuleKind.Claw || m.Kind == ModuleKind.Weapon
-                        || m.Kind == ModuleKind.Web || m.Kind == ModuleKind.Disruptor) && !ValidTarget(m))
+                        || m.Kind == ModuleKind.Web || m.Kind == ModuleKind.Disruptor
+                        || m.Kind == ModuleKind.Drone) && !ValidTarget(m))
                     {
+                        if (m.Kind == ModuleKind.Drone) ReleaseDrone(r);
                         r.Active = false;
                         GM.Log(m.Name + " deactivated — target lost or out of range.");
                     }
@@ -440,6 +463,34 @@ namespace SpaceGame
             }
             npc.ApplyDisrupt(m.Cycle + 0.6f);
             Sfx.Web();
+        }
+
+        void CompleteDroneCycle(ModuleDef m, RackEntry r)
+        {
+            var npc = GM.Selected as NpcPirate;
+            if (npc == null || Vector3.Distance(transform.position, npc.transform.position) > m.Range)
+            {
+                ReleaseDrone(r);
+                r.Active = false;
+                return;
+            }
+            if (!_drones.TryGetValue(r, out var drone) || drone == null)
+            {
+                drone = DroneUnit.Launch(transform.position);
+                _drones[r] = drone;
+            }
+            drone.Target = npc;
+            // Drones only bite once they've closed to their orbit.
+            if (Vector3.Distance(drone.transform.position, npc.transform.position) > 45f) return;
+            float dmg = m.Dmg * (1f + 0.05f * P.SkillLevel("gunnery"));
+            drone.Fire();
+            Sfx.WeaponFire(m, true);
+            if (npc.TakeDamage(dmg))
+            {
+                ReleaseDrone(r);
+                r.Active = false;
+                GM.NpcKilled(npc);
+            }
         }
 
         void UpdateBeam()
