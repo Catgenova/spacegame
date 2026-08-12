@@ -180,11 +180,22 @@ namespace SpaceGame
             return n.y < 0f ? -n : n;
         }
 
+        /// <summary>Mirror-consistent camber sign: bulge along the face of
+        /// the wing whose mid-span normal points up (falls back to +x for
+        /// near-vertical surfaces). Mirrored chains flip the normal, so this
+        /// keeps left/right wings cambering symmetrically.</summary>
+        public static float CamberSign(Vector3[] lead, float[] leadT, Vector3[] trail, float[] trailT)
+        {
+            var n = WingNormal(lead, leadT, trail, trailT, 0.5f);
+            return n.y > 0.02f ? 1f : n.y < -0.02f ? -1f : (n.x >= 0f ? 1f : -1f);
+        }
+
         public static void LoftWing(Builder b, Vector3[] lead, float[] leadT, Vector3[] trail, float[] trailT,
-            float rootTh, float tipTh, int stations, bool flip, int skinMat = 0)
+            float rootTh, float tipTh, int stations, bool flip, int skinMat = 0, float camberF = 0.06f)
         {
             int m = WingCf.Length, loop = m * 2;
             var idx = new int[stations][];
+            float cSign = CamberSign(lead, leadT, trail, trailT);
             for (int i = 0; i < stations; i++)
             {
                 float u = i / (float)(stations - 1);
@@ -192,13 +203,13 @@ namespace SpaceGame
                 var te = CrChain(trail, trailT, u);
                 var n = WingNormal(lead, leadT, trail, trailT, u);
                 float tmax = Mathf.Lerp(rootTh, tipTh, u);
-                float camb = tmax * 0.35f;
+                float camb = (te - le).magnitude * camberF + tmax * 0.35f;
                 idx[i] = new int[loop];
                 for (int k = 0; k < loop; k++)
                 {
                     int j = k < m ? k : loop - 1 - k;
                     float c = WingCf[j];
-                    float lift = camb * 4f * c * (1f - c);
+                    float lift = cSign * camb * 4f * c * (1f - c);
                     float th = WingTf[j] * tmax * (k < m ? 1f : -1f);
                     idx[i][k] = b.Add(le + (te - le) * c + n * (lift + th));
                 }
@@ -228,24 +239,26 @@ namespace SpaceGame
         }
 
         public static Vector3 WingSurfPt(Vector3[] lead, float[] leadT, Vector3[] trail, float[] trailT,
-            float rootTh, float tipTh, float u, float c, float raise)
+            float rootTh, float tipTh, float u, float c, float raise, float camberF = 0.06f)
         {
             var le = CrChain(lead, leadT, u);
             var te = CrChain(trail, trailT, u);
             var n = WingNormal(lead, leadT, trail, trailT, u);
+            float cSign = CamberSign(lead, leadT, trail, trailT);
             float tmax = Mathf.Lerp(rootTh, tipTh, u);
-            float camb = tmax * 0.35f;
-            return le + (te - le) * c + n * (camb * 4f * c * (1f - c) + CrSample(WingCf, WingTf, c) * tmax + raise);
+            float camb = (te - le).magnitude * camberF + tmax * 0.35f;
+            return le + (te - le) * c
+                + n * (cSign * camb * 4f * c * (1f - c) + CrSample(WingCf, WingTf, c) * tmax + raise);
         }
 
         public static void WingPlate(Builder b, Vector3[] lead, float[] leadT, Vector3[] trail, float[] trailT,
-            float rootTh, float tipTh, float u0, float u1, int mat)
+            float rootTh, float tipTh, float u0, float u1, int mat, float camberF = 0.06f)
         {
             const float c0 = 0.26f, c1 = 0.68f;
-            var a = WingSurfPt(lead, leadT, trail, trailT, rootTh, tipTh, u0, c0, 0.024f);
-            var b2 = WingSurfPt(lead, leadT, trail, trailT, rootTh, tipTh, u0, c1, 0.024f);
-            var c = WingSurfPt(lead, leadT, trail, trailT, rootTh, tipTh, u1, c1, 0.024f);
-            var d = WingSurfPt(lead, leadT, trail, trailT, rootTh, tipTh, u1, c0, 0.024f);
+            var a = WingSurfPt(lead, leadT, trail, trailT, rootTh, tipTh, u0, c0, 0.024f, camberF);
+            var b2 = WingSurfPt(lead, leadT, trail, trailT, rootTh, tipTh, u0, c1, 0.024f, camberF);
+            var c = WingSurfPt(lead, leadT, trail, trailT, rootTh, tipTh, u1, c1, 0.024f, camberF);
+            var d = WingSurfPt(lead, leadT, trail, trailT, rootTh, tipTh, u1, c0, 0.024f, camberF);
             b.QuadUDS(a, b2, c, d, mat);
         }
 

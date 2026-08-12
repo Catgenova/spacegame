@@ -247,12 +247,17 @@ namespace SpaceGame
                 var rootB = new Vector3(s * W * 0.34f, y0 - 0.02f, zAt(t0) - 0.75f);
                 var tipF = rootF + new Vector3(s * g.EarSpan * g.EarCant, g.EarSpan, -g.EarSweep * 0.55f);
                 var tipB = rootB + new Vector3(s * g.EarSpan * g.EarCant * 1.1f, g.EarSpan * 0.82f, -g.EarSweep);
-                var lead = new[] { rootF, tipF };
-                var trail = new[] { rootB, tipB };
-                var ts = new[] { 0f, 1f };
-                LoftWing(b, lead, ts, trail, ts, 0.07f, 0.015f, 7, side < 0, 0);
-                WingPlate(b, lead, ts, trail, ts, 0.07f, 0.015f, 0.22f, 0.88f, 2);
-                WingPlate(b, lead, ts, trail, ts, 0.07f, 0.015f, 0.90f, 0.98f, 1);
+                // rounded ear outline: mid-span control points bow the
+                // leading and trailing edges outward, and a deep camber
+                // cups the membrane like a real fennec ear
+                var mF = Vector3.Lerp(rootF, tipF, 0.5f) + new Vector3(s * 0.10f, 0.02f, 0.34f);
+                var mB = Vector3.Lerp(rootB, tipB, 0.5f) + new Vector3(s * 0.14f, 0f, -0.38f);
+                var lead = new[] { rootF, mF, tipF };
+                var trail = new[] { rootB, mB, tipB };
+                var ts = new[] { 0f, 0.5f, 1f };
+                LoftWing(b, lead, ts, trail, ts, 0.07f, 0.015f, 9, side < 0, 0, 0.13f);
+                WingPlate(b, lead, ts, trail, ts, 0.07f, 0.015f, 0.22f, 0.88f, 2, 0.13f);
+                WingPlate(b, lead, ts, trail, ts, 0.07f, 0.015f, 0.90f, 0.98f, 1, 0.13f);
             }
 
             // ---- raked glass canopy on the fore-deck ----
