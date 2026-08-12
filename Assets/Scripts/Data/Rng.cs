@@ -21,5 +21,49 @@ namespace SpaceGame
 
         public static float Range(System.Random r, float min, float max)
             => min + (float)r.NextDouble() * (max - min);
+
+        static uint HashU(string s)
+        {
+            unchecked
+            {
+                uint h = 2166136261;
+                foreach (char c in s)
+                {
+                    h ^= c;
+                    h *= 16777619;
+                }
+                return h;
+            }
+        }
+
+        /// <summary>
+        /// Strict deterministic stream (mulberry32) for ship generation:
+        /// NextDouble is guaranteed in [0, 1), unlike System.Random whose
+        /// Knuth mixing can very rarely dip below zero for large seeds —
+        /// which would push generated stats outside their design envelopes.
+        /// Trivially portable (pure uint32 ops), so external tools can
+        /// reproduce bodies exactly.
+        /// </summary>
+        public class Roll
+        {
+            uint _s;
+            public Roll(uint seed) { _s = seed; }
+
+            public double NextDouble()
+            {
+                unchecked
+                {
+                    _s += 0x6D2B79F5u;
+                    uint t = _s;
+                    t = (t ^ (t >> 15)) * (1u | t);
+                    t = (t + ((t ^ (t >> 7)) * (61u | t))) ^ t;
+                    return (t ^ (t >> 14)) / 4294967296.0;
+                }
+            }
+
+            public int Next(int max) => (int)(NextDouble() * max);
+        }
+
+        public static Roll Stream(string key) => new Roll(HashU(key));
     }
 }

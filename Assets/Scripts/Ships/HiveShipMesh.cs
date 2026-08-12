@@ -63,7 +63,7 @@ namespace SpaceGame
 
         public static GameObject Build(string hash, Transform shipRoot)
         {
-            var rng = Rng.Seeded("hivebody:" + hash);
+            var rng = Rng.Stream("hivebody:" + hash);
             System.Func<float, float, float> R = (lo, hi) => lo + (float)rng.NextDouble() * (hi - lo);
 
             float L = R(4.6f, 5.8f);          // hull length

@@ -85,7 +85,7 @@ namespace SpaceGame
         {
             if (_cache.TryGetValue(hash, out var cached)) return cached;
             var c = Classes[1];
-            var rng = Rng.Seeded("hivedef:" + hash);
+            var rng = Rng.Stream("hivedef:" + hash);
             System.Func<float, float, float> R = (lo, hi) => lo + (float)rng.NextDouble() * (hi - lo);
 
             var def = new ShipDef
