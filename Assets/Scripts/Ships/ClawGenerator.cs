@@ -46,7 +46,7 @@ namespace SpaceGame
                 Fee = 22000,
                 Materials = new Dictionary<string, float>
                 {
-                    ["tritanium"] = 380f, ["pyerite"] = 200f, ["mexallon"] = 80f, ["isogen"] = 30f,
+                    ["iron"] = 380f, ["aluminium"] = 200f, ["titanium"] = 80f, ["beryllium"] = 30f,
                 },
             },
             [2] = new ClawClass
@@ -63,7 +63,7 @@ namespace SpaceGame
                 Fee = 48000,
                 Materials = new Dictionary<string, float>
                 {
-                    ["tritanium"] = 780f, ["pyerite"] = 420f, ["mexallon"] = 160f, ["isogen"] = 65f,
+                    ["iron"] = 780f, ["aluminium"] = 420f, ["titanium"] = 160f, ["beryllium"] = 65f,
                 },
             },
             [3] = new ClawClass
@@ -80,7 +80,7 @@ namespace SpaceGame
                 Fee = 90000,
                 Materials = new Dictionary<string, float>
                 {
-                    ["tritanium"] = 1600f, ["pyerite"] = 900f, ["mexallon"] = 360f, ["isogen"] = 160f,
+                    ["iron"] = 1600f, ["aluminium"] = 900f, ["titanium"] = 360f, ["beryllium"] = 160f,
                 },
             },
         };

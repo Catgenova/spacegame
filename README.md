@@ -50,7 +50,7 @@ too, so an early warp-out beats their first volley.
 ### The loop
 
 - **Mine** ore in asteroid belts; richer, rarer ore lives in low-sec systems.
-- **Refine** ore into minerals (Tritanium/Pyerite/Mexallon/Isogen) at any
+- **Refine** ore into minerals (Iron/Aluminium/Titanium/Beryllium) at any
   station — yield starts at 66% and grows with the Refining skill, so
   refined mineral hauling out-earns raw ore once you're trained.
 - **Sell** at stations — each station has stable price personalities, so

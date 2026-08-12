@@ -123,22 +123,27 @@ namespace SpaceGame
 
         static GameData()
         {
-            Ore("veldspar", "Veldspar", 12f, new Color(0.69f, 0.63f, 0.54f));
-            Ore("scordite", "Scordite", 18f, new Color(0.56f, 0.64f, 0.69f));
-            Ore("plagioclase", "Plagioclase", 27f, new Color(0.50f, 0.69f, 0.54f));
-            Ore("kernite", "Kernite", 42f, new Color(0.69f, 0.50f, 0.66f));
-            Ore("omber", "Omber", 65f, new Color(0.82f, 0.70f, 0.42f));
+            // Ores are real rock, coloured as they actually look in hand, and
+            // each refines into the metals its real chemistry contains.
+            Ore("hematite", "Hematite", 12f, new Color(0.62f, 0.36f, 0.30f));
+            Ore("pyroxene", "Pyroxene", 18f, new Color(0.42f, 0.48f, 0.44f));
+            Ore("plagioclase", "Plagioclase", 27f, new Color(0.78f, 0.76f, 0.72f));
+            Ore("ilmenite", "Ilmenite", 42f, new Color(0.32f, 0.33f, 0.36f));
+            Ore("beryl", "Beryl", 65f, new Color(0.36f, 0.72f, 0.56f));
 
-            Mineral("tritanium", "Tritanium", 28f, new Color(0.75f, 0.78f, 0.82f));
-            Mineral("pyerite", "Pyerite", 44f, new Color(0.85f, 0.55f, 0.4f));
-            Mineral("mexallon", "Mexallon", 72f, new Color(0.45f, 0.75f, 0.8f));
-            Mineral("isogen", "Isogen", 120f, new Color(0.55f, 0.9f, 0.55f));
+            // Refined metals, in the order a real spaceframe uses them:
+            // steel structure, aluminium airframe, titanium pressure hulls,
+            // beryllium for precision optics and stiff lightweight structure.
+            Mineral("iron", "Iron", 28f, new Color(0.72f, 0.74f, 0.78f));
+            Mineral("aluminium", "Aluminium", 44f, new Color(0.86f, 0.88f, 0.92f));
+            Mineral("titanium", "Titanium", 72f, new Color(0.45f, 0.70f, 0.80f));
+            Mineral("beryllium", "Beryllium", 120f, new Color(0.74f, 0.79f, 0.72f));
 
-            Ores["veldspar"].RefineInto = new Dictionary<string, float> { { "tritanium", 1f } };
-            Ores["scordite"].RefineInto = new Dictionary<string, float> { { "tritanium", 0.65f }, { "pyerite", 0.35f } };
-            Ores["plagioclase"].RefineInto = new Dictionary<string, float> { { "tritanium", 0.3f }, { "pyerite", 0.45f }, { "mexallon", 0.25f } };
-            Ores["kernite"].RefineInto = new Dictionary<string, float> { { "pyerite", 0.35f }, { "mexallon", 0.45f }, { "isogen", 0.2f } };
-            Ores["omber"].RefineInto = new Dictionary<string, float> { { "pyerite", 0.2f }, { "mexallon", 0.3f }, { "isogen", 0.5f } };
+            Ores["hematite"].RefineInto = new Dictionary<string, float> { { "iron", 1f } };
+            Ores["pyroxene"].RefineInto = new Dictionary<string, float> { { "iron", 0.65f }, { "aluminium", 0.35f } };
+            Ores["plagioclase"].RefineInto = new Dictionary<string, float> { { "iron", 0.3f }, { "aluminium", 0.45f }, { "titanium", 0.25f } };
+            Ores["ilmenite"].RefineInto = new Dictionary<string, float> { { "aluminium", 0.35f }, { "titanium", 0.45f }, { "beryllium", 0.2f } };
+            Ores["beryl"].RefineInto = new Dictionary<string, float> { { "aluminium", 0.2f }, { "titanium", 0.3f }, { "beryllium", 0.5f } };
 
             Loot["rookie"] = new LootTable { Chance = 0.45f, MaxItems = 1, Pool = new[] { "blaster1", "miner1", "afterburner1" } };
             Loot["marauder"] = new LootTable { Chance = 0.75f, MaxItems = 1, Pool = new[] { "rail1", "shieldboost1", "plate1", "cargo1" } };

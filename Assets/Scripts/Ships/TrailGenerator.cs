@@ -50,7 +50,7 @@ namespace SpaceGame
                 Fee = 60000,
                 Materials = new Dictionary<string, float>
                 {
-                    ["tritanium"] = 900f, ["pyerite"] = 500f, ["mexallon"] = 210f, ["isogen"] = 90f,
+                    ["iron"] = 900f, ["aluminium"] = 500f, ["titanium"] = 210f, ["beryllium"] = 90f,
                 },
             },
             [2] = new TrailClass
@@ -68,7 +68,7 @@ namespace SpaceGame
                 Fee = 130000,
                 Materials = new Dictionary<string, float>
                 {
-                    ["tritanium"] = 2000f, ["pyerite"] = 1150f, ["mexallon"] = 460f, ["isogen"] = 200f,
+                    ["iron"] = 2000f, ["aluminium"] = 1150f, ["titanium"] = 460f, ["beryllium"] = 200f,
                 },
             },
             [3] = new TrailClass
@@ -86,7 +86,7 @@ namespace SpaceGame
                 Fee = 280000,
                 Materials = new Dictionary<string, float>
                 {
-                    ["tritanium"] = 4200f, ["pyerite"] = 2400f, ["mexallon"] = 1000f, ["isogen"] = 450f,
+                    ["iron"] = 4200f, ["aluminium"] = 2400f, ["titanium"] = 1000f, ["beryllium"] = 450f,
                 },
             },
         };
