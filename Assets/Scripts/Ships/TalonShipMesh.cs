@@ -219,18 +219,44 @@ namespace SpaceGame
                 return HalfPtT(k, t).y * H * sc2 + CrSample(cts, clf, t) * H;
             };
 
-            // ---- body loft ----
+            // ---- one continuous loft: beak rings flow into the body ----
+            // The beak is part of the hull surface: forward of the face the
+            // same strip loop keeps going, narrowing and drooping into a
+            // blunt dark bill. No seams, no bolted-on tube.
+            const int beakRings = 7;
+            int total = beakRings + rings;
             var stripVerts = new int[8][][];
             var ringT = new float[rings];
-            for (int s = 0; s < 8; s++) stripVerts[s] = new int[rings][];
-            for (int i = 0; i < rings; i++)
+            for (int s = 0; s < 8; s++) stripVerts[s] = new int[total][];
+
+            for (int i = 0; i < beakRings; i++)
             {
-                float t = i / (float)(rings - 1);
-                ringT[i] = t;
+                float ub = i / (float)beakRings;             // 0 = tip
+                float sc = 0.40f * Mathf.Lerp(0.28f, 0.96f, Smooth01(ub));
+                float xNarrow = Mathf.Lerp(0.55f, 0.98f, ub);
+                float yOff = CrSample(cts, clf, 0f) * H - Mathf.Pow(1f - ub, 1.6f) * 0.22f * H;
+                float z = zBF + g.Beak * (1f - ub);
+                for (int s = 0; s < 8; s++)
+                {
+                    stripVerts[s][i] = new int[4];
+                    for (int p = 0; p < 4; p++)
+                    {
+                        int li = (StripStart[s] + p) % LoopPts;
+                        var pt = LoopPtT(li, 0f);
+                        stripVerts[s][i][p] = b.Add(new Vector3(
+                            pt.x * W * sc * xNarrow, pt.y * H * sc + yOff, z));
+                    }
+                }
+            }
+            for (int j = 0; j < rings; j++)
+            {
+                float t = j / (float)(rings - 1);
+                ringT[j] = t;
                 float sc = CrSample(cts, csc, t);
                 sc *= 1f + g.SurfAmp * 0.012f * Mathf.Sin((t * 6f + g.SurfPhase) * Mathf.PI * 2f);
                 float lift = CrSample(cts, clf, t) * H;
                 float z = zAt(t);
+                int i = beakRings + j;
                 for (int s = 0; s < 8; s++)
                 {
                     stripVerts[s][i] = new int[4];
@@ -242,36 +268,30 @@ namespace SpaceGame
                     }
                 }
             }
-            for (int i = 0; i < rings - 1; i++)
+            for (int i = 0; i < total - 1; i++)
             {
-                float tm = (ringT[i] + ringT[i + 1]) * 0.5f;
+                bool beakZone = i < beakRings;
+                float tm = beakZone ? 0f
+                    : (ringT[i - beakRings] + ringT[Mathf.Min(rings - 1, i - beakRings + 1)]) * 0.5f;
                 for (int s = 0; s < 8; s++)
                     for (int p = 0; p < 3; p++)
                     {
-                        int mat = PaintMatT(g, s, p, tm, markCell, micro[i, s * 3 + p]);
+                        int mat = beakZone ? 1 : PaintMatT(g, s, p, tm, markCell, micro[Mathf.Min(rings - 2, i - beakRings), s * 3 + p]);
                         b.FaceQ(stripVerts[s][i][p], stripVerts[s][i + 1][p],
                             stripVerts[s][i + 1][p + 1], stripVerts[s][i][p + 1], mat);
                     }
             }
 
-            // Face cap converging on the beak root; tail cap astern.
-            float yFace = CrSample(cts, clf, 0f) * H + 0.06f * H;
-            var beakBase = new Vector3(0f, yFace, zBF + 0.10f);
+            // Blunt bill tip and tail cap.
+            float yTip = CrSample(cts, clf, 0f) * H - 0.22f * H;
+            var billTip = new Vector3(0f, yTip - 0.01f, zBF + g.Beak + 0.06f);
             for (int s = 0; s < 8; s++)
                 for (int p = 0; p < 3; p++)
-                    b.TriU(beakBase, b.V[stripVerts[s][0][p + 1]], b.V[stripVerts[s][0][p]], 1);
+                    b.TriU(billTip, b.V[stripVerts[s][0][p + 1]], b.V[stripVerts[s][0][p]], 1);
             var sternC = new Vector3(0f, CrSample(cts, clf, 1f) * H, -0.5f * L - 0.05f);
             for (int s = 0; s < 8; s++)
                 for (int p = 0; p < 3; p++)
-                    b.TriU(sternC, b.V[stripVerts[s][rings - 1][p]], b.V[stripVerts[s][rings - 1][p + 1]], 1);
-
-            // ---- hooked beak straight off the face ----
-            {
-                var b1 = new Vector3(0f, yFace - 0.02f, zBF + 0.10f + g.Beak * 0.45f);
-                var b2p = new Vector3(0f, yFace - 0.16f, zBF + 0.10f + g.Beak * 0.80f);
-                var b3 = new Vector3(0f, yFace - 0.36f, zBF + 0.10f + g.Beak * 0.95f);
-                Tube(b, new[] { beakBase, b1, b2p, b3 }, new[] { 0.22f, 0.16f, 0.09f, 0.008f }, 8, 1, true);
-            }
+                    b.TriU(sternC, b.V[stripVerts[s][total - 1][p]], b.V[stripVerts[s][total - 1][p + 1]], 1);
 
             // ---- eyes + brow wedges on the face flanks ----
             for (int side = -1; side <= 1; side += 2)
