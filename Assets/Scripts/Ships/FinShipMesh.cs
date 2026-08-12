@@ -129,24 +129,24 @@ namespace SpaceGame
         // with the Manta.
         static readonly float[,] NoseS =
         {
-            {0.00f, 0.20f}, {0.30f, 0.18f}, {0.55f, 0.15f}, {0.75f, 0.11f},
-            {0.90f, 0.06f}, {0.98f, 0.00f}, {1.00f, -0.05f},
-            {0.85f, -0.10f}, {0.62f, -0.14f}, {0.38f, -0.17f},
-            {0.24f, -0.18f}, {0.10f, -0.19f}, {0.00f, -0.19f},
+            {0.00f, 0.16f}, {0.35f, 0.15f}, {0.65f, 0.12f}, {0.89f, 0.09f},
+            {1.06f, 0.05f}, {1.16f, 0.00f}, {1.18f, -0.04f},
+            {1.00f, -0.08f}, {0.73f, -0.11f}, {0.45f, -0.14f},
+            {0.28f, -0.15f}, {0.12f, -0.16f}, {0.00f, -0.16f},
         };
         static readonly float[,] MidS =
         {
-            {0.00f, 0.72f}, {0.32f, 0.68f}, {0.58f, 0.56f}, {0.78f, 0.38f},
-            {0.92f, 0.16f}, {1.00f, -0.06f}, {0.94f, -0.28f},
-            {0.80f, -0.44f}, {0.60f, -0.54f}, {0.40f, -0.60f},
-            {0.25f, -0.63f}, {0.10f, -0.65f}, {0.00f, -0.66f},
+            {0.00f, 0.59f}, {0.38f, 0.56f}, {0.68f, 0.46f}, {0.92f, 0.31f},
+            {1.09f, 0.13f}, {1.18f, -0.05f}, {1.11f, -0.23f},
+            {0.94f, -0.36f}, {0.71f, -0.44f}, {0.47f, -0.49f},
+            {0.30f, -0.52f}, {0.12f, -0.53f}, {0.00f, -0.54f},
         };
         static readonly float[,] SternS =
         {
-            {0.00f, 0.66f}, {0.34f, 0.62f}, {0.60f, 0.52f}, {0.80f, 0.36f},
-            {0.92f, 0.16f}, {1.00f, -0.04f}, {0.94f, -0.26f},
-            {0.80f, -0.40f}, {0.60f, -0.50f}, {0.40f, -0.56f},
-            {0.25f, -0.58f}, {0.10f, -0.60f}, {0.00f, -0.60f},
+            {0.00f, 0.54f}, {0.40f, 0.51f}, {0.71f, 0.43f}, {0.94f, 0.30f},
+            {1.09f, 0.13f}, {1.18f, -0.03f}, {1.11f, -0.21f},
+            {0.94f, -0.33f}, {0.71f, -0.41f}, {0.47f, -0.46f},
+            {0.30f, -0.48f}, {0.12f, -0.49f}, {0.00f, -0.49f},
         };
 
         static Vector2 HalfPtS(int k, float t)
@@ -208,18 +208,6 @@ namespace SpaceGame
                     bool hit = camoCell[(side * 15 + band * 5 + cell) % 30];
                     if (hit && !(lower && p == 1)) return 1;
                 }
-            }
-
-            // Band families: tail rings or nose chevrons.
-            if (g.BandMode == 1 && tm > 0.78f && tm < 0.95f)
-            {
-                float u = (tm - 0.78f) / 0.17f;
-                if ((int)(u * g.BandCount * 2 + g.BandPhase * 2f) % 2 == 0) return 1;
-            }
-            else if (g.BandMode == 2 && !belly && tm > 0.10f && tm < 0.26f)
-            {
-                float u = (tm - 0.10f) / 0.16f;
-                if ((int)(u * g.BandCount * 2.5f + g.BandPhase * 2f) % 2 == 0) return 1;
             }
 
             if (microHit && !belly && tm > 0.10f && tm < 0.92f) return 1;
@@ -299,8 +287,8 @@ namespace SpaceGame
                 float s = side;
                 var rootF2 = new Vector3(s * W * 0.55f, -0.05f * H, (0.5f - 0.38f) * L);
                 var rootB2 = new Vector3(s * W * 0.60f, -0.08f * H, (0.5f - 0.62f) * L);
-                var tipB2 = rootB2 + new Vector3(s * g.PectSpan * 0.85f, -0.05f, -g.PectSweep);
-                var tipF2 = rootF2 + new Vector3(s * g.PectSpan, 0.02f, -g.PectSweep * 0.45f);
+                var tipB2 = rootB2 + new Vector3(s * g.PectSpan * 1.10f, -0.05f, -g.PectSweep * 1.15f);
+                var tipF2 = rootF2 + new Vector3(s * g.PectSpan * 1.30f, 0.02f, -g.PectSweep * 0.50f);
                 var lead = new[] { rootF2, Vector3.Lerp(rootF2, tipF2, 0.5f) + new Vector3(0f, 0f, 0.14f), tipF2 };
                 var trail = new[] { rootB2, Vector3.Lerp(rootB2, tipB2, 0.5f) + new Vector3(0f, 0f, -0.12f), tipB2 };
                 var ts = new[] { 0f, 0.5f, 1f };
@@ -308,6 +296,14 @@ namespace SpaceGame
                 WingPlate(b, lead, ts, trail, ts, 0.10f, 0.030f, 0.18f, 0.34f, 1);
                 WingPlate(b, lead, ts, trail, ts, 0.10f, 0.030f, 0.48f, 0.60f, 1);
                 WingPlate(b, lead, ts, trail, ts, 0.10f, 0.030f, 0.72f, 0.80f, 1);
+                // polka-dot spots over the trailing wing section
+                for (int sp = 0; sp < 6; sp++)
+                {
+                    float uS = 0.50f + (sp % 3) * 0.16f + (sp / 3) * 0.07f;
+                    float cS = 0.74f + (sp / 3) * 0.14f;
+                    var pS = WingSurfPt(lead, ts, trail, ts, 0.10f, 0.030f, uS, cS, 0.012f);
+                    Ball(b, pS, 0.045f, 1, 2, 6);
+                }
             }
 
             // Tail planes, cobalt, angled slightly up.
@@ -361,6 +357,20 @@ namespace SpaceGame
                 var tip0 = path[gunSegs];
                 Tube(b, new[] { tip0, tip0 + Vector3.forward * (g.GunLen * 0.4f) },
                     new[] { 0.035f, 0.005f }, 6, 1, true);
+            }
+
+            // ---- glow slit row down the lower flanks ----
+            for (int side = -1; side <= 1; side += 2)
+            {
+                for (int i = 0; i < 5; i++)
+                {
+                    float tG = 0.34f + i * 0.09f;
+                    float scG = CrSample(cts, csc, tG);
+                    float liftG = CrSample(cts, clf, tG) * H;
+                    var p = LoopPtS(side > 0 ? 7 : 17, tG);
+                    var pos = new Vector3(p.x * W * scG * 0.98f, p.y * H * scG + liftG, (0.5f - tG) * L);
+                    BevelBox(b, pos, new Vector3(0.032f, 0.024f, 0.095f), 0.008f, 2);
+                }
             }
 
             // ---- five inset gill slits raked behind the head ----
