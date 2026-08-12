@@ -894,7 +894,7 @@ namespace SpaceGame
                     float sc = CrSample(cts, csc, t);
                     return HalfPtR(0, t).y * H * sc + CrSample(cts, clf, t) * H;
                 };
-                Canopy(b, zC + halfLen, zC - halfLen, 0.34f, 0.18f, deckAt, 3, 1, 1);
+                Canopy(b, zC + halfLen, zC - halfLen, 0.40f, 0.26f, deckAt, 3, 1, 1);
             }
 
             // Glowing intake rows on the lower cheeks.
@@ -905,7 +905,7 @@ namespace SpaceGame
                     float t = 0.16f + i * 0.045f;
                     float sc = CrSample(cts, csc, t);
                     var c = new Vector3(side * W * sc * 0.68f, -0.20f * H, (0.5f - t) * L);
-                    BevelBox(b, c, new Vector3(0.04f, 0.028f, 0.065f), 2);
+                    BevelBox(b, c, new Vector3(0.05f, 0.035f, 0.085f), 2);
                 }
             }
 
@@ -938,7 +938,8 @@ namespace SpaceGame
                     float u0 = spotU[wi, sp];
                     float c0 = spotC[wi, sp];
                     float half = spotS[wi, sp];
-                    WingPlate(b, lead, leadT, trail, trailT, 0.12f, 0.020f, u0 - half, u0 + half, 0);
+                    var pS = WingSurfPt(lead, leadT, trail, trailT, 0.12f, 0.020f, u0, c0, 0.010f);
+                    Ball(b, pS, half * 1.1f, 0, 2, 7);
                 }
             }
 
