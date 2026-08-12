@@ -828,7 +828,8 @@ namespace SpaceGame
         {
             var g = RollH3(hash);
             var b = new Builder();
-            float L = g.L, W = g.W, H = g.H;
+            // horseshoe carapace: short, broad, and a tall domed crown
+            float L = g.L * 0.80f, W = g.W * 1.05f, H = g.H * 1.55f;
             const int rings = 96;
 
             var panelRng = Rng.Stream("claw3panels:" + hash);
@@ -921,27 +922,84 @@ namespace SpaceGame
                 Tube(b, auger, augerR, 8, 1, true);
             }
 
-            // Six stubby articulated legs under the skirt.
+            // ---- folded rim lip: the carapace edge gets real thickness ----
+            {
+                System.Func<int, float, Vector3> surf = (li, t) =>
+                {
+                    float sc = CrSample(cts, csc, t);
+                    var pt = LoopPtH(li, t);
+                    return new Vector3(pt.x * W * sc,
+                        pt.y * H * sc + CrSample(cts, clf, t) * H, (0.5f - t) * L);
+                };
+                const int rimSteps = 26;
+                for (int side = -1; side <= 1; side += 2)
+                {
+                    int li = side > 0 ? 5 : 19;
+                    for (int i = 0; i < rimSteps; i++)
+                    {
+                        float t0 = 0.06f + i * (0.86f / rimSteps);
+                        float t1 = t0 + 0.86f / rimSteps;
+                        var a = surf(li, t0);
+                        var b2 = surf(li, t1);
+                        var outA = a + new Vector3(side * 0.07f, 0.01f, 0f);
+                        var outB = b2 + new Vector3(side * 0.07f, 0.01f, 0f);
+                        var loA = outA + new Vector3(-side * 0.02f, -0.14f, 0f);
+                        var loB = outB + new Vector3(-side * 0.02f, -0.14f, 0f);
+                        b.QuadUDS(a, b2, outB, outA, 1);
+                        b.QuadUDS(outA, outB, loB, loA, 0);
+                        if (i % 4 == 0)
+                            Ball(b, outA + new Vector3(0f, -0.035f, 0f), 0.032f, 1, 2, 5);
+                    }
+                }
+            }
+
+            // Eight long articulated legs under the skirt.
             for (int side = -1; side <= 1; side += 2)
             {
-                for (int leg = 0; leg < 3; leg++)
+                for (int leg = 0; leg < 4; leg++)
                 {
-                    int li = (side < 0 ? 0 : 3) + leg;
-                    float tm = 0.34f + leg * 0.17f;
+                    int li = ((side < 0 ? 0 : 3) + leg) % 6;
+                    float tm = 0.26f + leg * 0.17f;
                     float sc = CrSample(cts, csc, tm);
-                    var mount = new Vector3(side * W * sc * 0.62f, -0.34f * H, (0.5f - tm) * L);
-                    var d1 = new Vector3(side * (0.85f + g.LegA[li]), -0.50f, -0.15f).normalized;
-                    float len1 = 0.55f * g.LegScale;
+                    var mount = new Vector3(side * W * sc * 0.62f, -0.30f * H, (0.5f - tm) * L);
+                    // thigh: reaches well out and forward from under the shell
+                    var d1 = new Vector3(side * (1.05f + g.LegA[li]), -0.34f, 0.30f - leg * 0.14f).normalized;
+                    float len1 = 1.05f * g.LegScale;
                     var j1 = mount + d1 * len1;
-                    Fairing(b, mount - d1 * 0.02f, d1, 0.115f, 0.20f, 0.10f, 8, 0);
-                    Tube(b, new[] { mount, j1 }, new[] { 0.10f, 0.085f }, 7, 0, false);
-                    Ball(b, j1, 0.115f, 1, 4, 8);
-                    var d2 = new Vector3(side * (0.35f + g.LegA[li]), -0.72f, 0.18f).normalized;
-                    float len2 = 0.85f * g.LegL[li] * g.LegScale;
+                    Fairing(b, mount - d1 * 0.02f, d1, 0.135f, 0.23f, 0.11f, 8, 0);
+                    var thigh = new Vector3[4];
+                    var thighR = new float[4];
+                    for (int k2 = 0; k2 < 4; k2++)
+                    {
+                        thigh[k2] = mount + d1 * (len1 * k2 / 3f);
+                        thighR[k2] = k2 % 2 == 0 ? 0.135f : 0.11f;
+                    }
+                    Tube(b, thigh, thighR, 8, 0, false);
+                    Ball(b, j1, 0.145f, 1, 4, 8);
+                    // shin: angles down and slightly back
+                    var d2 = new Vector3(side * (0.74f + g.LegA[li]), -0.74f, 0.20f).normalized;
+                    float len2 = 1.15f * g.LegL[li] * g.LegScale;
                     var j2 = j1 + d2 * len2;
-                    Tube(b, new[] { j1, j2 }, new[] { 0.09f, 0.06f }, 5, 1, false);
-                    Tube(b, new[] { j2, j2 + new Vector3(side * 0.06f, -0.28f, -0.05f) },
-                        new[] { 0.05f, 0.006f }, 5, 1, true);
+                    var shin = new Vector3[4];
+                    var shinR = new float[4];
+                    for (int k2 = 0; k2 < 4; k2++)
+                    {
+                        shin[k2] = j1 + d2 * (len2 * k2 / 3f);
+                        shinR[k2] = (k2 % 2 == 0 ? 0.118f : 0.094f) * (1f - k2 * 0.13f);
+                    }
+                    Tube(b, shin, shinR, 7, 1, false);
+                    Ball(b, j2, 0.085f, 0, 3, 7);
+                    // segmented claw tip
+                    var d3 = new Vector3(side * 0.20f, -0.90f, -0.10f).normalized;
+                    var claw = new Vector3[4];
+                    var clawR = new float[4];
+                    for (int k2 = 0; k2 < 4; k2++)
+                    {
+                        claw[k2] = j2 + d3 * (0.46f * g.LegScale * k2 / 3f);
+                        clawR[k2] = (k2 % 2 == 0 ? 0.062f : 0.046f) * (1f - k2 * 0.28f);
+                    }
+                    clawR[3] = 0.006f;
+                    Tube(b, claw, clawR, 6, 1, true);
                 }
             }
 
