@@ -137,6 +137,7 @@ namespace SpaceGame
                 || (s == 6 && p == 0) || (s == 5 && p == 2);
             if (chineSpan && tm > 0.20f && tm < 0.85f) return 1;
             if (belly && tm > 0.25f && tm < 0.85f) return 1;
+            if (lower && p >= 1 && tm > 0.35f && tm < 0.85f) return 1;
 
             // Patchwork panels: bone or gunmetal patches on the orange shell.
             if (upper || lower)
@@ -172,7 +173,8 @@ namespace SpaceGame
         {
             var g = RollU1(hash);
             var b = new Builder();
-            float L = g.L, W = g.W, H = g.H;
+            // squat urchin shell: shorter, wider, and much taller than rolled
+            float L = g.L * 0.80f, W = g.W * 1.12f, H = g.H * 1.30f;
             const int rings = 88;
 
             var panelRng = Rng.Stream("clawpanels:" + hash);
@@ -239,11 +241,18 @@ namespace SpaceGame
                     var basePt = new Vector3(Mathf.Cos(a) * W * sc, Mathf.Sin(a) * H * sc * 0.95f + lift, z);
                     // ellipsoid-ish outward normal, tilted away from midship
                     var dir = new Vector3(basePt.x / (W * W), (basePt.y - lift) / (H * H), (t - 0.5f) * -0.35f).normalized;
-                    float len = g.SpikeLen * spikeLen[row, i];
-                    Tube(b, new[] { basePt, basePt + dir * (len * 0.4f), basePt + dir * len },
-                        new[] { 0.085f, 0.045f, 0.006f }, 6, 1, true);
-                    Tube(b, new[] { basePt - dir * 0.02f, basePt + dir * 0.08f },
-                        new[] { 0.11f, 0.10f }, 6, 0, false);
+                    float len = g.SpikeLen * spikeLen[row, i] * 1.5f;
+                    var sp = new Vector3[6];
+                    var spr = new float[6];
+                    for (int k2 = 0; k2 < 6; k2++)
+                    {
+                        sp[k2] = basePt + dir * (len * k2 / 5f);
+                        spr[k2] = (k2 % 2 == 0 ? 0.095f : 0.070f) * (1f - k2 * 0.155f);
+                    }
+                    spr[5] = 0.006f;
+                    Tube(b, sp, spr, 6, 1, true);
+                    Tube(b, new[] { basePt - dir * 0.02f, basePt + dir * 0.09f },
+                        new[] { 0.12f, 0.11f }, 6, 0, false);
                 }
             }
 
@@ -261,12 +270,12 @@ namespace SpaceGame
                 for (int i = 0; i <= armSegs; i++)
                 {
                     path[i] = new Vector3(x, y, z0 + i * (g.DrillLen * 0.55f / armSegs));
-                    radii[i] = (i % 2 == 0 ? 0.17f : 0.135f) * scale;
+                    radii[i] = (i % 2 == 0 ? 0.22f : 0.165f) * scale;
                 }
                 Tube(b, path, radii, 10, 1, false);
                 for (int i = 1; i < armSegs; i += 2)
                     Tube(b, new[] { path[i] + Vector3.forward * 0.03f, path[i] - Vector3.forward * 0.03f },
-                        new[] { 0.18f * scale, 0.18f * scale }, 10, 0, false);
+                        new[] { 0.235f * scale, 0.235f * scale }, 10, 0, false);
                 // ridged auger: stepped cone to a point
                 var tipBase = path[armSegs];
                 var auger = new Vector3[5];
@@ -274,13 +283,13 @@ namespace SpaceGame
                 for (int i = 0; i < 5; i++)
                 {
                     auger[i] = tipBase + Vector3.forward * (i * (g.DrillLen * 0.45f / 4f));
-                    augerR[i] = (i % 2 == 0 ? 0.15f : 0.10f) * scale * (1f - i * 0.20f);
+                    augerR[i] = (i % 2 == 0 ? 0.19f : 0.125f) * scale * (1f - i * 0.20f);
                 }
                 augerR[4] = 0.008f;
                 Tube(b, auger, augerR, 8, 1, true);
                 // amber collar where the arm meets the shell
                 Tube(b, new[] { new Vector3(x, y, z0 - 0.02f), new Vector3(x, y, z0 + 0.06f) },
-                    new[] { 0.19f * scale, 0.19f * scale }, 10, 2, false);
+                    new[] { 0.245f * scale, 0.245f * scale }, 10, 2, false);
             }
 
             // Machinery greebles with amber running lights on the flanks.
