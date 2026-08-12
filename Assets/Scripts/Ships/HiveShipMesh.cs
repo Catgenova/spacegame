@@ -1164,6 +1164,15 @@ namespace SpaceGame
                 float deckY = HalfPt3(0, td).y * H * sc + lift;
                 var dc = new Vector3(0f, deckY + 0.01f, (0.5f - td) * L);
                 Tube(b, new[] { dc, dc + new Vector3(0f, 0.26f, 0f) }, new[] { 0.10f, 0.075f }, 8, 1, false);
+                Fairing(b, dc, Vector3.up, 0.115f, 0.19f, 0.05f, 8, 1);
+                // coil stack: five fat rings climbing the mast to the core
+                for (int r2 = 0; r2 < 5; r2++)
+                {
+                    float y = 0.05f + r2 * 0.048f;
+                    float rr = 0.115f - r2 * 0.008f;
+                    Tube(b, new[] { dc + new Vector3(0f, y - 0.014f, 0f), dc + new Vector3(0f, y + 0.014f, 0f) },
+                        new[] { rr, rr }, 8, r2 % 2 == 0 ? 0 : 3, false);
+                }
                 var core = dc + new Vector3(0f, 0.32f, 0f);
                 Ball(b, core, 0.10f, 2, 4, 8);
                 for (int k = 0; k < 4; k++)

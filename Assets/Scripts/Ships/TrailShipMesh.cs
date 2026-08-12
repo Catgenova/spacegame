@@ -852,6 +852,13 @@ namespace SpaceGame
                             new[] { g.PodR, g.PodR }, 8, (row + i) % 2 == 0 ? 0 : 1, true);
                         Tube(b, new[] { c + Vector3.forward * (g.PodLen * 0.5f), c + Vector3.forward * (g.PodLen * 0.5f + 0.05f) },
                             new[] { g.PodR * 0.75f, g.PodR * 0.62f }, 8, 2, true);
+                        // strap bands and a hull bracket so the pod reads mounted
+                        for (int st = -1; st <= 1; st += 2)
+                            Tube(b, new[] { c + Vector3.forward * (st * g.PodLen * 0.28f + 0.017f),
+                                    c + Vector3.forward * (st * g.PodLen * 0.28f - 0.017f) },
+                                new[] { g.PodR * 1.07f, g.PodR * 1.07f }, 8, 1, false);
+                        BevelBox(b, c + new Vector3(-side * g.PodR * 0.75f, 0f, 0f),
+                            new Vector3(g.PodR * 0.45f, g.PodR * 0.55f, g.PodLen * 0.30f), 0.02f, 1);
                     }
                 }
                 for (int i = 0; i < 2; i++)
