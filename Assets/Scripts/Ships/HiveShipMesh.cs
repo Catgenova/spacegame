@@ -560,48 +560,35 @@ namespace SpaceGame
             bool belly = s == 3 || s == 4;
             int side = s <= 3 ? 0 : 1;
 
-            // Black spine armor over the mid fuselage (the reference's back plate).
-            if (deck && tm > 0.26f && tm < 0.64f) return 1;
-
-            // Chine stripe.
-            bool chineSpan = (s == 1 && p == 2) || (s == 2 && p == 0)
-                || (s == 6 && p == 0) || (s == 5 && p == 2);
-            if (chineSpan && tm > 0.28f && tm < 0.72f) return 1;
-
-            // Flank patchwork over the mid/rear fuselage.
-            if (upper || lower)
+            // Gold blade nose with a black chin panel and a side inlay slash.
+            if (tm < 0.24f)
             {
-                float skew = (upper ? 0f : 0.045f) + p * 0.018f;
-                float ft = tm - 0.30f - skew;
-                if (ft >= 0f && ft < 0.38f)
+                if (belly && tm > 0.06f) return 1;
+                if (lower && p == 2 && tm > 0.08f) return 1;
+                if (microHit) return 1;
+                return 0;
+            }
+
+            // Aft of the canopy the fuselage runs black; gold saddle armor
+            // plates cap the spine and upper flanks (cells vary per hash).
+            if (deck || (upper && p == 0))
+            {
+                float ft = tm - 0.30f;
+                if (ft >= 0f)
                 {
-                    int cell = Mathf.Min(2, (int)(ft / 0.127f));
-                    int band = upper ? 0 : 1;
-                    if (flankCell[side * 6 + band * 3 + cell]) return 1;
+                    int cell = Mathf.Min(2, (int)(ft / 0.18f));
+                    float fu = ft - cell * 0.18f;
+                    bool goldPlate = cell == 1 || flankCell[side * 6 + cell];
+                    if (goldPlate && fu > 0.025f && fu < 0.155f) return 0;
                 }
             }
 
-            // Exposed machinery band under the mid hull.
-            if (belly && tm > 0.38f && tm < 0.62f) return 1;
+            // Gold stern collar ahead of the drum bulkhead.
+            if (tm > 0.90f && tm < 0.955f) return 0;
 
-            // Banding families.
-            if (g.BandMode == 1 && tm > 0.78f && tm < 0.96f)
-            {
-                float u = (tm - 0.78f) / 0.18f;
-                if ((int)(u * g.BandCount * 2 + g.BandPhase * 2f) % 2 == 0) return 1;
-            }
-            else if (g.BandMode == 2 && tm > 0.09f && tm < 0.22f)
-            {
-                float u = (tm - 0.09f) / 0.13f;
-                if ((int)(u * g.BandCount * 2.5f + g.BandPhase * 2f) % 2 == 0) return 1;
-            }
-            else if (g.BandMode == 3 && deck && p == 0 && tm > 0.70f && tm < 0.95f)
-            {
-                return 1;
-            }
-
-            if (microHit && tm > 0.12f && tm < 0.92f) return 1;
-            return 0;
+            // Gold machinery flecks in the black.
+            if (microHit && tm > 0.28f) return 0;
+            return 1;
         }
 
         // Swept blade wing (both C2 pairs): volumetric loft with a gentle
@@ -664,23 +651,30 @@ namespace SpaceGame
                     float sc = CrSample(cts, csc, t);
                     return HalfPt2(0, t).y * H * sc + CrSample(cts, clf, t) * H;
                 };
-                Canopy(b, zC + halfLen, zC - halfLen, 0.26f, 0.24f, deckAt, 2, 1, 1);
+                Canopy(b, zC + halfLen * 1.12f, zC - halfLen * 1.05f, 0.34f, 0.30f, deckAt, 2, 1, 1);
             }
 
             // Twin forward cannons — the two turret hardpoints, made visible.
             for (int side = -1; side <= 1; side += 2)
             {
                 float x = side * W * g.CannonSpread;
-                float y = -0.06f * H;
+                float y = -0.14f * H;
                 var housing0 = new Vector3(x, y, (0.5f - 0.22f) * L);
                 var housing1 = new Vector3(x, y, (0.5f - 0.02f) * L);
                 Tube(b, new[] { housing0, housing1 }, new[] { 0.085f, 0.075f }, 8, 1, false);
                 var muzzleBase = new Vector3(x, y, 0.5f * L + g.Nose * 0.4f);
-                var muzzleEnd = new Vector3(x, y, 0.5f * L + g.Nose * 0.4f + g.CannonLen);
-                Tube(b, new[] { housing1, muzzleBase, muzzleEnd }, new[] { 0.055f, 0.045f, 0.035f }, 8, 1, false);
-                Tube(b, new[] { muzzleEnd, muzzleEnd + Vector3.forward * 0.14f }, new[] { 0.055f, 0.05f }, 8, 1, true);
+                var muzzleEnd = new Vector3(x, y, 0.5f * L + g.Nose * 0.4f + g.CannonLen * 1.15f);
+                Tube(b, new[] { housing1, muzzleBase, muzzleEnd }, new[] { 0.055f, 0.045f, 0.030f }, 8, 1, false);
+                Tube(b, new[] { muzzleEnd, muzzleEnd + Vector3.forward * 0.14f }, new[] { 0.05f, 0.045f }, 8, 1, true);
                 Tube(b, new[] { housing1 + Vector3.forward * -0.04f, housing1 + Vector3.forward * 0.04f },
                     new[] { 0.09f, 0.09f }, 8, 0, false);
+                // segmented barrel collars
+                for (int cl = 0; cl < 2; cl++)
+                {
+                    var cc = Vector3.Lerp(muzzleBase, muzzleEnd, 0.22f + cl * 0.30f);
+                    Tube(b, new[] { cc + Vector3.forward * 0.05f, cc - Vector3.forward * 0.05f },
+                        new[] { 0.058f, 0.058f }, 8, 0, false);
+                }
             }
 
             // Upper wing pair: big blades raked up and back.
@@ -698,31 +692,31 @@ namespace SpaceGame
             for (int side = -1; side <= 1; side += 2)
             {
                 float s = side;
-                var rootF = new Vector3(s * W * 0.80f, -H * 0.20f, (0.5f - 0.62f) * L);
-                var rootB = new Vector3(s * W * 0.75f, -H * 0.25f, (0.5f - 0.80f) * L);
-                var tipB = rootB + new Vector3(s * g.WingLowSpan, -g.WingLowSpan * g.WingLowDrop, -g.WingLowSweep);
-                var tipF = rootF + new Vector3(s * g.WingLowSpan * 0.85f, -g.WingLowSpan * g.WingLowDrop * 0.9f, -g.WingLowSweep * 0.5f);
+                var rootF = new Vector3(s * W * 0.85f, -H * 0.08f, (0.5f - 0.58f) * L);
+                var rootB = new Vector3(s * W * 0.80f, -H * 0.12f, (0.5f - 0.78f) * L);
+                var tipB = rootB + new Vector3(s * g.WingLowSpan, -g.WingLowSpan * g.WingLowDrop * 0.45f, -g.WingLowSweep);
+                var tipF = rootF + new Vector3(s * g.WingLowSpan * 0.85f, -g.WingLowSpan * g.WingLowDrop * 0.40f, -g.WingLowSweep * 0.5f);
                 BladeWing(b, rootF, rootB, tipB, tipF, side < 0);
             }
 
             // Twin segmented engine drums with collars and amber discs.
             for (int side = -1; side <= 1; side += 2)
             {
-                var ec = new Vector3(side * W * 0.44f, -0.02f * H, -0.5f * L + 0.35f);
+                var ec = new Vector3(side * W * 0.60f, 0.06f * H, -0.5f * L + 0.45f);
                 int n = g.EngineSegs;
                 var path = new Vector3[n + 1];
                 var radii = new float[n + 1];
                 for (int i = 0; i <= n; i++)
                 {
-                    path[i] = ec + Vector3.forward * (-i * 0.34f);
-                    radii[i] = i % 2 == 0 ? 0.42f : 0.35f;
+                    path[i] = ec + Vector3.forward * (-i * 0.38f);
+                    radii[i] = i % 2 == 0 ? 0.48f : 0.40f;
                 }
                 Tube(b, path, radii, 16, 1, false);
                 for (int i = 1; i < n; i += 2)
-                    Tube(b, new[] { path[i] + Vector3.forward * 0.04f, path[i] - Vector3.forward * 0.04f },
-                        new[] { 0.44f, 0.44f }, 16, 0, false);
+                    Tube(b, new[] { path[i] + Vector3.forward * 0.045f, path[i] - Vector3.forward * 0.045f },
+                        new[] { 0.505f, 0.505f }, 16, 0, false);
                 var gc = path[n] + Vector3.forward * -0.03f;
-                Nozzle(b, gc, Vector3.back, 0.26f * 1.55f, 0.26f * 1.30f, 16, 1, 2);
+                Nozzle(b, gc, Vector3.back, 0.30f * 1.55f, 0.30f * 1.30f, 16, 1, 2);
             }
 
             // Twin ventral strakes.
