@@ -434,6 +434,47 @@ namespace SpaceGame
             b.QuadUDS(p011, p001, p000, p010, mat);
         }
 
+        /// <summary>Broad armored plate fin: a wide slab tapering from a
+        /// full-chord root to a needle tip, with real thickness and beveled
+        /// fore/aft edges. The cross-section is a flattened hexagon so the
+        /// top and bottom read as separate plates with an edge band between.
+        /// Built for raptor plumage, where a thin lofted blade reads as a
+        /// quill instead of armor.</summary>
+        public static void PlateFin(Builder b, Vector3 root, Vector3 spanDir, Vector3 chordDir,
+            float span, float rootChord, float tipChord, float thick,
+            int topMat, int botMat, int edgeMat)
+        {
+            spanDir = spanDir.normalized;
+            chordDir = (chordDir - spanDir * Vector3.Dot(chordDir, spanDir)).normalized;
+            var upDir = Vector3.Cross(spanDir, chordDir).normalized;
+            if (upDir.y < 0f) upDir = -upDir;
+            const int st = 6;
+            var ring = new Vector3[st][];
+            for (int i = 0; i < st; i++)
+            {
+                float u = i / (float)(st - 1);
+                var c = root + spanDir * (span * u);
+                float ch = Mathf.Lerp(rootChord, tipChord, u) * 0.5f;
+                float th = thick * (1f - u * 0.88f);
+                ring[i] = new[]
+                {
+                    c + chordDir * ch,
+                    c + chordDir * (ch * 0.45f) + upDir * th,
+                    c - chordDir * (ch * 0.55f) + upDir * (th * 0.80f),
+                    c - chordDir * ch,
+                    c - chordDir * (ch * 0.55f) - upDir * (th * 0.80f),
+                    c + chordDir * (ch * 0.45f) - upDir * th,
+                };
+            }
+            int[] mats = { edgeMat, topMat, topMat, edgeMat, botMat, botMat };
+            for (int i = 0; i < st - 1; i++)
+                for (int k = 0; k < 6; k++)
+                    b.QuadUDS(ring[i][k], ring[i][(k + 1) % 6],
+                        ring[i + 1][(k + 1) % 6], ring[i + 1][k], mats[k]);
+            for (int k = 1; k < 5; k++)
+                b.TriUDS(ring[0][0], ring[0][k], ring[0][k + 1], edgeMat);
+        }
+
         /// <summary>Fairing skirt: one ring of quads flaring from a snug
         /// collar (radius r0 at the attachment, height h along axis) down
         /// to a wide base (radius r1 at the hull surface). Kills the

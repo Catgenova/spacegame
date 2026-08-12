@@ -433,34 +433,56 @@ namespace SpaceGame
                 b.TriUDS(a, apex, c, r2 % 2 == 0 ? 1 : 0);
             }
 
-            // Layered feather wings: three primaries over two coverts.
+            // Layered plate plumage: three broad primaries raked up and back
+            // over two lower coverts. Each is a wide armored slab, not a quill.
             for (int side = -1; side <= 1; side += 2)
             {
                 float s = side;
                 for (int f = 0; f < 3; f++)
                 {
-                    float t0 = 0.18f + f * 0.11f;
-                    float span = g.FeatherSpan * (1.24f - f * 0.16f);
-                    float sweep = g.FeatherSweep * (1.55f - f * 0.10f);
+                    float t0 = 0.20f + f * 0.10f;
+                    float span = g.FeatherSpan * (1.16f - f * 0.13f);
                     float liftW = CrSample(cts, clf, t0) * H;
-                    var rootF2 = new Vector3(s * W * 0.42f, H * (0.30f - f * 0.06f) + liftW, zAt(t0));
-                    var rootB2 = rootF2 + new Vector3(-s * 0.03f, -0.02f, -0.55f);
-                    var tipF2 = rootF2 + new Vector3(s * span, span * g.FeatherRake, -sweep);
-                    var tipB2 = rootB2 + new Vector3(s * span * 0.94f, span * g.FeatherRake * 0.9f, -sweep * 1.06f);
-                    Feather(b, rootF2, rootB2, tipF2, tipB2, side < 0);
+                    var rt = new Vector3(s * W * 0.40f, H * (0.34f - f * 0.11f) + liftW, zAt(t0));
+                    var spanD = new Vector3(s, 0.34f - f * 0.07f,
+                        -(g.FeatherSweep / g.FeatherSpan) * (1.05f + f * 0.12f));
+                    PlateFin(b, rt, spanD, Vector3.forward, span,
+                        1.60f - f * 0.17f, 0.10f, 0.105f, 0, f % 2 == 0 ? 0 : 1, 1);
+                    // root shoulder block bridging plate to hull
+                    BevelBox(b, rt + spanD.normalized * 0.10f,
+                        new Vector3(0.15f, 0.10f, 0.34f), 0.03f, 1);
                 }
                 for (int f = 0; f < 2; f++)
                 {
-                    float t0 = 0.34f + f * 0.11f;
+                    float t0 = 0.42f + f * 0.11f;
                     float span = g.FeatherSpan * (0.80f - f * 0.14f);
-                    float sweep = g.FeatherSweep * (1.20f - f * 0.10f);
                     float liftW = CrSample(cts, clf, t0) * H;
-                    var rootF2 = new Vector3(s * W * 0.50f, -H * 0.05f + liftW, zAt(t0));
-                    var rootB2 = rootF2 + new Vector3(-s * 0.03f, -0.02f, -0.45f);
-                    var tipF2 = rootF2 + new Vector3(s * span, -span * 0.08f, -sweep);
-                    var tipB2 = rootB2 + new Vector3(s * span * 0.94f, -span * 0.08f, -sweep * 1.06f);
-                    Feather(b, rootF2, rootB2, tipF2, tipB2, side < 0);
+                    var rt = new Vector3(s * W * 0.52f, -H * 0.06f + liftW, zAt(t0));
+                    var spanD = new Vector3(s, -0.06f - f * 0.05f,
+                        -(g.FeatherSweep / g.FeatherSpan) * (0.80f + f * 0.10f));
+                    PlateFin(b, rt, spanD, Vector3.forward, span,
+                        1.30f - f * 0.20f, 0.09f, 0.090f, 0, 0, 1);
                 }
+            }
+
+            // ---- twin sensor pods with teal lenses on the mid deck ----
+            for (int side = -1; side <= 1; side += 2)
+            {
+                float tP = 0.44f;
+                float scP = CrSample(cts, csc, tP);
+                float liftP = CrSample(cts, clf, tP) * H;
+                var pc = new Vector3(side * W * scP * 0.52f, 0.30f * H + liftP, zAt(tP));
+                var fwd = new Vector3(side * 0.10f, 0.02f, 1f).normalized;
+                BevelBox(b, pc, new Vector3(0.17f, 0.16f, 0.40f), 0.04f, 0);
+                Tube(b, new[] { pc + fwd * 0.34f, pc + fwd * 0.46f },
+                    new[] { 0.15f, 0.145f }, 10, 1, false);
+                // recessed teal lens looking forward
+                Tube(b, new[] { pc + fwd * 0.46f, pc + fwd * 0.50f },
+                    new[] { 0.125f, 0.115f }, 10, 2, true);
+                for (int r2 = 0; r2 < 2; r2++)
+                    Tube(b, new[] { pc + fwd * (0.02f + r2 * 0.18f) - fwd * 0.03f,
+                            pc + fwd * (0.02f + r2 * 0.18f) + fwd * 0.03f },
+                        new[] { 0.185f, 0.185f }, 10, 1, false);
             }
 
             // Fanned tail feathers on the lean tail, plus a center vane.
@@ -471,11 +493,10 @@ namespace SpaceGame
                 {
                     float spread = 0.35f + f * 0.45f;
                     float liftT = CrSample(cts, clf, 0.86f) * H;
-                    var rootF2 = new Vector3(s * W * 0.16f, liftT + 0.05f * H, zAt(0.86f));
-                    var rootB2 = rootF2 + new Vector3(0f, -0.02f, -0.40f);
-                    var tipF2 = rootF2 + new Vector3(s * g.TailSpan * spread, 0.08f, -g.TailSweep);
-                    var tipB2 = rootB2 + new Vector3(s * g.TailSpan * spread * 0.94f, 0.06f, -g.TailSweep * 1.08f);
-                    Feather(b, rootF2, rootB2, tipF2, tipB2, side < 0);
+                    var rt = new Vector3(s * W * 0.16f, liftT + 0.05f * H, zAt(0.86f));
+                    var spanD = new Vector3(s * spread, 0.10f, -g.TailSweep / g.TailSpan);
+                    PlateFin(b, rt, spanD, Vector3.forward, g.TailSpan * (0.55f + spread * 0.55f),
+                        1.05f, 0.08f, 0.085f, 0, 0, 1);
                 }
             }
             {
