@@ -40,6 +40,7 @@ namespace SpaceGame
 
         float _npcTimer;
         float _saveTimer;
+        float _convoyTimer;
 
         public StarSystemData System => Universe.Systems[SystemId];
         public Celestial Station => StationId != null ? System.Find(StationId) : null;
@@ -92,6 +93,19 @@ namespace SpaceGame
             _saveTimer += dt;
             if (_saveTimer > 20f) { _saveTimer = 0f; SaveSystem.Save(this); }
 
+            // Rush contracts tick everywhere — even while docked.
+            if (ActiveMission != null && ActiveMission.TimeLeft > 0f)
+            {
+                ActiveMission.TimeLeft -= dt;
+                if (ActiveMission.TimeLeft <= 0f)
+                {
+                    Log("Mission failed — the deadline expired: " + ActiveMission.Title + ".");
+                    if (ActiveMission.Type == "courier") Player.ExtraCargo = 0f;
+                    ActiveMission = null;
+                    SaveSystem.Save(this);
+                }
+            }
+
             if (Docked)
             {
                 Locked = false;
@@ -101,6 +115,7 @@ namespace SpaceGame
 
             UpdateLock(dt);
             UpdateNpcSpawns(dt);
+            UpdateConvoys(dt);
             UpdateBeltRespawn(dt);
         }
 
@@ -138,6 +153,7 @@ namespace SpaceGame
             Selected = null;
             View.LoadSystem(System);
             _npcTimer = 5f;
+            _convoyTimer = 60f + Random.value * 120f;
             SpawnInitialNpcs();
         }
 
@@ -257,11 +273,19 @@ namespace SpaceGame
             Log(npc.Def.Name + " destroyed. Bounty: " + GameData.FmtCredits(npc.Def.Bounty) + ".");
             if (Selected == npc) Selected = null;
 
+            // Faction standing.
+            string tierBefore = GameData.StandingTier(Player.Standing);
+            Player.Standing = Mathf.Min(10f, Player.Standing + npc.Def.StandingGain);
+            string tierAfter = GameData.StandingTier(Player.Standing);
+            if (tierAfter != tierBefore)
+                Log("Frontier Authority standing increased: you are now " + tierAfter
+                    + ". Better mission pay and cheaper repairs unlocked.");
+
             // Leave a wreck, maybe with salvage.
             var loot = new List<string>();
             if (GameData.Loot.TryGetValue(npc.Def.Id, out var table) && Random.value < table.Chance)
             {
-                int count = 1 + (table.MaxItems > 1 && Random.value < 0.5f ? 1 : 0);
+                int count = Random.Range(1, table.MaxItems + 1);
                 for (int i = 0; i < count; i++)
                     loot.Add(table.Pool[Random.Range(0, table.Pool.Length)]);
             }
@@ -278,6 +302,21 @@ namespace SpaceGame
                     + (m.KillsDone >= m.KillsRequired ? " — return to the agent!" : "."));
                 SaveSystem.Save(this);
             }
+            else if (m != null && m.Type == "convoykill" && npc.Def.Id == "convoyhauler"
+                && m.KillsDone < 1)
+            {
+                m.KillsDone = 1;
+                Log("Mission: convoy hauler destroyed — report to the agent!");
+                SaveSystem.Save(this);
+            }
+        }
+
+        /// <summary>A pirate escaped by warping out — no bounty, no wreck.</summary>
+        public void NpcFled(NpcPirate npc)
+        {
+            if (Selected == npc) Selected = null;
+            Log(npc.Def.Name + " warped away!");
+            View.RemoveObject(npc);
         }
 
         public const float LootRange = 40f;
@@ -305,6 +344,14 @@ namespace SpaceGame
                 Player.CargoModules.Add(w.Loot[i]);
                 Log("Salvaged " + GameData.Modules[w.Loot[i]].Name + ".");
                 w.Loot.RemoveAt(i);
+
+                var m = ActiveMission;
+                if (m != null && m.Type == "salvage" && m.SalvageDone < m.SalvageRequired)
+                {
+                    m.SalvageDone++;
+                    Log("Mission: " + m.SalvageDone + "/" + m.SalvageRequired + " salvage recovered"
+                        + (m.SalvageDone >= m.SalvageRequired ? " — report to the agent!" : "."));
+                }
             }
             if (w.Loot.Count == 0)
             {
@@ -342,6 +389,40 @@ namespace SpaceGame
             var offset = Random.insideUnitSphere * 800f;
             offset.y *= 0.2f;
             View.SpawnNpc(type, belt.Pos + offset + Vector3.one * 300f);
+        }
+
+        /// <summary>
+        /// Pirate convoys run the belts of low-sec systems: a fat hauler with a
+        /// big bounty and guaranteed loot, plus two escorts. Hunting one is the
+        /// finale of "The Abyss Job".
+        /// </summary>
+        void UpdateConvoys(float dt)
+        {
+            if (System.Sec > 0.5f) return;
+            _convoyTimer -= dt;
+            if (_convoyTimer > 0f) return;
+            bool hunting = ActiveMission != null && ActiveMission.Type == "convoykill";
+            _convoyTimer = (hunting ? 120f : 240f) + Random.value * 160f;
+            if (View.Npcs.Exists(n => n.Def.Id == "convoyhauler")) return;
+            if (!hunting && Random.value > 0.7f) return;
+            SpawnConvoy();
+        }
+
+        void SpawnConvoy()
+        {
+            var belts = System.Celestials.FindAll(c => c.Kind == ObjKind.Belt);
+            if (belts.Count == 0) return;
+            var belt = belts[Random.Range(0, belts.Count)];
+            var basePos = belt.Pos + new Vector3(400f, 40f, 250f);
+            View.SpawnNpc("convoyhauler", basePos);
+            string escortType = System.Sec <= 0.1f ? "overlord" : "marauder";
+            for (int i = 0; i < 2; i++)
+            {
+                var off = Random.insideUnitSphere * 120f;
+                off.y *= 0.2f;
+                View.SpawnNpc(escortType, basePos + off);
+            }
+            Log("A pirate convoy has been sighted near " + belt.Name + "!");
         }
 
         void UpdateNpcSpawns(float dt)
@@ -479,7 +560,8 @@ namespace SpaceGame
         {
             var st = Player.ComputeStats();
             float missing = (st.MaxArmor - Player.Armor) + (st.MaxHull - Player.HullHp);
-            return (long)Mathf.Round(missing * 2f);
+            float discount = 1f - GameData.StandingRepairDiscount(Player.Standing);
+            return (long)Mathf.Round(missing * 2f * discount);
         }
 
         public void Repair()
@@ -498,12 +580,17 @@ namespace SpaceGame
 
         // ---------- missions ----------
 
+        public bool ArcAvailable()
+            => !Player.ArcDone && Player.Standing >= 1f;
+
         public List<Mission> StationOffers()
         {
-            string key = StationId + "#" + MissionCounter;
+            string key = StationId + "#" + MissionCounter + "#" + ArcAvailable();
             if (_offerKey != key)
             {
                 _offerCache = Missions.GenerateOffers(Universe, StationId, SystemId, MissionCounter);
+                if (ArcAvailable())
+                    _offerCache.Insert(0, Missions.BuildArcStage(Universe, 1, StationId, SystemId));
                 _offerKey = key;
             }
             return _offerCache;
@@ -543,6 +630,10 @@ namespace SpaceGame
                         && Player.Cargo.TryGetValue(m.OreId, out float have) && have >= m.OreAmount;
                 case "courier":
                     return StationId == m.DestStationId;
+                case "salvage":
+                    return StationId == m.OriginStationId && m.SalvageDone >= m.SalvageRequired;
+                case "convoykill":
+                    return StationId == m.OriginStationId && m.KillsDone >= 1;
                 default:
                     return false;
             }
@@ -561,10 +652,28 @@ namespace SpaceGame
             {
                 Player.ExtraCargo = 0f;
             }
-            Player.Credits += m.Reward;
+
+            long reward = (long)(m.Reward * (1f + GameData.StandingRewardBonus(Player.Standing)));
+            Player.Credits += reward;
             ActiveMission = null;
             MissionCounter++;
-            Log("Mission complete! Reward: " + GameData.FmtCredits(m.Reward) + ".");
+            Log("Mission complete! Reward: " + GameData.FmtCredits(reward)
+                + (reward > m.Reward ? " (incl. " + GameData.StandingTier(Player.Standing) + " bonus)" : "") + ".");
+
+            // Story arc: completing a stage hands you the next one on the spot.
+            if (m.ArcStage == 1 || m.ArcStage == 2)
+            {
+                ActiveMission = Missions.BuildArcStage(Universe, m.ArcStage + 1,
+                    m.OriginStationId, m.OriginSystemId);
+                Log("The agent has more for you — new mission: " + ActiveMission.Title + ".");
+            }
+            else if (m.ArcStage == 3)
+            {
+                Player.ArcDone = true;
+                Player.Standing = Mathf.Min(10f, Player.Standing + 1f);
+                Log("The Abyss Job is settled. Frontier Authority standing greatly increased ("
+                    + GameData.StandingTier(Player.Standing) + ").");
+            }
             SaveSystem.Save(this);
         }
 

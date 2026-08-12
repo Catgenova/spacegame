@@ -132,7 +132,8 @@ namespace SpaceGame
                 sys.Name.ToUpper() + "   <sec " + sec + ">" + (GM.Docked ? "   [DOCKED: " + GM.Station.Name + "]" : ""),
                 _titleStyle);
             var right = new GUIStyle(_titleStyle) { alignment = TextAnchor.MiddleRight };
-            GUI.Label(new Rect(Screen.width - 320, 4, 300, 20), GameData.FmtCredits(GM.Player.Credits), right);
+            GUI.Label(new Rect(Screen.width - 460, 4, 440, 20),
+                GameData.StandingTier(GM.Player.Standing) + "  ·  " + GameData.FmtCredits(GM.Player.Credits), right);
         }
 
         void DrawHud()
@@ -534,30 +535,7 @@ namespace SpaceGame
             }
         }
 
-        string MissionProgress(Mission m)
-        {
-            switch (m.Type)
-            {
-                case "bounty":
-                    return m.KillsDone + "/" + m.KillsRequired + " pirates in "
-                        + GM.Universe.Systems[m.TargetSystemId].Name
-                        + (m.KillsDone >= m.KillsRequired
-                            ? " — return to " + GM.StationName(m.OriginSystemId, m.OriginStationId)
-                            : "");
-                case "mining":
-                {
-                    GM.Player.Cargo.TryGetValue(m.OreId, out float have);
-                    return Mathf.Round(Mathf.Min(have, m.OreAmount)) + "/" + m.OreAmount + " m3 "
-                        + GameData.Ores[m.OreId].Name + " — deliver to "
-                        + GM.StationName(m.OriginSystemId, m.OriginStationId);
-                }
-                case "courier":
-                    return "Deliver package to " + GM.StationName(m.DestSystemId, m.DestStationId)
-                        + " in " + GM.Universe.Systems[m.DestSystemId].Name;
-                default:
-                    return "";
-            }
-        }
+        string MissionProgress(Mission m) => Missions.ProgressText(GM, m);
 
         void DrawMissionTracker()
         {

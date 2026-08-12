@@ -72,6 +72,18 @@ namespace SpaceGame
 
         public static void BuildNpcVisual(NpcDef def, Transform root)
         {
+            if (def.Id == "convoyhauler")
+            {
+                // A fat armored box with engine blocks — loot on legs.
+                var plating = new Color(0.45f, 0.28f, 0.22f);
+                var glow = new Color(1f, 0.5f, 0.25f);
+                Part(root, PrimitiveType.Cube, Vector3.zero, new Vector3(5f, 4f, 9f), Vector3.zero, plating);
+                Part(root, PrimitiveType.Cube, new Vector3(0f, 0.8f, 4.8f), new Vector3(2.6f, 2f, 1.6f), Vector3.zero, new Color(0.6f, 0.38f, 0.3f));
+                Part(root, PrimitiveType.Cube, new Vector3(-1.8f, -1f, -5.2f), new Vector3(1.4f, 1.4f, 1f), Vector3.zero, glow, true);
+                Part(root, PrimitiveType.Cube, new Vector3(1.8f, -1f, -5.2f), new Vector3(1.4f, 1.4f, 1f), Vector3.zero, glow, true);
+                return;
+            }
+
             float s = def.Id == "overlord" ? 2.1f : def.Id == "marauder" ? 1.45f : 1f;
             var body = def.Id == "overlord" ? new Color(0.55f, 0.1f, 0.14f) : new Color(0.75f, 0.22f, 0.2f);
             var accent = new Color(1f, 0.35f, 0.25f);

@@ -518,7 +518,8 @@ namespace SpaceGame
 
             _sysLabel.text = gm.System.Name.ToUpper() + "   <sec " + gm.System.Sec.ToString("0.0") + ">"
                 + (docked ? "   [DOCKED: " + gm.Station.Name + "]" : "");
-            _creditsLabel.text = GameData.FmtCredits(gm.Player.Credits);
+            _creditsLabel.text = GameData.StandingTier(gm.Player.Standing)
+                + "  ·  " + GameData.FmtCredits(gm.Player.Credits);
 
             var show = docked ? DisplayStyle.None : DisplayStyle.Flex;
             _hudPanel.style.display = show;
@@ -532,7 +533,7 @@ namespace SpaceGame
             if (m != null)
             {
                 _missionTitle.text = "MISSION: " + m.Title;
-                _missionProgress.text = MissionProgress(gm, m);
+                _missionProgress.text = Missions.ProgressText(gm, m);
             }
 
             if (!docked)
@@ -795,30 +796,6 @@ namespace SpaceGame
 
         // ---------- station ----------
 
-        string MissionProgress(GameManager gm, Mission m)
-        {
-            switch (m.Type)
-            {
-                case "bounty":
-                    return m.KillsDone + "/" + m.KillsRequired + " pirates in "
-                        + gm.Universe.Systems[m.TargetSystemId].Name
-                        + (m.KillsDone >= m.KillsRequired
-                            ? " — return to " + gm.StationName(m.OriginSystemId, m.OriginStationId) : "");
-                case "mining":
-                {
-                    gm.Player.Cargo.TryGetValue(m.OreId, out float have);
-                    return Mathf.Round(Mathf.Min(have, m.OreAmount)) + "/" + m.OreAmount + " m3 "
-                        + GameData.Ores[m.OreId].Name + " — deliver to "
-                        + gm.StationName(m.OriginSystemId, m.OriginStationId);
-                }
-                case "courier":
-                    return "Deliver package to " + gm.StationName(m.DestSystemId, m.DestStationId)
-                        + " in " + gm.Universe.Systems[m.DestSystemId].Name;
-                default:
-                    return "";
-            }
-        }
-
         void RefreshStationTab()
         {
             var gm = GM;
@@ -981,7 +958,7 @@ namespace SpaceGame
                 _stationContent.Add(Section("ACTIVE MISSION"));
                 _stationContent.Add(Text(m.Title, 12, UiSkin.TextMain, true));
                 _stationContent.Add(WrapText(m.Desc, UiSkin.TextDim));
-                _stationContent.Add(WrapText("Progress: " + MissionProgress(gm, m), UiSkin.TextDim));
+                _stationContent.Add(WrapText("Progress: " + Missions.ProgressText(gm, m), UiSkin.TextDim));
                 _stationContent.Add(Text("Reward: " + GameData.FmtCredits(m.Reward), 11, UiSkin.AccentWarm));
                 var row = Row();
                 if (gm.CanTurnInMission())

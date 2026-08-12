@@ -16,10 +16,14 @@ namespace SpaceGame
         float _cycleT;
         float _lockT;      // pirates need a moment to lock you too
         float _fireFlash;  // seconds the fire beam stays visible
+        bool _fleeing;
+        float _fleeT;
+        float _idleT;      // time spent with no target — bored pirates roam belts
         LineRenderer _beam;
 
-        const float Inertia = 1.4f;   // seconds to converge on desired velocity
-        const float LockDelay = 1.5f; // seconds before a pirate can open fire
+        const float Inertia = 1.4f;    // seconds to converge on desired velocity
+        const float LockDelay = 1.5f;  // seconds before a pirate can open fire
+        const float FleeWarpTime = 5f; // seconds of running before the warp-out
 
         public void Init(NpcDef def)
         {
@@ -50,8 +54,31 @@ namespace SpaceGame
             bool playerVulnerable = !gm.Docked && !gm.Ship.InWarp;
             float d = Vector3.Distance(transform.position, gm.Ship.transform.position);
 
+            // Badly damaged pirates cut and run (overlords never do).
+            if (!_fleeing && !Def.NeverFlees && Hull < Def.Hull * 0.3f)
+            {
+                _fleeing = true;
+                if (d < Def.Engage) gm.Log(Def.Name + " is breaking off and aligning out!");
+            }
+            if (_fleeing)
+            {
+                Vector3 away = transform.position - gm.Ship.transform.position;
+                desired = (away.sqrMagnitude > 1f ? away.normalized : transform.forward)
+                    * Def.Speed * 1.25f;
+                _fleeT += dt;
+                float k2 = Mathf.Min(1f, dt / Inertia);
+                _vel += (desired - _vel) * k2;
+                transform.position += _vel * dt;
+                if (_vel.sqrMagnitude > 0.01f)
+                    transform.rotation = Quaternion.LookRotation(_vel.normalized, Vector3.up);
+                if (_beam.enabled) _beam.enabled = false;
+                if (_fleeT >= FleeWarpTime) gm.NpcFled(this);
+                return;
+            }
+
             if (playerVulnerable && d < Def.Engage)
             {
+                _idleT = 0f;
                 Vector3 toPlayer = gm.Ship.transform.position - transform.position;
                 if (d > Def.Orbit * 1.25f)
                 {
@@ -82,6 +109,22 @@ namespace SpaceGame
             {
                 _cycleT = 0f;
                 _lockT = 0f;
+
+                // Bored pirates occasionally relocate to another belt.
+                _idleT += dt;
+                if (_idleT > 25f && Random.value < dt / 20f)
+                {
+                    _idleT = 0f;
+                    var belts = gm.System.Celestials.FindAll(c => c.Kind == ObjKind.Belt);
+                    if (belts.Count > 0)
+                    {
+                        var belt = belts[Random.Range(0, belts.Count)];
+                        var off = Random.insideUnitSphere * 400f;
+                        off.y *= 0.2f;
+                        transform.position = belt.Pos + off;
+                        _vel = Vector3.zero;
+                    }
+                }
             }
 
             if (_fireFlash > 0f)

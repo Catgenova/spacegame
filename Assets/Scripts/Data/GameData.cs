@@ -56,8 +56,10 @@ namespace SpaceGame
         public string Id, Name;
         public float Shield, Armor, Hull;
         public float Dmg, Cycle, Range, Engage, Speed, Orbit;
-        public float Tracking; // rad/s — orbit fast and close to make big guns miss
+        public float Tracking;     // rad/s — orbit fast and close to make big guns miss
         public long Bounty;
+        public float StandingGain; // faction standing awarded per kill
+        public bool NeverFlees;    // overlords fight to the death
     }
 
     public class SkillDef
@@ -115,6 +117,7 @@ namespace SpaceGame
             Loot["rookie"] = new LootTable { Chance = 0.45f, MaxItems = 1, Pool = new[] { "blaster1", "miner1", "afterburner1" } };
             Loot["marauder"] = new LootTable { Chance = 0.75f, MaxItems = 1, Pool = new[] { "rail1", "shieldboost1", "plate1", "cargo1" } };
             Loot["overlord"] = new LootTable { Chance = 1f, MaxItems = 2, Pool = new[] { "rail2", "miner2", "capbattery1", "plate1", "shieldboost1" } };
+            Loot["convoyhauler"] = new LootTable { Chance = 1f, MaxItems = 3, Pool = new[] { "rail2", "miner2", "shieldboost1", "capbattery1", "cargo1" } };
 
             Ships["wasp"] = new ShipDef
             {
@@ -226,21 +229,28 @@ namespace SpaceGame
                 Id = "rookie", Name = "Pirate Rookie",
                 Shield = 90, Armor = 70, Hull = 70,
                 Dmg = 7, Cycle = 2.5f, Range = 100f, Engage = 700f, Speed = 2.8f, Orbit = 60f,
-                Tracking = 0.30f, Bounty = 3500,
+                Tracking = 0.30f, Bounty = 3500, StandingGain = 0.04f,
             };
             Npcs["marauder"] = new NpcDef
             {
                 Id = "marauder", Name = "Pirate Marauder",
                 Shield = 220, Armor = 180, Hull = 160,
                 Dmg = 16, Cycle = 2.8f, Range = 160f, Engage = 900f, Speed = 2.6f, Orbit = 100f,
-                Tracking = 0.13f, Bounty = 11000,
+                Tracking = 0.13f, Bounty = 11000, StandingGain = 0.1f,
             };
             Npcs["overlord"] = new NpcDef
             {
                 Id = "overlord", Name = "Pirate Overlord",
                 Shield = 500, Armor = 420, Hull = 380,
                 Dmg = 34, Cycle = 3.2f, Range = 240f, Engage = 1200f, Speed = 2.2f, Orbit = 140f,
-                Tracking = 0.055f, Bounty = 38000,
+                Tracking = 0.055f, Bounty = 38000, StandingGain = 0.25f, NeverFlees = true,
+            };
+            Npcs["convoyhauler"] = new NpcDef
+            {
+                Id = "convoyhauler", Name = "Convoy Hauler",
+                Shield = 700, Armor = 800, Hull = 900,
+                Dmg = 8, Cycle = 3f, Range = 90f, Engage = 500f, Speed = 1.2f, Orbit = 220f,
+                Tracking = 0.2f, Bounty = 60000, StandingGain = 0.3f,
             };
 
             Skill("mining", "Mining", "+5% mining laser yield per level.");
@@ -256,6 +266,24 @@ namespace SpaceGame
 
         static void Mineral(string id, string name, float price, Color c)
             => Minerals[id] = new OreDef { Id = id, Name = name, PricePerM3 = price, Color = c };
+
+        // ---- faction standing (with the Frontier Authority) ----
+        // Kills raise it; tiers grant better mission pay and cheaper repairs.
+
+        public static string StandingTier(float s)
+            => s >= 6f ? "Legend" : s >= 3f ? "Honored" : s >= 1f ? "Trusted" : "Neutral";
+
+        public static float StandingRewardBonus(float s)
+            => s >= 6f ? 0.15f : s >= 3f ? 0.10f : s >= 1f ? 0.05f : 0f;
+
+        public static float StandingRepairDiscount(float s)
+            => s >= 6f ? 0.5f : s >= 3f ? 0.35f : s >= 1f ? 0.2f : 0f;
+
+        public static string FmtTime(float seconds)
+        {
+            int t = Mathf.Max(0, Mathf.RoundToInt(seconds));
+            return (t / 60) + ":" + (t % 60).ToString("00");
+        }
 
         /// <summary>Look up any tradable commodity (ore or mineral).</summary>
         public static OreDef Commodity(string id)

@@ -32,6 +32,8 @@ namespace SpaceGame
         public readonly Dictionary<SlotType, string[]> Fitting = new Dictionary<SlotType, string[]>();
         public float Shield, Armor, HullHp, Cap;
         public float ExtraCargo; // e.g. a courier mission package occupying the hold
+        public float Standing;   // Frontier Authority faction standing (0..10)
+        public bool ArcDone;     // "The Abyss Job" story arc completed
 
         public ShipDef Hull => GameData.Ships[HullId];
 

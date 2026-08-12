@@ -155,7 +155,7 @@ namespace SpaceGame
             go.transform.rotation = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
             ShipVisuals.BuildNpcVisual(def, go.transform);
             var col = go.AddComponent<SphereCollider>();
-            col.radius = def.Id == "overlord" ? 8f : 5f;
+            col.radius = def.Id == "convoyhauler" ? 10f : def.Id == "overlord" ? 8f : 5f;
             var npc = go.AddComponent<NpcPirate>();
             npc.Id = "npc_" + _idSeq++;
             npc.Init(def);

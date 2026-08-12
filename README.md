@@ -60,6 +60,16 @@ too, so an early warp-out beats their first volley.
 - **Salvage** wrecks — destroyed pirates leave wrecks that can hold real
   modules (better pirates drop better loot). Salvage rides in your cargo
   and transfers to your hangar when you dock.
+- **Watch them run** — badly damaged pirates break off and warp out
+  (overlords fight to the death), idle pirates roam between belts, and
+  **pirate convoys** appear in low-sec: a fat hauler with a 60k bounty and
+  guaranteed loot, escorted by guards.
+- **Build standing** with the Frontier Authority — every kill raises it.
+  Tiers (Trusted / Honored / Legend) grant better mission pay and repair
+  discounts, and Trusted unlocks **"The Abyss Job"**, a three-stage story
+  arc that ends in a convoy hunt.
+- **More contracts** — salvage recovery jobs, RUSH couriers with hard
+  deadlines and 1.8× pay, and low-sec agents pay up to +50% on everything.
 - **Fit** your ship at stations: weapons, miners, shield boosters,
   afterburners, cargo/armor/cap passives.
 - **Upgrade** hulls: Wasp → Prospector (miner) / Talon (fighter) →

@@ -36,6 +36,10 @@ namespace SpaceGame
             public int MissionCounter;
             public float ExtraCargo;
             public List<string> CargoMods = new List<string>();
+            public float Standing;
+            public bool ArcDone;
+            public float MsnTimeLeft;
+            public int MsnSalvageReq, MsnSalvageDone, MsnArcStage;
             public string MsnType = "";
             public string MsnTitle, MsnDesc;
             public string MsnOriginStation, MsnOriginSystem;
@@ -63,6 +67,8 @@ namespace SpaceGame
                 Pos = gm.Ship != null ? gm.Ship.transform.position : Vector3.zero,
                 MissionCounter = gm.MissionCounter,
                 ExtraCargo = p.ExtraCargo,
+                Standing = p.Standing,
+                ArcDone = p.ArcDone,
             };
             var m = gm.ActiveMission;
             if (m != null)
@@ -81,6 +87,10 @@ namespace SpaceGame
                 d.MsnDestSystem = m.DestSystemId;
                 d.MsnPackageM3 = m.PackageM3;
                 d.MsnReward = m.Reward;
+                d.MsnTimeLeft = m.TimeLeft;
+                d.MsnSalvageReq = m.SalvageRequired;
+                d.MsnSalvageDone = m.SalvageDone;
+                d.MsnArcStage = m.ArcStage;
             }
             foreach (var kv in p.Skills)
                 d.Skills.Add(new SkillSave { Id = kv.Key, Level = kv.Value.Level, Xp = kv.Value.Xp });
@@ -137,6 +147,8 @@ namespace SpaceGame
                 p.Cap = Mathf.Clamp(d.Cap, 0f, st.MaxCap);
 
                 p.ExtraCargo = d.ExtraCargo;
+                p.Standing = d.Standing;
+                p.ArcDone = d.ArcDone;
                 gm.Player = p;
                 gm.SystemId = d.SystemId;
                 gm.Docked = d.Docked;
@@ -160,6 +172,10 @@ namespace SpaceGame
                         DestSystemId = d.MsnDestSystem,
                         PackageM3 = d.MsnPackageM3,
                         Reward = d.MsnReward,
+                        TimeLeft = d.MsnTimeLeft,
+                        SalvageRequired = d.MsnSalvageReq,
+                        SalvageDone = d.MsnSalvageDone,
+                        ArcStage = d.MsnArcStage,
                     };
                 }
                 if (!d.Docked && gm.Ship != null) gm.Ship.transform.position = d.Pos;
