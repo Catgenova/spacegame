@@ -1179,7 +1179,9 @@ namespace SpaceGame
                     "Turrets " + def.HighSlots + " · Webs " + def.WebSlots
                     + (def.DisruptorSlots > 0 ? " · Disr " + def.DisruptorSlots : "")
                     + (def.ClawSlots > 0 ? " · Claws " + def.ClawSlots : "")
-                    + (def.DroneSlots > 0 ? " · Drones " + def.DroneSlots : "") + " · Lows " + def.LowSlots
+                    + (def.DroneSlots > 0 ? " · Drones " + def.DroneSlots : "")
+                    + (def.SensorSlots > 0 ? " · Sensors " + def.SensorSlots : "")
+                    + (def.CollectorSlots > 0 ? " · Collectors " + def.CollectorSlots : "") + " · Lows " + def.LowSlots
                     + " · " + Mathf.Round(def.Speed * GameData.UnitsToMs) + " m/s · Shield "
                     + def.Shield + " · Cargo " + def.Cargo + " m3", UiSkin.TextDim));
                 if (def.Features != null)

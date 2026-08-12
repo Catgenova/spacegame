@@ -548,6 +548,8 @@ namespace SpaceGame
                     + (def.DisruptorSlots > 0 ? " · Disr " + def.DisruptorSlots : "")
                     + (def.ClawSlots > 0 ? " · Claws " + def.ClawSlots : "")
                     + (def.DroneSlots > 0 ? " · Drones " + def.DroneSlots : "")
+                    + (def.SensorSlots > 0 ? " · Sensors " + def.SensorSlots : "")
+                    + (def.CollectorSlots > 0 ? " · Collectors " + def.CollectorSlots : "")
                     + " · " + Mathf.Round(def.Speed * GameData.UnitsToMs) + " m/s", _smallStyle);
                 string blocker = GM.ManufactureBlocker(bp);
                 if (blocker == null)

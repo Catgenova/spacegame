@@ -1,0 +1,392 @@
+using UnityEngine;
+using static SpaceGame.MeshKit;
+
+namespace SpaceGame
+{
+    /// <summary>
+    /// Trail-class hull meshes — fennec exploration scouts. C1 "Fennec",
+    /// matched to its reference: a sleek cream delta body with a pointed
+    /// fox muzzle and twin whisker antennas, two enormous ear fins canted
+    /// outward with teal sensor membranes, teal light studs down the
+    /// flanks, a small raked canopy, low delta wings with canards, a
+    /// ventral collector dish, a boxy stern sensor eye with a teal lens,
+    /// and a single fat engine.
+    /// Submeshes: 0 cream, 1 dark umber, 2 teal glow, 3 dark glass.
+    /// Streams: trailbody / trailpanels.
+    /// </summary>
+    public static class TrailShipMesh
+    {
+        const int LoopPts = 24;
+        const int Spans = 24;
+        static readonly int[] StripStart = { 0, 3, 6, 9, 12, 15, 18, 21 };
+
+        public static GameObject Build(string hash, int cls, Transform shipRoot)
+            => BuildC1(hash, shipRoot); // single class so far
+
+        class GenomeR1
+        {
+            public float L, W, H, Nose;
+            public float EarSpan, EarSweep, EarCant;
+            public float WhiskerLen;
+            public float CanopyStart, CanopyLen;
+            public float WingSpan, WingSweep, CanardSpan;
+            public int EngineSegs;
+            public float Hue, Sat, Val, MarkOdds, SurfAmp, SurfPhase;
+            public int BandMode, BandCount;
+            public float BandPhase;
+            public Color Cream, Umber;
+        }
+
+        static GenomeR1 RollR1(string hash)
+        {
+            var rng = Rng.Stream("trailbody:" + hash);
+            System.Func<float, float, float> R = (lo, hi) => lo + (float)rng.NextDouble() * (hi - lo);
+            var g = new GenomeR1();
+            g.L = R(6.2f, 6.8f);
+            g.W = R(0.95f, 1.10f);
+            g.H = R(0.62f, 0.72f);
+            g.Nose = R(0.7f, 1.0f);
+            g.EarSpan = R(2.0f, 2.6f);
+            g.EarSweep = R(0.9f, 1.3f);
+            g.EarCant = R(0.30f, 0.45f);
+            g.WhiskerLen = R(0.8f, 1.2f);
+            g.CanopyStart = R(0.16f, 0.20f);
+            g.CanopyLen = R(0.18f, 0.24f);
+            g.WingSpan = R(1.6f, 2.0f);
+            g.WingSweep = R(1.1f, 1.5f);
+            g.CanardSpan = R(0.6f, 0.8f);
+            g.EngineSegs = 3 + rng.Next(2);
+            g.Hue = R(0.07f, 0.11f);
+            g.Sat = R(0.25f, 0.40f);
+            g.Val = R(0.78f, 0.88f);
+            g.MarkOdds = R(0.35f, 0.60f);
+            g.SurfAmp = R(0f, 0.5f);
+            g.SurfPhase = R(0f, 1f);
+            g.BandMode = rng.Next(3);
+            g.BandCount = 2 + rng.Next(3);
+            g.BandPhase = R(0f, 1f);
+            g.Cream = Color.HSVToRGB(g.Hue, g.Sat, g.Val);
+            g.Umber = Color.HSVToRGB(g.Hue, Mathf.Min(1f, g.Sat + 0.30f), 0.32f);
+            return g;
+        }
+
+        // Scout sections: sharp fox muzzle, lean teardrop body, clipped tail.
+        static readonly float[,] NoseR =
+        {
+            {0.00f, 0.20f}, {0.30f, 0.19f}, {0.55f, 0.16f}, {0.75f, 0.11f},
+            {0.90f, 0.05f}, {0.98f, -0.01f}, {1.00f, -0.06f},
+            {0.85f, -0.10f}, {0.62f, -0.13f}, {0.38f, -0.15f},
+            {0.24f, -0.16f}, {0.10f, -0.17f}, {0.00f, -0.17f},
+        };
+        static readonly float[,] MidR =
+        {
+            {0.00f, 0.62f}, {0.32f, 0.59f}, {0.58f, 0.51f}, {0.78f, 0.37f},
+            {0.92f, 0.18f}, {1.00f, -0.02f}, {0.95f, -0.20f},
+            {0.83f, -0.34f}, {0.63f, -0.43f}, {0.41f, -0.49f},
+            {0.26f, -0.52f}, {0.10f, -0.54f}, {0.00f, -0.55f},
+        };
+        static readonly float[,] SternR =
+        {
+            {0.00f, 0.50f}, {0.34f, 0.48f}, {0.60f, 0.41f}, {0.78f, 0.30f},
+            {0.90f, 0.15f}, {0.96f, -0.01f}, {0.92f, -0.15f},
+            {0.80f, -0.26f}, {0.61f, -0.33f}, {0.40f, -0.38f},
+            {0.25f, -0.40f}, {0.10f, -0.42f}, {0.00f, -0.42f},
+        };
+
+        static Vector2 HalfPtR(int k, float t)
+        {
+            float wMid = Smooth01(t / 0.38f);
+            float wStern = Smooth01((t - 0.60f) / 0.40f);
+            float x = Mathf.Lerp(NoseR[k, 0], MidR[k, 0], wMid);
+            float y = Mathf.Lerp(NoseR[k, 1], MidR[k, 1], wMid);
+            x = Mathf.Lerp(x, SternR[k, 0], wStern);
+            y = Mathf.Lerp(y, SternR[k, 1], wStern);
+            return new Vector2(x, y);
+        }
+
+        static Vector2 LoopPtR(int li, float t)
+        {
+            if (li <= 12) return HalfPtR(li, t);
+            var p = HalfPtR(LoopPts - li, t);
+            return new Vector2(-p.x, p.y);
+        }
+
+        // Fennec coat: cream base, umber muzzle tip and saddle patches,
+        // umber micro flecks; the teal accents are all geometry.
+        static int PaintMatR(GenomeR1 g, int s, int p, float tm, bool[] markCell, bool microHit)
+        {
+            bool deck = s == 0 || s == 7;
+            bool upper = s == 1 || s == 6;
+            bool lower = s == 2 || s == 5;
+            bool belly = s == 3 || s == 4;
+            int side = s <= 3 ? 0 : 1;
+
+            // Dark fox-nose tip.
+            if (tm < 0.05f) return 1;
+
+            // Saddle patches over the back.
+            if ((deck || upper) && tm > 0.20f && tm < 0.78f)
+            {
+                float ft = tm - 0.20f - p * 0.02f;
+                int cell = Mathf.Min(4, (int)(ft / 0.116f));
+                int band = deck ? 0 : 1;
+                if (markCell[(side * 15 + band * 5 + cell) % 30]) return 1;
+            }
+
+            // Sparse flank ticking.
+            if (lower && tm > 0.24f && tm < 0.80f)
+            {
+                int cell = Mathf.Min(4, (int)((tm - 0.24f) / 0.112f));
+                if (markCell[(side * 15 + 10 + cell) % 30] && (cell + p) % 2 == 0) return 1;
+            }
+
+            // Band families: umber tail rings or muzzle chevrons.
+            if (g.BandMode == 1 && tm > 0.80f && tm < 0.95f)
+            {
+                float u = (tm - 0.80f) / 0.15f;
+                if ((int)(u * g.BandCount * 2 + g.BandPhase * 2f) % 2 == 0) return 1;
+            }
+            else if (g.BandMode == 2 && tm > 0.05f && tm < 0.16f)
+            {
+                float u = (tm - 0.05f) / 0.11f;
+                if ((int)(u * g.BandCount * 2.5f + g.BandPhase * 2f) % 2 == 0) return 1;
+            }
+
+            if (microHit && !belly && tm > 0.10f && tm < 0.92f) return 1;
+            return 0;
+        }
+
+        static GameObject BuildC1(string hash, Transform shipRoot)
+        {
+            var g = RollR1(hash);
+            var b = new Builder();
+            float L = g.L, W = g.W, H = g.H;
+            const int rings = 44;
+
+            var panelRng = Rng.Stream("trailpanels:" + hash);
+            var markCell = new bool[30];
+            for (int i = 0; i < 30; i++) markCell[i] = panelRng.NextDouble() < g.MarkOdds;
+            var micro = new bool[rings - 1, Spans];
+            for (int i = 0; i < rings - 1; i++)
+                for (int j = 0; j < Spans; j++)
+                    micro[i, j] = panelRng.NextDouble() < 0.03;
+
+            // Lean scout body: quick swell behind the muzzle, deepest just
+            // ahead of midships, tapering hard to a clipped tail.
+            float[] cts = { 0.00f, 0.09f, 0.24f, 0.40f, 0.56f, 0.72f, 0.88f, 1.00f };
+            float[] csc = { 0.22f, 0.55f, 0.88f, 1.00f, 0.94f, 0.80f, 0.60f, 0.42f };
+            float[] clf = { -0.02f, 0.02f, 0.06f, 0.07f, 0.05f, 0.01f, -0.04f, -0.08f };
+
+            System.Func<float, float> zAt = t => (0.50f - 1.00f * t) * L;
+            System.Func<int, float, float> hullY = (k, t) =>
+            {
+                float sc2 = CrSample(cts, csc, t);
+                return HalfPtR(k, t).y * H * sc2 + CrSample(cts, clf, t) * H;
+            };
+            System.Func<int, float, Vector3> surf = (li, t) =>
+            {
+                float sc2 = CrSample(cts, csc, t);
+                float lift2 = CrSample(cts, clf, t) * H;
+                var pt = LoopPtR(((li % LoopPts) + LoopPts) % LoopPts, t);
+                return new Vector3(pt.x * W * sc2, pt.y * H * sc2 + lift2, zAt(t));
+            };
+
+            // ---- main hull loft ----
+            var stripVerts = new int[8][][];
+            var ringT = new float[rings];
+            for (int s = 0; s < 8; s++) stripVerts[s] = new int[rings][];
+
+            for (int j = 0; j < rings; j++)
+            {
+                float t = j / (float)(rings - 1);
+                ringT[j] = t;
+                float sc = CrSample(cts, csc, t);
+                sc *= 1f + g.SurfAmp * 0.012f * Mathf.Sin((t * 6f + g.SurfPhase) * Mathf.PI * 2f);
+                float lift = CrSample(cts, clf, t) * H;
+                float z = zAt(t);
+                for (int s = 0; s < 8; s++)
+                {
+                    stripVerts[s][j] = new int[4];
+                    for (int p = 0; p < 4; p++)
+                    {
+                        int li = (StripStart[s] + p) % LoopPts;
+                        var pt = LoopPtR(li, t);
+                        stripVerts[s][j][p] = b.Add(new Vector3(pt.x * W * sc, pt.y * H * sc + lift, z));
+                    }
+                }
+            }
+            for (int i = 0; i < rings - 1; i++)
+            {
+                float tm = (ringT[i] + ringT[i + 1]) * 0.5f;
+                for (int s = 0; s < 8; s++)
+                    for (int p = 0; p < 3; p++)
+                    {
+                        int mat = PaintMatR(g, s, p, tm, markCell, micro[i, s * 3 + p]);
+                        b.FaceQ(stripVerts[s][i][p], stripVerts[s][i + 1][p],
+                            stripVerts[s][i + 1][p + 1], stripVerts[s][i][p + 1], mat);
+                    }
+            }
+
+            // Fox muzzle point and tail cap.
+            var muzzle = new Vector3(0f, CrSample(cts, clf, 0f) * H - 0.02f, 0.50f * L + g.Nose);
+            for (int s = 0; s < 8; s++)
+                for (int p = 0; p < 3; p++)
+                    b.TriU(muzzle, b.V[stripVerts[s][0][p + 1]], b.V[stripVerts[s][0][p]], 1);
+            var sternC = new Vector3(0f, CrSample(cts, clf, 1f) * H, -0.50f * L - 0.05f);
+            for (int s = 0; s < 8; s++)
+                for (int p = 0; p < 3; p++)
+                    b.TriU(sternC, b.V[stripVerts[s][rings - 1][p]], b.V[stripVerts[s][rings - 1][p + 1]], 1);
+
+            // ---- twin whisker antennas raking forward off the muzzle ----
+            for (int side = -1; side <= 1; side += 2)
+            {
+                for (int w2 = 0; w2 < 2; w2++)
+                {
+                    var basePt = surf(side > 0 ? 4 : 20, 0.05f + w2 * 0.03f);
+                    var dir = new Vector3(side * (0.16f + w2 * 0.10f), -0.06f, 0.98f).normalized;
+                    Tube(b, new[] { basePt, basePt + dir * (g.WhiskerLen * 0.55f), basePt + dir * g.WhiskerLen },
+                        new[] { 0.018f, 0.010f, 0.003f }, 4, 1, true);
+                }
+            }
+
+            // ---- the ears: two huge canted fins with teal membranes ----
+            for (int side = -1; side <= 1; side += 2)
+            {
+                float s = side;
+                float t0 = 0.42f;
+                float y0 = hullY(1, t0);
+                var rootF = new Vector3(s * W * 0.28f, y0 - 0.02f, zAt(t0) + 0.55f);
+                var rootB = new Vector3(s * W * 0.34f, y0 - 0.02f, zAt(t0) - 0.75f);
+                var tipF = rootF + new Vector3(s * g.EarSpan * g.EarCant, g.EarSpan, -g.EarSweep * 0.55f);
+                var tipB = rootB + new Vector3(s * g.EarSpan * g.EarCant * 1.1f, g.EarSpan * 0.82f, -g.EarSweep);
+                var lead = new[] { rootF, tipF };
+                var trail = new[] { rootB, tipB };
+                var ts = new[] { 0f, 1f };
+                LoftWing(b, lead, ts, trail, ts, 0.07f, 0.015f, 7, side < 0, 0);
+                WingPlate(b, lead, ts, trail, ts, 0.07f, 0.015f, 0.22f, 0.88f, 2);
+                WingPlate(b, lead, ts, trail, ts, 0.07f, 0.015f, 0.90f, 0.98f, 1);
+            }
+
+            // ---- raked glass canopy on the fore-deck ----
+            {
+                float tCan = g.CanopyStart;
+                float zC = zAt(tCan);
+                float halfLen = g.CanopyLen * L * 0.55f;
+                System.Func<float, float> deckAt = z =>
+                {
+                    float t = Mathf.Clamp01((0.50f * L - z) / L);
+                    float sc = CrSample(cts, csc, t);
+                    return HalfPtR(0, t).y * H * sc + CrSample(cts, clf, t) * H;
+                };
+                Canopy(b, zC + halfLen, zC - halfLen, 0.20f, 0.13f, deckAt, 3, 1, 1);
+            }
+
+            // ---- teal light studs down both flanks ----
+            for (int side = -1; side <= 1; side += 2)
+            {
+                for (int i = 0; i < 5; i++)
+                {
+                    float t = 0.18f + i * 0.14f;
+                    float sc = CrSample(cts, csc, t);
+                    float lift = CrSample(cts, clf, t) * H;
+                    var c = new Vector3(side * W * sc * 0.97f, 0.02f * H + lift, zAt(t));
+                    Box(b, c, new Vector3(0.022f, 0.035f, 0.08f), 2);
+                }
+            }
+
+            // ---- low delta wings and forward canards ----
+            for (int side = -1; side <= 1; side += 2)
+            {
+                float s = side;
+                {
+                    float t0 = 0.56f;
+                    float lift = CrSample(cts, clf, t0) * H;
+                    var rootF = new Vector3(s * W * 0.62f, -H * 0.16f + lift, zAt(t0) + 0.35f);
+                    var rootB = rootF + new Vector3(-s * 0.02f, -0.01f, -0.85f);
+                    var tipF = rootF + new Vector3(s * g.WingSpan, -0.06f, -g.WingSweep);
+                    var tipB = rootB + new Vector3(s * g.WingSpan * 0.92f, -0.06f, -g.WingSweep * 1.05f);
+                    LoftWing(b, new[] { rootF, tipF }, new[] { 0f, 1f },
+                        new[] { rootB, tipB }, new[] { 0f, 1f }, 0.05f, 0.012f, 6, side < 0, 0);
+                    WingPlate(b, new[] { rootF, tipF }, new[] { 0f, 1f },
+                        new[] { rootB, tipB }, new[] { 0f, 1f }, 0.05f, 0.012f, 0.60f, 0.92f, 1);
+                }
+                {
+                    float t0 = 0.16f;
+                    float lift = CrSample(cts, clf, t0) * H;
+                    var rootF = new Vector3(s * W * 0.55f, -H * 0.04f + lift, zAt(t0) + 0.18f);
+                    var rootB = rootF + new Vector3(-s * 0.01f, -0.01f, -0.36f);
+                    var tipF = rootF + new Vector3(s * g.CanardSpan, -0.02f, -g.WingSweep * 0.35f);
+                    var tipB = rootB + new Vector3(s * g.CanardSpan * 0.92f, -0.02f, -g.WingSweep * 0.40f);
+                    LoftWing(b, new[] { rootF, tipF }, new[] { 0f, 1f },
+                        new[] { rootB, tipB }, new[] { 0f, 1f }, 0.04f, 0.010f, 5, side < 0, 0);
+                }
+            }
+
+            // ---- ventral collector dish (the collector hardpoint) ----
+            {
+                float t0 = 0.46f;
+                float y0 = hullY(12, t0);
+                var basePt = new Vector3(0f, y0 + 0.02f, zAt(t0));
+                Tube(b, new[] { basePt, basePt - Vector3.up * 0.18f },
+                    new[] { 0.05f, 0.035f }, 6, 1, false);
+                var dish = basePt - Vector3.up * 0.22f;
+                Tube(b, new[] { dish, dish - Vector3.up * 0.05f },
+                    new[] { 0.16f, 0.19f }, 8, 3, false);
+                Ball(b, dish - Vector3.up * 0.09f, 0.055f, 2, 2, 6);
+            }
+
+            // ---- boxy stern sensor eye with a teal lens ----
+            {
+                float y0 = hullY(0, 0.90f);
+                var c = new Vector3(0f, y0 + 0.06f, zAt(0.90f));
+                Box(b, c, new Vector3(0.20f, 0.16f, 0.22f), 1);
+                Box(b, c + new Vector3(0f, 0f, -0.24f), new Vector3(0.13f, 0.11f, 0.02f), 3);
+                Ball(b, c + new Vector3(0f, 0f, -0.26f), 0.075f, 2, 2, 6);
+                var mast = c + new Vector3(0f, 0.17f, 0.06f);
+                Tube(b, new[] { mast, mast + new Vector3(0f, 0.30f, -0.06f) },
+                    new[] { 0.018f, 0.004f }, 4, 1, true);
+            }
+
+            // ---- single fat engine plus two trim thrusters ----
+            {
+                float lift = CrSample(cts, clf, 0.96f) * H;
+                var ec = new Vector3(0f, -0.08f * H + lift, zAt(0.94f));
+                Tube(b, new[] { ec, ec - Vector3.forward * 0.50f },
+                    new[] { 0.17f, 0.17f }, 8, 1, false);
+                Tube(b, new[] { ec - Vector3.forward * 0.50f, ec - Vector3.forward * 0.58f },
+                    new[] { 0.15f, 0.13f }, 8, 2, true);
+                int n = g.EngineSegs;
+                for (int i = 0; i < n; i++)
+                    Tube(b, new[] { ec + new Vector3(0f, 0f, -0.06f - i * 0.14f), ec + new Vector3(0f, 0f, -0.12f - i * 0.14f) },
+                        new[] { 0.185f, 0.185f }, 8, i % 2 == 0 ? 0 : 1, false);
+                for (int side = -1; side <= 1; side += 2)
+                {
+                    var tc = new Vector3(side * W * 0.42f, 0.02f * H + lift, zAt(0.92f));
+                    Tube(b, new[] { tc, tc - Vector3.forward * 0.28f },
+                        new[] { 0.07f, 0.07f }, 6, 1, false);
+                    Tube(b, new[] { tc - Vector3.forward * 0.28f, tc - Vector3.forward * 0.33f },
+                        new[] { 0.06f, 0.05f }, 6, 2, true);
+                }
+            }
+
+            var go = new GameObject("Hull");
+            go.transform.SetParent(shipRoot, false);
+            var mesh = new Mesh { name = "trail1_" + hash };
+            mesh.SetVertices(b.V);
+            mesh.subMeshCount = 4;
+            for (int m = 0; m < 4; m++) mesh.SetTriangles(b.Sub[m], m);
+            mesh.RecalculateNormals();
+            mesh.RecalculateBounds();
+            go.AddComponent<MeshFilter>().mesh = mesh;
+            var mr = go.AddComponent<MeshRenderer>();
+            mr.materials = new[]
+            {
+                Metal(g.Cream, 0.88f, 0.80f),
+                Metal(g.Umber, 0.90f, 0.72f),
+                SystemView.Mat(new Color(0.30f, 0.95f, 0.95f), true),
+                Metal(new Color(0.05f, 0.08f, 0.09f), 0.9f, 0.95f),
+            };
+            return go;
+        }
+    }
+}

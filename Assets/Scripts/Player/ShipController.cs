@@ -81,7 +81,7 @@ namespace SpaceGame
         public void RefreshRack()
         {
             Rack.Clear();
-            foreach (var slot in new[] { SlotType.High, SlotType.Mid, SlotType.Web, SlotType.Disruptor, SlotType.Claw, SlotType.Drone })
+            foreach (var slot in new[] { SlotType.High, SlotType.Mid, SlotType.Web, SlotType.Disruptor, SlotType.Claw, SlotType.Drone, SlotType.Sensor, SlotType.Collector })
             {
                 if (!P.Fitting.ContainsKey(slot)) continue;
                 var arr = P.Fitting[slot];
@@ -180,9 +180,17 @@ namespace SpaceGame
             var m = r.Def;
             if ((m.Kind == ModuleKind.Miner || m.Kind == ModuleKind.Claw || m.Kind == ModuleKind.Weapon
                 || m.Kind == ModuleKind.Web || m.Kind == ModuleKind.Disruptor
-                || m.Kind == ModuleKind.Drone) && !ValidTarget(m))
+                || m.Kind == ModuleKind.Drone || m.Kind == ModuleKind.Collector) && !ValidTarget(m))
             {
                 var sel = GM.Selected;
+                if (m.Kind == ModuleKind.Collector)
+                {
+                    GM.Log(!(sel is Wreck)
+                        ? "Select a wreck first."
+                        : "Wreck out of collector range.");
+                    Sfx.Deny();
+                    return;
+                }
                 bool wantsRock = m.Kind == ModuleKind.Miner || m.Kind == ModuleKind.Claw;
                 bool rightKind = wantsRock ? sel is AsteroidBody : sel is NpcPirate;
                 if (!rightKind)
@@ -214,6 +222,8 @@ namespace SpaceGame
             if (m.Kind == ModuleKind.Weapon || m.Kind == ModuleKind.Web || m.Kind == ModuleKind.Disruptor
                 || m.Kind == ModuleKind.Drone)
                 return sel is NpcPirate && d <= m.Range && GM.Locked;
+            if (m.Kind == ModuleKind.Collector)
+                return sel is Wreck && d <= m.Range; // wrecks need no target lock
             return true;
         }
 
@@ -359,6 +369,8 @@ namespace SpaceGame
                 else if (m.Kind == ModuleKind.Web) CompleteWebCycle(m, r);
                 else if (m.Kind == ModuleKind.Disruptor) CompleteDisruptCycle(m, r);
                 else if (m.Kind == ModuleKind.Drone) CompleteDroneCycle(m, r);
+                else if (m.Kind == ModuleKind.Sensor) CompleteSensorCycle(m, r);
+                else if (m.Kind == ModuleKind.Collector) CompleteCollectorCycle(m, r);
                 else if (m.Kind == ModuleKind.ShieldBooster)
                     P.Shield = Mathf.Min(P.ComputeStats().MaxShield, P.Shield + m.BoostAmount);
 
@@ -367,7 +379,7 @@ namespace SpaceGame
                 {
                     if ((m.Kind == ModuleKind.Miner || m.Kind == ModuleKind.Claw || m.Kind == ModuleKind.Weapon
                         || m.Kind == ModuleKind.Web || m.Kind == ModuleKind.Disruptor
-                        || m.Kind == ModuleKind.Drone) && !ValidTarget(m))
+                        || m.Kind == ModuleKind.Drone || m.Kind == ModuleKind.Collector) && !ValidTarget(m))
                     {
                         if (m.Kind == ModuleKind.Drone) ReleaseDrone(r);
                         r.Active = false;
@@ -493,6 +505,87 @@ namespace SpaceGame
             }
         }
 
+        // A sensor sweep sometimes turns up a drifting salvage cache —
+        // the Trail line's whole reason to leave the station.
+        static readonly NpcDef CacheDef = new NpcDef { Id = "cache", Name = "Drifting Cache" };
+        static readonly string[] CachePool =
+            { "shieldboost1", "afterburner1", "cargo1", "plate1", "capbattery1", "rail1" };
+
+        void CompleteSensorCycle(ModuleDef m, RackEntry r)
+        {
+            if (Random.value < 0.35f)
+            {
+                var dir = Random.onUnitSphere;
+                dir.y *= 0.15f;
+                dir = dir.normalized;
+                var pos = transform.position + dir * Random.Range(250f, 600f);
+                var loot = new List<string>();
+                int n = Random.value < 0.4f ? 2 : 1;
+                for (int i = 0; i < n; i++)
+                    loot.Add(CachePool[Random.Range(0, CachePool.Length)]);
+                var wreck = GM.View.SpawnWreck(CacheDef, pos, loot);
+                if (Random.value < 0.08f)
+                    wreck.BpLoot.Add(ShipGen.RollBlueprint("cache"));
+                GM.Log("Sensor sweep: CONTACT — drifting cache "
+                    + GameData.FmtDist(Vector3.Distance(transform.position, pos))
+                    + " out. It won't drift forever.");
+                Sfx.Web();
+            }
+            else
+            {
+                GM.Log("Sensor sweep complete — nothing on this pass.");
+            }
+        }
+
+        void CompleteCollectorCycle(ModuleDef m, RackEntry r)
+        {
+            var w = GM.Selected as Wreck;
+            if (w == null || Vector3.Distance(transform.position, w.transform.position) > m.Range)
+            {
+                r.Active = false;
+                return;
+            }
+            // Blueprint chips are data — pull them all in one pass.
+            for (int i = w.BpLoot.Count - 1; i >= 0; i--)
+            {
+                var bp = w.BpLoot[i];
+                P.Blueprints.Add(bp);
+                GM.Log("BLUEPRINT tractored in: " + ShipGen.DescribeBlueprint(bp)
+                    + " — see the Industry tab at any station.");
+                w.BpLoot.RemoveAt(i);
+            }
+            if (w.Loot.Count > 0)
+            {
+                var st = P.ComputeStats();
+                if (st.CargoCap - P.CargoUsed() < GameData.ModuleCargoVolume)
+                {
+                    r.Active = false;
+                    GM.Log("Cargo hold too full for more salvage.");
+                    return;
+                }
+                int last = w.Loot.Count - 1;
+                string modId = w.Loot[last];
+                P.CargoModules.Add(modId);
+                GM.Log("Collector reeled in " + GameData.Modules[modId].Name + ".");
+                w.Loot.RemoveAt(last);
+                Sfx.MinerChunk();
+                var mi = GM.ActiveMission;
+                if (mi != null && mi.Type == "salvage" && mi.SalvageDone < mi.SalvageRequired)
+                {
+                    mi.SalvageDone++;
+                    GM.Log("Mission: " + mi.SalvageDone + "/" + mi.SalvageRequired + " salvage recovered"
+                        + (mi.SalvageDone >= mi.SalvageRequired ? " — report to the agent!" : "."));
+                }
+            }
+            if (w.Loot.Count == 0 && w.BpLoot.Count == 0)
+            {
+                r.Active = false;
+                GM.Log("Wreck stripped clean.");
+                if (GM.Selected == w) GM.Select(null);
+                GM.View.RemoveObject(w);
+            }
+        }
+
         void UpdateBeam()
         {
             var sel = GM.Selected;
@@ -531,6 +624,12 @@ namespace SpaceGame
                     {
                         show = true;
                         color = new Color(0.72f, 0.45f, 1f);
+                        break;
+                    }
+                    if (r.Def.Kind == ModuleKind.Collector && sel is Wreck)
+                    {
+                        show = true;
+                        color = new Color(1f, 0.85f, 0.35f);
                         break;
                     }
                 }

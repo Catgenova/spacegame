@@ -3,13 +3,13 @@ using UnityEngine;
 
 namespace SpaceGame
 {
-    public enum SlotType { High, Mid, Low, Web, Disruptor, Claw, Drone }
-    public enum ModuleKind { Miner, Weapon, ShieldBooster, Afterburner, Passive, Web, Disruptor, Claw, Drone }
+    public enum SlotType { High, Mid, Low, Web, Disruptor, Claw, Drone, Sensor, Collector }
+    public enum ModuleKind { Miner, Weapon, ShieldBooster, Afterburner, Passive, Web, Disruptor, Claw, Drone, Sensor, Collector }
 
     /// <summary>All fittable slot categories, in display/rack order.</summary>
     public static class Slots
     {
-        public static readonly SlotType[] All = { SlotType.High, SlotType.Mid, SlotType.Low, SlotType.Web, SlotType.Disruptor, SlotType.Claw, SlotType.Drone };
+        public static readonly SlotType[] All = { SlotType.High, SlotType.Mid, SlotType.Low, SlotType.Web, SlotType.Disruptor, SlotType.Claw, SlotType.Drone, SlotType.Sensor, SlotType.Collector };
     }
     public enum ObjKind { Sun, Planet, Belt, Station, Gate, Asteroid, Npc, Wreck }
 
@@ -34,7 +34,7 @@ namespace SpaceGame
         public string Id, Name, Class, Desc;
         public long Price;
         public float Cargo;
-        public int HighSlots, MidSlots, LowSlots, WebSlots, DisruptorSlots, ClawSlots, DroneSlots;
+        public int HighSlots, MidSlots, LowSlots, WebSlots, DisruptorSlots, ClawSlots, DroneSlots, SensorSlots, CollectorSlots;
         public float Shield, Armor, Hull;
         public float Cap, CapRegen;
         public float Speed;        // units/s (1 unit = 100 m)
@@ -266,6 +266,18 @@ namespace SpaceGame
                 Id = "claw1", Name = "Mining Claw I", Short = "CLAW", Slot = SlotType.Claw,
                 Kind = ModuleKind.Claw, Price = 21000, Cycle = 3f, Yield = 26f, Range = 10f, CapUse = 5f,
                 Desc = "Hydraulic rock claw. 26 m3 per 3s cycle, but you must be ON the rock (0 km). Requires a claw hardpoint (Claw hulls).",
+            };
+            Modules["sensor1"] = new ModuleDef
+            {
+                Id = "sensor1", Name = "Pathfinder Array I", Short = "SNSR", Slot = SlotType.Sensor,
+                Kind = ModuleKind.Sensor, Price = 28000, Cycle = 10f, CapUse = 12f,
+                Desc = "Deep-space sweep. Every 10s cycle listens for salvage signatures — sometimes a drifting cache turns up nearby. Requires a sensor hardpoint (Trail hulls).",
+            };
+            Modules["collector1"] = new ModuleDef
+            {
+                Id = "collector1", Name = "Salvage Collector I", Short = "COLL", Slot = SlotType.Collector,
+                Kind = ModuleKind.Collector, Price = 23000, Cycle = 4f, Range = 160f, CapUse = 5f,
+                Desc = "Tractor scoop. Reels salvage out of a targeted wreck from 16 km, one piece per 4s cycle. Requires a collector hardpoint (Trail hulls).",
             };
             Modules["drone1"] = new ModuleDef
             {
