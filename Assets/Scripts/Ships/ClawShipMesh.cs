@@ -480,32 +480,21 @@ namespace SpaceGame
             if (chineSpan && tm > 0.24f && tm < 0.88f) return 1;
             if (belly && tm > 0.20f && tm < 0.88f) return 1;
 
-            // Patchwork panels on the orange hull.
-            if (upper || lower)
+            // Segmented module blocks aft of the cab: orange segments split
+            // by gunmetal seams, with bone or dark modules rolled per hash.
+            if (tm > 0.30f)
             {
-                float skew = (upper ? 0f : 0.04f) + p * 0.02f;
-                float ft = tm - 0.24f - skew;
-                if (ft >= 0f && ft < 0.60f)
-                {
-                    int cell = Mathf.Min(4, (int)(ft / 0.121f));
-                    int band = upper ? 0 : 1;
-                    if (panelCell[(side * 15 + band * 5 + cell) % 30])
-                        return cell % 2 == 0 ? 3 : 1;
-                }
+                float ft = tm - 0.30f;
+                int seg = (int)(ft / 0.13f);
+                float fu = ft - seg * 0.13f;
+                if (fu < 0.018f) return 1;
+                if (panelCell[(side * 15 + seg * 3 + (upper ? 0 : 1)) % 30])
+                    return seg % 2 == 0 ? 3 : 1;
+                if (microHit) return 1;
+                return 0;
             }
 
-            if (g.BandMode == 1 && tm > 0.74f && tm < 0.94f)
-            {
-                float u = (tm - 0.74f) / 0.20f;
-                if ((int)(u * g.BandCount * 2 + g.BandPhase * 2f) % 2 == 0) return 1;
-            }
-            else if (g.BandMode == 2 && tm > 0.22f && tm < 0.38f)
-            {
-                float u = (tm - 0.22f) / 0.16f;
-                if ((int)(u * g.BandCount * 2.5f + g.BandPhase * 2f) % 2 == 0) return 1;
-            }
-
-            if (microHit && tm > 0.20f && tm < 0.90f) return 1;
+            if (microHit && tm > 0.20f) return 1;
             return 0;
         }
 
@@ -583,43 +572,43 @@ namespace SpaceGame
                 float y = -0.15f * H;
                 // shoulder mount block
                 var shoulder = new Vector3(x * 0.85f, y, (0.5f - 0.28f) * L);
-                BevelBox(b, shoulder, new Vector3(0.18f, 0.16f, 0.22f), 1);
-                // segmented arm reaching forward and slightly out/down
+                BevelBox(b, shoulder, new Vector3(0.26f, 0.23f, 0.30f), 1);
+                // massive segmented arm reaching forward and slightly out/down
                 var armDir = new Vector3(side * 0.16f, -0.06f, 0.98f).normalized;
                 const int armSegs = 6;
                 var path = new Vector3[armSegs + 1];
                 var radii = new float[armSegs + 1];
                 for (int i = 0; i <= armSegs; i++)
                 {
-                    path[i] = shoulder + armDir * (i * (g.ArmLen * 0.75f / armSegs));
-                    radii[i] = i % 2 == 0 ? 0.20f : 0.165f;
+                    path[i] = shoulder + armDir * (i * (g.ArmLen * 0.86f / armSegs));
+                    radii[i] = i % 2 == 0 ? 0.30f : 0.245f;
                 }
                 Tube(b, path, radii, 10, 0, false);
                 for (int i = 1; i < armSegs; i += 2)
-                    Tube(b, new[] { path[i] - armDir * 0.04f, path[i] + armDir * 0.04f },
-                        new[] { 0.215f, 0.215f }, 10, 1, false);
+                    Tube(b, new[] { path[i] - armDir * 0.05f, path[i] + armDir * 0.05f },
+                        new[] { 0.32f, 0.32f }, 10, 1, false);
                 // amber wrist collar
                 var wrist = path[armSegs];
-                Tube(b, new[] { wrist - armDir * 0.05f, wrist + armDir * 0.05f },
-                    new[] { 0.22f, 0.22f }, 10, 2, false);
-                // serrated pincer: two jaws curving toward each other
+                Tube(b, new[] { wrist - armDir * 0.06f, wrist + armDir * 0.06f },
+                    new[] { 0.33f, 0.33f }, 10, 2, false);
+                // serrated pincer: two heavy jaws curving toward each other
                 for (int jaw = -1; jaw <= 1; jaw += 2)
                 {
-                    var j0 = wrist + new Vector3(0f, jaw * 0.10f, 0.06f);
-                    var j1 = j0 + new Vector3(side * 0.04f, jaw * g.ClawGape * 0.55f, g.ArmLen * 0.16f);
-                    var j2 = j1 + new Vector3(side * 0.02f, -jaw * g.ClawGape * 0.30f, g.ArmLen * 0.16f);
-                    var j3 = j2 + new Vector3(0f, -jaw * g.ClawGape * 0.35f, g.ArmLen * 0.10f);
-                    Tube(b, new[] { j0, j1, j2, j3 }, new[] { 0.155f, 0.125f, 0.08f, 0.012f }, 8, 1, true);
+                    var j0 = wrist + new Vector3(0f, jaw * 0.15f, 0.08f);
+                    var j1 = j0 + new Vector3(side * 0.05f, jaw * g.ClawGape * 0.55f, g.ArmLen * 0.22f);
+                    var j2 = j1 + new Vector3(side * 0.02f, -jaw * g.ClawGape * 0.15f, g.ArmLen * 0.20f);
+                    var j3 = j2 + new Vector3(0f, -jaw * g.ClawGape * 0.28f, g.ArmLen * 0.10f);
+                    Tube(b, new[] { j0, j1, j2, j3 }, new[] { 0.26f, 0.22f, 0.15f, 0.03f }, 8, 1, true);
                     // teeth along the inner edge, biting toward the other jaw
-                    for (int tooth = 0; tooth < 4; tooth++)
+                    for (int tooth = 0; tooth < 5; tooth++)
                     {
-                        float u = 0.25f + tooth * 0.22f;
+                        float u = 0.18f + tooth * 0.18f;
                         var basePt = u < 0.5f
                             ? Vector3.Lerp(j1, j2, u * 2f)
                             : Vector3.Lerp(j2, j3, (u - 0.5f) * 2f);
                         var tDir = new Vector3(0f, -jaw, 0.10f).normalized;
-                        Tube(b, new[] { basePt, basePt + tDir * 0.16f },
-                            new[] { 0.045f, 0.006f }, 5, 1, true);
+                        Tube(b, new[] { basePt, basePt + tDir * 0.24f },
+                            new[] { 0.07f, 0.008f }, 5, 1, true);
                     }
                 }
             }
