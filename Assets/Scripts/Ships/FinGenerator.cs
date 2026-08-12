@@ -8,12 +8,13 @@ namespace SpaceGame
     /// body hashes, aquatic where Hive is wasp. No webs or disruptors —
     /// Fins are cheap, turret-heavy fleet ships that hunt in packs.
     /// Class 1 "Shark": 2 turrets, 2 mids, 2 lows.
+    /// Class 2 "Manta": 3 turrets, 2 mids, 2 lows — a flying gun wing.
     /// Streams: findef / finbody / finpanels.
     /// </summary>
     public static class FinGenerator
     {
         public const string TypeId = "fin";
-        public const int MaxClass = 1;
+        public const int MaxClass = 2;
 
         class FinClass
         {
@@ -45,6 +46,23 @@ namespace SpaceGame
                 Materials = new Dictionary<string, float>
                 {
                     ["tritanium"] = 480f, ["pyerite"] = 260f, ["mexallon"] = 100f, ["isogen"] = 40f,
+                },
+            },
+            [2] = new FinClass
+            {
+                Label = "Fin-class Manta (C2)",
+                Doctrine = "Wing of guns: three hardpoints on a hull that is mostly wing.",
+                TurretSlots = 3, MidSlots = 2, LowSlots = 2,
+                ShieldMin = 200, ShieldMax = 250, ArmorMin = 140, ArmorMax = 180,
+                HullMin = 150, HullMax = 195,
+                SpeedMin = 3.2f, SpeedMax = 3.8f, TurnMin = 85, TurnMax = 110,
+                CapMin = 170, CapMax = 220, RegenMin = 11, RegenMax = 14,
+                CargoMin = 170, CargoMax = 240,
+                PriceMin = 210000, PriceMax = 260000,
+                Fee = 55000,
+                Materials = new Dictionary<string, float>
+                {
+                    ["tritanium"] = 800f, ["pyerite"] = 450f, ["mexallon"] = 170f, ["isogen"] = 70f,
                 },
             },
         };
@@ -81,15 +99,28 @@ namespace SpaceGame
 
         // ---------- blueprints ----------
 
+        /// <summary>Class-2 chance scales with wreck tier, like the Hive line.</summary>
+        static float C2Chance(string npcId)
+        {
+            switch (npcId)
+            {
+                case "convoyhauler": return 0.40f;
+                case "overlord": return 0.28f;
+                case "marauder": return 0.12f;
+                default: return 0.04f;
+            }
+        }
+
         public static Blueprint RollBlueprint(string npcId)
         {
             float r = Random.value;
             int rarity = r < 0.6f ? 0 : r < 0.85f ? 1 : r < 0.97f ? 2 : 3;
+            int cls = Random.value < C2Chance(npcId) ? 2 : 1;
             return new Blueprint
             {
                 Hash = HiveGenerator.NewHash(),
                 TypeId = TypeId,
-                Class = 1,
+                Class = cls,
                 Rarity = rarity,
                 RunsLeft = GameData.RarityRuns[rarity],
             };
