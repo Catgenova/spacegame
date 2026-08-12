@@ -229,38 +229,19 @@ namespace SpaceGame
                 for (int p = 0; p < 3; p++)
                     b.TriU(sternC, b.V[stripVerts[s][rings - 1][p]], b.V[stripVerts[s][rings - 1][p + 1]], 1);
 
-            // Black glass teardrop canopy, flush, with a cobalt rim.
+            // Long, low teardrop cockpit: dark glass in a cobalt frame,
+            // flush with the snout line.
             {
                 float tCan = g.CanopyStart + g.CanopyLen * 0.5f;
-                float sc = CrSample(cts, csc, tCan);
-                float lift = CrSample(cts, clf, tCan) * H;
-                float deckY = HalfPtF(0, tCan).y * H * sc + lift;
-                var c = new Vector3(0f, deckY - 0.02f, (0.5f - tCan) * L);
-                const int lat = 3, lon = 10;
-                float zr = g.CanopyLen * L * 0.50f;
-                var rows = new Vector3[lat + 1][];
-                for (int i = 0; i <= lat; i++)
+                float zC = (0.5f - tCan) * L;
+                float halfLen = g.CanopyLen * L * 0.72f;
+                System.Func<float, float> deckAt = z =>
                 {
-                    rows[i] = new Vector3[lon];
-                    float phi = i / (float)lat * (Mathf.PI * 0.5f);
-                    for (int k = 0; k < lon; k++)
-                    {
-                        float thA = k / (float)lon * Mathf.PI * 2f;
-                        rows[i][k] = c + new Vector3(
-                            Mathf.Sin(phi) * Mathf.Cos(thA) * 0.34f,
-                            Mathf.Cos(phi) * 0.13f,
-                            Mathf.Sin(phi) * Mathf.Sin(thA) * zr);
-                    }
-                }
-                for (int i = 0; i < lat; i++)
-                    for (int k = 0; k < lon; k++)
-                        b.QuadUDS(rows[i][k], rows[i][(k + 1) % lon], rows[i + 1][(k + 1) % lon], rows[i + 1][k], 3);
-                for (int k = 0; k < lon; k++)
-                {
-                    var e0 = rows[lat][k];
-                    var e1 = rows[lat][(k + 1) % lon];
-                    b.QuadUDS(e0, e1, e1 + new Vector3(0f, -0.04f, 0f), e0 + new Vector3(0f, -0.04f, 0f), 1);
-                }
+                    float t = Mathf.Clamp01(0.5f - z / L);
+                    float sc = CrSample(cts, csc, t);
+                    return HalfPtF(0, t).y * H * sc + CrSample(cts, clf, t) * H;
+                };
+                Canopy(b, zC + halfLen, zC - halfLen, 0.38f, 0.16f, deckAt, 3, 1, 1);
             }
 
             // Rake of swept dorsal fins along the spine, tallest first.

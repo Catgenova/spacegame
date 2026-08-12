@@ -707,38 +707,19 @@ namespace SpaceGame
                 for (int p = 0; p < 3; p++)
                     b.TriU(sternC, b.V[stripVerts[s][rings2 - 1][p]], b.V[stripVerts[s][rings2 - 1][p + 1]], 1);
 
-            // Amber glass canopy (glow submesh) with a black collar.
+            // Raked teardrop cockpit: amber glass in a black frame, faired
+            // into the deck.
             {
                 float tCan = g.CanopyStart + g.CanopyLen * 0.5f;
-                float sc = CrSample(cts, csc, tCan);
-                float lift = CrSample(cts, clf, tCan) * H;
-                float deckY = HalfPt2(0, tCan).y * H * sc + lift;
-                var c = new Vector3(0f, deckY - 0.03f, (0.5f - tCan) * L);
-                const int lat = 4, lon = 12;
-                float zr = g.CanopyLen * L * 0.55f;
-                var rows = new Vector3[lat + 1][];
-                for (int i = 0; i <= lat; i++)
+                float zC = (0.5f - tCan) * L;
+                float halfLen = g.CanopyLen * L * 0.75f;
+                System.Func<float, float> deckAt = z =>
                 {
-                    rows[i] = new Vector3[lon];
-                    float phi = i / (float)lat * (Mathf.PI * 0.5f);
-                    for (int k = 0; k < lon; k++)
-                    {
-                        float thA = k / (float)lon * Mathf.PI * 2f;
-                        rows[i][k] = c + new Vector3(
-                            Mathf.Sin(phi) * Mathf.Cos(thA) * 0.28f,
-                            Mathf.Cos(phi) * 0.20f,
-                            Mathf.Sin(phi) * Mathf.Sin(thA) * zr);
-                    }
-                }
-                for (int i = 0; i < lat; i++)
-                    for (int k = 0; k < lon; k++)
-                        b.QuadUDS(rows[i][k], rows[i][(k + 1) % lon], rows[i + 1][(k + 1) % lon], rows[i + 1][k], 2);
-                for (int k = 0; k < lon; k++)
-                {
-                    var e0 = rows[lat][k];
-                    var e1 = rows[lat][(k + 1) % lon];
-                    b.QuadUDS(e0, e1, e1 + new Vector3(0f, -0.05f, 0f), e0 + new Vector3(0f, -0.05f, 0f), 1);
-                }
+                    float t = Mathf.Clamp01(0.5f - z / L);
+                    float sc = CrSample(cts, csc, t);
+                    return HalfPt2(0, t).y * H * sc + CrSample(cts, clf, t) * H;
+                };
+                Canopy(b, zC + halfLen, zC - halfLen, 0.26f, 0.24f, deckAt, 2, 1, 1);
             }
 
             // Twin forward cannons — the two turret hardpoints, made visible.
@@ -1103,38 +1084,19 @@ namespace SpaceGame
                 for (int p = 0; p < 3; p++)
                     b.TriU(sternC, b.V[stripVerts[s][rings3 - 1][p]], b.V[stripVerts[s][rings3 - 1][p + 1]], 1);
 
-            // Amber glass canopy with black collar.
+            // Raked teardrop cockpit: amber glass, heavy black framing,
+            // twin ribs — faired into the chisel deck.
             {
                 float tCan = g.CanopyStart + g.CanopyLen * 0.5f;
-                float sc = CrSample(cts, csc, tCan);
-                float lift = CrSample(cts, clf, tCan) * H;
-                float deckY = HalfPt3(0, tCan).y * H * sc + lift;
-                var c = new Vector3(0f, deckY - 0.03f, (0.5f - tCan) * L);
-                const int lat = 4, lon = 12;
-                float zr = g.CanopyLen * L * 0.55f;
-                var rows = new Vector3[lat + 1][];
-                for (int i = 0; i <= lat; i++)
+                float zC = (0.5f - tCan) * L;
+                float halfLen = g.CanopyLen * L * 0.72f;
+                System.Func<float, float> deckAt = z =>
                 {
-                    rows[i] = new Vector3[lon];
-                    float phi = i / (float)lat * (Mathf.PI * 0.5f);
-                    for (int k = 0; k < lon; k++)
-                    {
-                        float thA = k / (float)lon * Mathf.PI * 2f;
-                        rows[i][k] = c + new Vector3(
-                            Mathf.Sin(phi) * Mathf.Cos(thA) * 0.30f,
-                            Mathf.Cos(phi) * 0.22f,
-                            Mathf.Sin(phi) * Mathf.Sin(thA) * zr);
-                    }
-                }
-                for (int i = 0; i < lat; i++)
-                    for (int k = 0; k < lon; k++)
-                        b.QuadUDS(rows[i][k], rows[i][(k + 1) % lon], rows[i + 1][(k + 1) % lon], rows[i + 1][k], 2);
-                for (int k = 0; k < lon; k++)
-                {
-                    var e0 = rows[lat][k];
-                    var e1 = rows[lat][(k + 1) % lon];
-                    b.QuadUDS(e0, e1, e1 + new Vector3(0f, -0.05f, 0f), e0 + new Vector3(0f, -0.05f, 0f), 1);
-                }
+                    float t = Mathf.Clamp01(0.5f - z / L);
+                    float sc = CrSample(cts, csc, t);
+                    return HalfPt3(0, t).y * H * sc + CrSample(cts, clf, t) * H;
+                };
+                Canopy(b, zC + halfLen, zC - halfLen, 0.30f, 0.26f, deckAt, 2, 1, 2);
             }
 
             // Two swept-back antennae off the head.

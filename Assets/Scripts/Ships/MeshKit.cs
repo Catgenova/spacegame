@@ -156,6 +156,59 @@ namespace SpaceGame
             b.QuadUDS(a, b2, c, d, mat);
         }
 
+
+        // Cockpit canopy: a raked teardrop glass loft that hugs the deck
+        // line (deckY samples the hull under each ring), with framed side
+        // rails, a windscreen arch up front, a rear arch, optional ribs,
+        // and a fairing skirt so it reads as part of the hull rather than
+        // a blister set on top. Peak sits ~38% back for the raked look.
+        public static void Canopy(Builder b, float zFront, float zRear, float width, float height,
+            System.Func<float, float> deckY, int glassMat, int frameMat, int ribs)
+        {
+            const int n = 12, m = 9;
+            var pts = new Vector3[n][];
+            for (int i = 0; i < n; i++)
+            {
+                float u = i / (float)(n - 1);
+                float z = Mathf.Lerp(zFront, zRear, u);
+                float prof = Mathf.Max(0.045f, Mathf.Sin(Mathf.PI * Mathf.Pow(u, 0.72f)));
+                float h = height * Mathf.Pow(prof, 0.90f);
+                float w = width * Mathf.Pow(prof, 0.55f);
+                float y0 = deckY(z) - 0.015f;
+                pts[i] = new Vector3[m];
+                for (int k = 0; k < m; k++)
+                {
+                    float a = Mathf.PI * k / (m - 1);
+                    pts[i][k] = new Vector3(Mathf.Cos(a) * w, y0 + Mathf.Sin(a) * h, z);
+                }
+            }
+            for (int i = 0; i < n - 1; i++)
+            {
+                bool rib = false;
+                for (int r = 1; r <= ribs; r++)
+                    if (i == 1 + r * (n - 3) / (ribs + 1)) rib = true;
+                for (int k = 0; k < m - 1; k++)
+                {
+                    bool rail = k == 0 || k == m - 2;
+                    bool arch = i == 1 || i == n - 3;
+                    int mat = (rail || arch || rib) ? frameMat : glassMat;
+                    b.QuadUDS(pts[i][k], pts[i][k + 1], pts[i + 1][k + 1], pts[i + 1][k], mat);
+                }
+            }
+            // fairing skirt flowing out from the base rails into the deck
+            for (int i = 0; i < n - 1; i++)
+            {
+                var a0 = pts[i][0];
+                var a1 = pts[i + 1][0];
+                var b0 = pts[i][m - 1];
+                var b1 = pts[i + 1][m - 1];
+                var outA = new Vector3(0.06f, -0.05f, 0f);
+                var outB = new Vector3(-0.06f, -0.05f, 0f);
+                b.QuadUDS(a0, a1, a1 + outA, a0 + outA, frameMat);
+                b.QuadUDS(b0, b1, b1 + outB, b0 + outB, frameMat);
+            }
+        }
+
         public static void Basis(Vector3 dir, out Vector3 right, out Vector3 up)
         {
             var refUp = Mathf.Abs(dir.y) > 0.93f ? Vector3.forward : Vector3.up;
