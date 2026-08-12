@@ -8,16 +8,19 @@ namespace SpaceGame
     /// hashes, camel where Trail is fox. One gun for honor, a few slots
     /// for the crew, and more cargo than anything else that flies.
     /// Class 1 "Bactrian": 1 turret, 2 mids, 4 lows.
+    /// Class 2 "Tusker": 1 turret, 3 mids, 5 lows — the elephant bulk
+    /// freighter, a trunk to load with and four legs of hold.
     /// Streams: packdef / packbody / packpanels.
     /// </summary>
     public static class PackGenerator
     {
         public const string TypeId = "pack";
-        public const int MaxClass = 1;
+        public const int MaxClass = 2;
 
         class PackClass
         {
             public string Label, Doctrine;
+            public string[] Names;
             public int TurretSlots, MidSlots, LowSlots;
             public float ShieldMin, ShieldMax, ArmorMin, ArmorMax, HullMin, HullMax;
             public float SpeedMin, SpeedMax, TurnMin, TurnMax;
@@ -45,6 +48,24 @@ namespace SpaceGame
                 Materials = new Dictionary<string, float>
                 {
                     ["tritanium"] = 1800f, ["pyerite"] = 1000f, ["mexallon"] = 400f, ["isogen"] = 170f,
+                },
+            },
+            [2] = new PackClass
+            {
+                Label = "Pack-class Tusker (C2)",
+                Doctrine = "Bulk freighter: a trunk to load with and four legs of hold.",
+                Names = new[] { "Tusker", "Loxodonta", "Elephas", "Mammoth", "Howdah", "Savanna", "Matriarch", "Ivory" },
+                TurretSlots = 1, MidSlots = 3, LowSlots = 5,
+                ShieldMin = 320, ShieldMax = 390, ArmorMin = 320, ArmorMax = 390,
+                HullMin = 420, HullMax = 500,
+                SpeedMin = 2.1f, SpeedMax = 2.6f, TurnMin = 45, TurnMax = 60,
+                CapMin = 260, CapMax = 330, RegenMin = 14, RegenMax = 17,
+                CargoMin = 2400, CargoMax = 3000,
+                PriceMin = 1050000, PriceMax = 1250000,
+                Fee = 260000,
+                Materials = new Dictionary<string, float>
+                {
+                    ["tritanium"] = 4000f, ["pyerite"] = 2300f, ["mexallon"] = 950f, ["isogen"] = 420f,
                 },
             },
         };
@@ -81,6 +102,20 @@ namespace SpaceGame
 
         // ---------- blueprints ----------
 
+        /// <summary>Higher classes drop from more dangerous wrecks.</summary>
+        static int RollClass(string npcId)
+        {
+            float c2;
+            switch (npcId)
+            {
+                case "convoyhauler": c2 = 0.30f; break;
+                case "overlord": c2 = 0.22f; break;
+                case "marauder": c2 = 0.08f; break;
+                default: c2 = 0.025f; break;
+            }
+            return Random.value < c2 ? 2 : 1;
+        }
+
         public static Blueprint RollBlueprint(string npcId)
         {
             float r = Random.value;
@@ -89,7 +124,7 @@ namespace SpaceGame
             {
                 Hash = HiveGenerator.NewHash(),
                 TypeId = TypeId,
-                Class = 1,
+                Class = RollClass(npcId),
                 Rarity = rarity,
                 RunsLeft = GameData.RarityRuns[rarity],
             };
@@ -108,10 +143,11 @@ namespace SpaceGame
             var rng = Rng.Stream(DefKey(cls, hash));
             System.Func<float, float, float> R = (lo, hi) => lo + (float)rng.NextDouble() * (hi - lo);
 
+            var pool = c.Names ?? NamePool;
             var def = new ShipDef
             {
                 Id = IdFromHash(hash, cls),
-                Name = NamePool[rng.Next(NamePool.Length)] + "-" + hash.Substring(0, 4),
+                Name = pool[rng.Next(pool.Length)] + "-" + hash.Substring(0, 4),
                 Class = c.Label,
                 Desc = "One-off freighter hull, body " + hash + ". " + c.Doctrine,
                 Role = c.Doctrine,
