@@ -224,23 +224,19 @@ namespace SpaceGame
                 {
                     int cell = Mathf.Min(4, (int)(ft / 0.113f));
                     int band = deck ? 0 : upper ? 1 : 2;
-                    if (markCell[(side * 15 + band * 5 + cell) % 30]) return 1;
+                    // narrow chevrons: each marked cell darkens only its
+                    // leading half, so the white plating stays dominant
+                    if (markCell[(side * 15 + band * 5 + cell) % 30]
+                        && (ft - cell * 0.113f) < 0.055f) return 1;
                 }
             }
 
-            // Band families: dark tail bars or collar rings.
-            if (g.BandMode == 1 && tm > 0.76f && tm < 0.94f)
-            {
-                float u = (tm - 0.76f) / 0.18f;
-                if ((int)(u * g.BandCount * 2 + g.BandPhase * 2f) % 2 == 0) return 1;
-            }
-            else if (g.BandMode == 2 && !belly && tm > 0.16f && tm < 0.30f)
-            {
-                float u = (tm - 0.16f) / 0.14f;
-                if ((int)(u * g.BandCount * 2.5f + g.BandPhase * 2f) % 2 == 0) return 1;
-            }
+            // Dark green underside: the whole belly and the lower flanks run
+            // dark so the white plating reads as a shell laid over it.
+            if (belly) return 1;
+            if (lower && p >= 1 && tm > 0.14f) return 1;
 
-            if (microHit && !belly && tm > 0.12f && tm < 0.92f) return 1;
+            if (microHit && tm > 0.12f && tm < 0.92f) return 1;
             return 0;
         }
 
@@ -249,6 +245,9 @@ namespace SpaceGame
         // vanes off the trailing edge.
         static void Feather(Builder b, Vector3 rootF, Vector3 rootB, Vector3 tipF, Vector3 tipB, bool flip)
         {
+            // the two tip corners converge so each feather ends in a needle
+            // point rather than a blunt chord
+            tipF = tipB + (tipF - tipB) * 0.16f;
             var lead = new[] { rootF, tipF };
             var trail = new[] { rootB, tipB };
             var ts = new[] { 0f, 1f };
@@ -440,9 +439,9 @@ namespace SpaceGame
                 float s = side;
                 for (int f = 0; f < 3; f++)
                 {
-                    float t0 = 0.18f + f * 0.09f;
-                    float span = g.FeatherSpan * (1f - f * 0.16f);
-                    float sweep = g.FeatherSweep * (1f - f * 0.10f);
+                    float t0 = 0.18f + f * 0.11f;
+                    float span = g.FeatherSpan * (1.24f - f * 0.16f);
+                    float sweep = g.FeatherSweep * (1.55f - f * 0.10f);
                     float liftW = CrSample(cts, clf, t0) * H;
                     var rootF2 = new Vector3(s * W * 0.42f, H * (0.30f - f * 0.06f) + liftW, zAt(t0));
                     var rootB2 = rootF2 + new Vector3(-s * 0.03f, -0.02f, -0.55f);
@@ -452,9 +451,9 @@ namespace SpaceGame
                 }
                 for (int f = 0; f < 2; f++)
                 {
-                    float t0 = 0.32f + f * 0.09f;
-                    float span = g.FeatherSpan * (0.62f - f * 0.14f);
-                    float sweep = g.FeatherSweep * (0.80f - f * 0.10f);
+                    float t0 = 0.34f + f * 0.11f;
+                    float span = g.FeatherSpan * (0.80f - f * 0.14f);
+                    float sweep = g.FeatherSweep * (1.20f - f * 0.10f);
                     float liftW = CrSample(cts, clf, t0) * H;
                     var rootF2 = new Vector3(s * W * 0.50f, -H * 0.05f + liftW, zAt(t0));
                     var rootB2 = rootF2 + new Vector3(-s * 0.03f, -0.02f, -0.45f);
