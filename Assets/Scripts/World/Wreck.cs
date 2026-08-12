@@ -10,6 +10,7 @@ namespace SpaceGame
     public class Wreck : SpaceObject
     {
         public readonly List<string> Loot = new List<string>();
+        public readonly List<Blueprint> BpLoot = new List<Blueprint>();
         public float Life = 180f;
 
         void Update()

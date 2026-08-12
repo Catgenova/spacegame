@@ -3,8 +3,14 @@ using UnityEngine;
 
 namespace SpaceGame
 {
-    public enum SlotType { High, Mid, Low }
-    public enum ModuleKind { Miner, Weapon, ShieldBooster, Afterburner, Passive }
+    public enum SlotType { High, Mid, Low, Web }
+    public enum ModuleKind { Miner, Weapon, ShieldBooster, Afterburner, Passive, Web }
+
+    /// <summary>All fittable slot categories, in display/rack order.</summary>
+    public static class Slots
+    {
+        public static readonly SlotType[] All = { SlotType.High, SlotType.Mid, SlotType.Low, SlotType.Web };
+    }
     public enum ObjKind { Sun, Planet, Belt, Station, Gate, Asteroid, Npc, Wreck }
 
     /// <summary>A tradable commodity: raw ore (refinable) or a mineral.</summary>
@@ -28,12 +34,31 @@ namespace SpaceGame
         public string Id, Name, Class, Desc;
         public long Price;
         public float Cargo;
-        public int HighSlots, MidSlots, LowSlots;
+        public int HighSlots, MidSlots, LowSlots, WebSlots;
         public float Shield, Armor, Hull;
         public float Cap, CapRegen;
-        public float Speed;       // units/s (1 unit = 100 m)
-        public float Turn;        // deg/s
-        public float MiningBonus; // multiplier on mining yield
+        public float Speed;        // units/s (1 unit = 100 m)
+        public float Turn;         // deg/s
+        public float MiningBonus;  // multiplier on mining yield
+        public bool TurretOnly;    // high slots accept weapons only (Hive hardpoints)
+        public string Role;        // generated ships: doctrine line
+        public string[] Features;  // generated ships: rolled trait descriptions
+        public string BodyHash;    // generated ships: the 10-digit body identity
+    }
+
+    /// <summary>
+    /// A lootable ship blueprint: a 10-digit hash that deterministically
+    /// defines one unique body (stats + generated mesh). Rarity sets how many
+    /// hulls it can produce; when the runs are spent, the design is gone
+    /// forever.
+    /// </summary>
+    public class Blueprint
+    {
+        public string Hash;   // 10 digits — the body's identity
+        public string TypeId; // "hive"
+        public int Class;     // 1..n
+        public int Rarity;    // index into RarityNames/RarityRuns
+        public int RunsLeft;
     }
 
     public class ModuleDef
@@ -60,6 +85,7 @@ namespace SpaceGame
         public long Bounty;
         public float StandingGain; // faction standing awarded per kill
         public bool NeverFlees;    // overlords fight to the death
+        public float BpChance;     // chance a wreck contains a ship blueprint
     }
 
     public class SkillDef
@@ -223,20 +249,26 @@ namespace SpaceGame
                 Kind = ModuleKind.Passive, Price = 17000, CapBonus = 70f,
                 Desc = "Passive: +70 capacitor.",
             };
+            Modules["web1"] = new ModuleDef
+            {
+                Id = "web1", Name = "Stasis Webifier I", Short = "WEB", Slot = SlotType.Web,
+                Kind = ModuleKind.Web, Price = 14000, Cycle = 2f, Range = 110f, CapUse = 3f,
+                Desc = "Halves the target's velocity while active. Fleeing pirates hate it. Requires a web slot (Hive hulls).",
+            };
 
             Npcs["rookie"] = new NpcDef
             {
                 Id = "rookie", Name = "Pirate Rookie",
                 Shield = 90, Armor = 70, Hull = 70,
                 Dmg = 7, Cycle = 2.5f, Range = 100f, Engage = 700f, Speed = 2.8f, Orbit = 60f,
-                Tracking = 0.30f, Bounty = 3500, StandingGain = 0.04f,
+                Tracking = 0.30f, Bounty = 3500, StandingGain = 0.04f, BpChance = 0.04f,
             };
             Npcs["marauder"] = new NpcDef
             {
                 Id = "marauder", Name = "Pirate Marauder",
                 Shield = 220, Armor = 180, Hull = 160,
                 Dmg = 16, Cycle = 2.8f, Range = 160f, Engage = 900f, Speed = 2.6f, Orbit = 100f,
-                Tracking = 0.13f, Bounty = 11000, StandingGain = 0.1f,
+                Tracking = 0.13f, Bounty = 11000, StandingGain = 0.1f, BpChance = 0.1f,
             };
             Npcs["overlord"] = new NpcDef
             {
@@ -244,13 +276,14 @@ namespace SpaceGame
                 Shield = 500, Armor = 420, Hull = 380,
                 Dmg = 34, Cycle = 3.2f, Range = 240f, Engage = 1200f, Speed = 2.2f, Orbit = 140f,
                 Tracking = 0.055f, Bounty = 38000, StandingGain = 0.25f, NeverFlees = true,
+                BpChance = 0.25f,
             };
             Npcs["convoyhauler"] = new NpcDef
             {
                 Id = "convoyhauler", Name = "Convoy Hauler",
                 Shield = 700, Armor = 800, Hull = 900,
                 Dmg = 8, Cycle = 3f, Range = 90f, Engage = 500f, Speed = 1.2f, Orbit = 220f,
-                Tracking = 0.2f, Bounty = 60000, StandingGain = 0.3f,
+                Tracking = 0.2f, Bounty = 60000, StandingGain = 0.3f, BpChance = 0.6f,
             };
 
             Skill("mining", "Mining", "+5% mining laser yield per level.");
@@ -266,6 +299,22 @@ namespace SpaceGame
 
         static void Mineral(string id, string name, float price, Color c)
             => Minerals[id] = new OreDef { Id = id, Name = name, PricePerM3 = price, Color = c };
+
+        // ---- blueprints ----
+
+        public static readonly string[] RarityNames = { "Common", "Uncommon", "Rare", "Pristine" };
+        public static readonly int[] RarityRuns = { 1, 2, 3, 5 };
+
+        /// <summary>Resolve any hull id: the static catalog or a generated body.</summary>
+        public static ShipDef ResolveShip(string id)
+        {
+            if (Ships.TryGetValue(id, out var def)) return def;
+            if (HiveGenerator.IsHiveId(id)) return HiveGenerator.Def(HiveGenerator.HashFromId(id));
+            return null;
+        }
+
+        public static bool ShipExists(string id)
+            => Ships.ContainsKey(id) || HiveGenerator.IsHiveId(id);
 
         // ---- faction standing (with the Frontier Authority) ----
         // Kills raise it; tiers grant better mission pay and cheaper repairs.

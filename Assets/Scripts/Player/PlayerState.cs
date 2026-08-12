@@ -29,13 +29,14 @@ namespace SpaceGame
         public string HullId;
         public readonly Dictionary<string, float> Cargo = new Dictionary<string, float>();
         public readonly List<string> CargoModules = new List<string>(); // salvaged modules in the hold
+        public readonly List<Blueprint> Blueprints = new List<Blueprint>(); // looted ship blueprints
         public readonly Dictionary<SlotType, string[]> Fitting = new Dictionary<SlotType, string[]>();
         public float Shield, Armor, HullHp, Cap;
         public float ExtraCargo; // e.g. a courier mission package occupying the hold
         public float Standing;   // Frontier Authority faction standing (0..10)
         public bool ArcDone;     // "The Abyss Job" story arc completed
 
-        public ShipDef Hull => GameData.Ships[HullId];
+        public ShipDef Hull => GameData.ResolveShip(HullId);
 
         public static PlayerState NewGame()
         {
@@ -52,10 +53,11 @@ namespace SpaceGame
         public void SetHull(string hullId)
         {
             HullId = hullId;
-            var def = GameData.Ships[hullId];
+            var def = GameData.ResolveShip(hullId);
             Fitting[SlotType.High] = new string[def.HighSlots];
             Fitting[SlotType.Mid] = new string[def.MidSlots];
             Fitting[SlotType.Low] = new string[def.LowSlots];
+            Fitting[SlotType.Web] = new string[def.WebSlots];
             var st = ComputeStats();
             Shield = st.MaxShield;
             Armor = st.MaxArmor;

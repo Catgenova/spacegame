@@ -152,7 +152,7 @@ namespace SpaceGame
             DrawBarRow(r.x + 8, y, r.width - 16, "CRG", p.CargoUsed() / st.CargoCap, new Color(0.62f, 0.48f, 1f), Mathf.Round(p.CargoUsed()) + "/" + Mathf.Round(st.CargoCap) + " m3"); y += 20;
             float ms = GM.Ship.Vel.magnitude * GameData.UnitsToMs;
             GUI.Label(new Rect(r.x + 8, y, r.width - 16, 16),
-                GameData.Ships[p.HullId].Name + "   " + Mathf.Round(ms) + " m/s", _smallStyle);
+                p.Hull.Name + "   " + Mathf.Round(ms) + " m/s", _smallStyle);
         }
 
         void DrawModRack()
@@ -272,7 +272,8 @@ namespace SpaceGame
             else if (sel is Wreck wreck)
             {
                 GUI.Label(new Rect(r.x + 8, y, r.width - 16, 14),
-                    wreck.Loot.Count > 0 ? wreck.Loot.Count + " item(s) detected inside" : "Scan inconclusive",
+                    (wreck.Loot.Count > 0 ? wreck.Loot.Count + " item(s) detected inside" : "Scan inconclusive")
+                    + (wreck.BpLoot.Count > 0 ? " + BLUEPRINT" : ""),
                     _smallStyle);
                 y += 17;
             }
@@ -348,7 +349,7 @@ namespace SpaceGame
 
             GUI.Label(new Rect(r.x + 12, r.y + 8, w - 24, 20), GM.Station.Name.ToUpper(), _titleStyle);
 
-            string[] tabs = { "Market", "Refine", "Fitting", "Ships", "Repair", "Agent" };
+            string[] tabs = { "Market", "Refine", "Fitting", "Ships", "Industry", "Repair", "Agent" };
             for (int i = 0; i < tabs.Length; i++)
             {
                 GUI.backgroundColor = _stationTab == i ? new Color(0.5f, 0.75f, 1f) : Color.white;
@@ -374,8 +375,9 @@ namespace SpaceGame
                 case 1: DrawRefineTab(); break;
                 case 2: DrawFittingTab(); break;
                 case 3: DrawShipsTab(); break;
-                case 4: DrawRepairTab(); break;
-                case 5: DrawAgentTab(); break;
+                case 4: DrawIndustryTab(); break;
+                case 5: DrawRepairTab(); break;
+                case 6: DrawAgentTab(); break;
             }
             GUILayout.EndScrollView();
             GUILayout.EndArea();
@@ -459,14 +461,17 @@ namespace SpaceGame
             var p = GM.Player;
             var st = p.ComputeStats();
 
-            GUILayout.Label("— FITTED (" + GameData.Ships[p.HullId].Name + ") —", _smallStyle);
-            foreach (var slot in new[] { SlotType.High, SlotType.Mid, SlotType.Low })
+            GUILayout.Label("— FITTED (" + p.Hull.Name + ") —", _smallStyle);
+            foreach (var slot in Slots.All)
             {
+                if (!p.Fitting.ContainsKey(slot)) continue;
                 var arr = p.Fitting[slot];
+                string slotName = slot == SlotType.Web ? "Web"
+                    : slot == SlotType.High && p.Hull.TurretOnly ? "Turret" : slot.ToString();
                 for (int i = 0; i < arr.Length; i++)
                 {
                     GUILayout.BeginHorizontal();
-                    string label = slot + " " + (i + 1) + ":  "
+                    string label = slotName + " " + (i + 1) + ":  "
                         + (string.IsNullOrEmpty(arr[i]) ? "<empty>" : GameData.Modules[arr[i]].Name);
                     GUILayout.Label(label, GUILayout.Width(320));
                     if (!string.IsNullOrEmpty(arr[i])
@@ -519,6 +524,34 @@ namespace SpaceGame
                 GUILayout.Label("    " + s.Desc + "  |  Cargo " + s.Cargo + " m3, "
                     + s.HighSlots + "H/" + s.MidSlots + "M/" + s.LowSlots + "L, "
                     + Mathf.Round(s.Speed * GameData.UnitsToMs) + " m/s", _smallStyle);
+                GUILayout.Space(6);
+            }
+        }
+
+        void DrawIndustryTab()
+        {
+            var p = GM.Player;
+            GUILayout.Label("— SHIP MANUFACTURING —", _smallStyle);
+            if (p.Blueprints.Count == 0)
+            {
+                GUILayout.Label("No blueprints. Loot pirate wrecks — convoy haulers are the best source.", _smallStyle);
+                return;
+            }
+            foreach (var bp in new List<Blueprint>(p.Blueprints))
+            {
+                var def = HiveGenerator.Def(bp.Hash);
+                GUILayout.Label(HiveGenerator.DescribeBlueprint(bp) + "  ·  body #" + bp.Hash);
+                GUILayout.Label("    " + def.Class + " · Turrets " + def.HighSlots + " · Webs " + def.WebSlots
+                    + " · " + Mathf.Round(def.Speed * GameData.UnitsToMs) + " m/s", _smallStyle);
+                string blocker = GM.ManufactureBlocker(bp);
+                if (blocker == null)
+                {
+                    if (GUILayout.Button("Manufacture", GUILayout.Width(110))) { GM.Manufacture(bp); break; }
+                }
+                else
+                {
+                    GUILayout.Label("    " + blocker, _smallStyle);
+                }
                 GUILayout.Space(6);
             }
         }

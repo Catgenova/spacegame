@@ -72,6 +72,18 @@ too, so an early warp-out beats their first volley.
   arc that ends in a convoy hunt.
 - **More contracts** — salvage recovery jobs, RUSH couriers with hard
   deadlines and 1.8× pay, and low-sec agents pay up to +50% on everything.
+- **Hunt blueprints, build Hive ships** — pirate wrecks can carry blueprint
+  chips (convoy haulers are the best source). Each blueprint holds a
+  10-digit body hash that deterministically generates a one-of-a-kind
+  **Hive-class scout**: stats, rolled traits, and a procedurally generated
+  faceted wasp-metal mesh — angular gold/black hull, swept antennae, wing
+  blades, folded legs. Rarity sets the run count (Common 1 → Pristine 5);
+  manufacture runs at any station's **Industry** tab using refined
+  minerals from your hold. When the runs are spent, that body is gone
+  from the universe forever — and if you lose the ship, so is yours.
+- **Web them** — Hive hulls carry a dedicated web slot for the Stasis
+  Webifier (half target speed): pin fleeing pirates before they warp out.
+  Their single hardpoint takes turrets only; wasps don't mine.
 - **Navigate** with the galaxy map (`M`): click a system to plot a route;
   a route bar in space names the next gate and warps you to it one click
   at a time until you arrive.
@@ -104,6 +116,8 @@ Solara (1.0) ── Verdant (0.7) ── Krios (0.5) ── Nadir (0.3) ── A
 
 ```
 Assets/Scripts/
+  Ships/      HiveGenerator (type/class envelopes, hash -> stats/traits),
+              HiveShipMesh (hash -> procedural wasp body mesh)
   Core/       GameBootstrap (runtime entry), GameManager (central state),
               SaveSystem, CameraRig
   Data/       GameData (all static defs, code-defined), Rng

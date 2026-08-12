@@ -24,6 +24,10 @@ namespace SpaceGame
 
         public static GameObject BuildHull(string hullId, Transform shipRoot)
         {
+            // Generated bodies build their own unique mesh from the hash.
+            if (HiveGenerator.IsHiveId(hullId))
+                return HiveShipMesh.Build(HiveGenerator.HashFromId(hullId), shipRoot);
+
             var root = new GameObject("Hull");
             root.transform.SetParent(shipRoot, false);
             var t = root.transform;

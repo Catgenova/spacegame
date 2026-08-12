@@ -509,7 +509,7 @@ namespace SpaceGame
             tabRow.style.flexDirection = FlexDirection.Row;
             tabRow.style.marginTop = 6;
             tabRow.style.marginBottom = 6;
-            string[] tabs = { "Market", "Refine", "Fitting", "Ships", "Repair", "Agent" };
+            string[] tabs = { "Market", "Refine", "Fitting", "Ships", "Industry", "Repair", "Agent" };
             for (int i = 0; i < tabs.Length; i++)
             {
                 int idx = i;
@@ -843,7 +843,10 @@ namespace SpaceGame
             if (sel is AsteroidBody rock)
                 extra = GameData.Ores[rock.Data.Ore].Name + ": " + Mathf.Round(rock.Data.Amount) + " m3 remaining";
             else if (sel is Wreck wreck)
+            {
                 extra = wreck.Loot.Count > 0 ? wreck.Loot.Count + " item(s) detected inside" : "Scan inconclusive";
+                if (wreck.BpLoot.Count > 0) extra += "  +  BLUEPRINT SIGNATURE";
+            }
             else if (sel is NpcPirate target2)
             {
                 foreach (var entry in gm.Ship.Rack)
@@ -1007,8 +1010,9 @@ namespace SpaceGame
                 case 1: BuildRefineTab(gm); break;
                 case 2: BuildFittingTab(gm); break;
                 case 3: BuildShipsTab(gm); break;
-                case 4: BuildRepairTab(gm); break;
-                case 5: BuildAgentTab(gm); break;
+                case 4: BuildIndustryTab(gm); break;
+                case 5: BuildRepairTab(gm); break;
+                case 6: BuildAgentTab(gm); break;
             }
         }
 
@@ -1078,15 +1082,22 @@ namespace SpaceGame
             var p = gm.Player;
             var st = p.ComputeStats();
             _stationContent.Add(Section("FITTED (" + p.Hull.Name + ")"));
-            foreach (var slot in new[] { SlotType.High, SlotType.Mid, SlotType.Low })
+            if (p.Hull.Role != null)
+                _stationContent.Add(WrapText(p.Hull.Role
+                    + (p.Hull.Features != null ? "  ·  " + string.Join("  ·  ", p.Hull.Features) : ""),
+                    UiSkin.AccentWarm));
+            foreach (var slot in Slots.All)
             {
+                if (!p.Fitting.ContainsKey(slot)) continue;
                 var arr = p.Fitting[slot];
+                string slotName = slot == SlotType.Web ? "Web"
+                    : slot == SlotType.High && p.Hull.TurretOnly ? "Turret" : slot.ToString();
                 for (int i = 0; i < arr.Length; i++)
                 {
                     var slotC = slot;
                     int idx = i;
                     bool empty = string.IsNullOrEmpty(arr[i]);
-                    var row = Row(Cell(slot + " " + (i + 1) + ":  "
+                    var row = Row(Cell(slotName + " " + (i + 1) + ":  "
                         + (empty ? "<empty>" : GameData.Modules[arr[i]].Name), 330,
                         empty ? UiSkin.TextDim : UiSkin.TextMain));
                     if (!empty)
@@ -1136,6 +1147,54 @@ namespace SpaceGame
                 _stationContent.Add(WrapText("    " + s.Desc + "  |  Cargo " + s.Cargo + " m3, "
                     + s.HighSlots + "H/" + s.MidSlots + "M/" + s.LowSlots + "L, "
                     + Mathf.Round(s.Speed * GameData.UnitsToMs) + " m/s", UiSkin.TextDim));
+            }
+        }
+
+        void BuildIndustryTab(GameManager gm)
+        {
+            var p = gm.Player;
+            _stationContent.Add(Section("SHIP MANUFACTURING"));
+            var cost = HiveGenerator.MaterialCost(1);
+            string costText = "";
+            foreach (var kv in cost)
+                costText += (costText.Length > 0 ? ", " : "") + kv.Value + " " + GameData.Minerals[kv.Key].Name;
+            _stationContent.Add(WrapText("Each run consumes " + costText + " (m3, from your cargo hold) + "
+                + GameData.FmtCredits(HiveGenerator.ManufactureFee) + " assembly fee. Your current hull is "
+                + "traded in. Refine ore on the Refine tab to source minerals.", UiSkin.TextDim));
+
+            if (p.Blueprints.Count == 0)
+            {
+                _stationContent.Add(WrapText("No blueprints. Pirate wrecks sometimes carry blueprint "
+                    + "chips — convoy haulers are the best source.", UiSkin.TextDim));
+                return;
+            }
+
+            foreach (var bp in new List<Blueprint>(p.Blueprints))
+            {
+                var b = bp;
+                var def = HiveGenerator.Def(bp.Hash);
+                _stationContent.Add(Section(def.Name + "  —  " + GameData.RarityNames[bp.Rarity]
+                    + "  ·  " + bp.RunsLeft + " run" + (bp.RunsLeft == 1 ? "" : "s") + " left  ·  body #" + bp.Hash));
+                _stationContent.Add(WrapText(def.Class + "  ·  " + def.Role, UiSkin.TextDim));
+                _stationContent.Add(WrapText(
+                    "Turrets " + def.HighSlots + " · Webs " + def.WebSlots + " · Lows " + def.LowSlots
+                    + " · " + Mathf.Round(def.Speed * GameData.UnitsToMs) + " m/s · Shield "
+                    + def.Shield + " · Cargo " + def.Cargo + " m3", UiSkin.TextDim));
+                if (def.Features != null)
+                    _stationContent.Add(WrapText(string.Join("  ·  ", def.Features), UiSkin.AccentWarm));
+                string blocker = gm.ManufactureBlocker(bp);
+                var row = Row();
+                if (blocker == null)
+                {
+                    var build = Btn("Manufacture", () => { gm.Manufacture(b); RefreshStationTab(); });
+                    build.style.color = new Color(0.5f, 1f, 0.65f);
+                    row.Add(build);
+                }
+                else
+                {
+                    row.Add(Cell(blocker, 520, new Color(1f, 0.6f, 0.5f), 10));
+                }
+                _stationContent.Add(row);
             }
         }
 

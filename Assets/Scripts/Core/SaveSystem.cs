@@ -14,6 +14,7 @@ namespace SpaceGame
         [System.Serializable] class SkillSave { public string Id; public int Level; public float Xp; }
         [System.Serializable] class OreSave { public string Id; public float Amount; }
         [System.Serializable] class FitSave { public int Slot; public int Index; public string ModId; }
+        [System.Serializable] class BpSave { public string Hash, Type; public int Class, Rarity, RunsLeft; }
 
         [System.Serializable]
         class SaveData
@@ -40,6 +41,7 @@ namespace SpaceGame
             public bool ArcDone;
             public float MsnTimeLeft;
             public int MsnSalvageReq, MsnSalvageDone, MsnArcStage;
+            public List<BpSave> Blueprints = new List<BpSave>();
             public string MsnType = "";
             public string MsnTitle, MsnDesc;
             public string MsnOriginStation, MsnOriginSystem;
@@ -96,10 +98,17 @@ namespace SpaceGame
                 d.Skills.Add(new SkillSave { Id = kv.Key, Level = kv.Value.Level, Xp = kv.Value.Xp });
             d.Hangar.AddRange(p.Hangar);
             d.CargoMods.AddRange(p.CargoModules);
+            foreach (var bp in p.Blueprints)
+                d.Blueprints.Add(new BpSave
+                {
+                    Hash = bp.Hash, Type = bp.TypeId, Class = bp.Class,
+                    Rarity = bp.Rarity, RunsLeft = bp.RunsLeft,
+                });
             foreach (var kv in p.Cargo)
                 d.Cargo.Add(new OreSave { Id = kv.Key, Amount = kv.Value });
-            foreach (var slot in new[] { SlotType.High, SlotType.Mid, SlotType.Low })
+            foreach (var slot in Slots.All)
             {
+                if (!p.Fitting.ContainsKey(slot)) continue;
                 var arr = p.Fitting[slot];
                 for (int i = 0; i < arr.Length; i++)
                     if (!string.IsNullOrEmpty(arr[i]))
@@ -116,7 +125,7 @@ namespace SpaceGame
             {
                 var d = JsonUtility.FromJson<SaveData>(PlayerPrefs.GetString(Key));
                 if (d == null || d.V < 1 || d.V > 2) return false;
-                if (!GameData.Ships.ContainsKey(d.HullId)) return false;
+                if (!GameData.ShipExists(d.HullId)) return false;
                 if (!gm.Universe.Systems.ContainsKey(d.SystemId)) return false;
 
                 var p = new PlayerState { Credits = d.Credits, ActiveSkill = d.ActiveSkill };
@@ -139,6 +148,14 @@ namespace SpaceGame
                         if (GameData.Modules.ContainsKey(modId)) p.CargoModules.Add(modId);
                 foreach (var o in d.Cargo)
                     if (GameData.CommodityExists(o.Id)) p.Cargo[o.Id] = o.Amount;
+                if (d.Blueprints != null)
+                    foreach (var bp in d.Blueprints)
+                        if (!string.IsNullOrEmpty(bp.Hash))
+                            p.Blueprints.Add(new Blueprint
+                            {
+                                Hash = bp.Hash, TypeId = bp.Type, Class = bp.Class,
+                                Rarity = bp.Rarity, RunsLeft = bp.RunsLeft,
+                            });
 
                 var st = p.ComputeStats();
                 p.Shield = Mathf.Clamp(d.Shield, 0f, st.MaxShield);

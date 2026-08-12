@@ -81,8 +81,9 @@ namespace SpaceGame
         public void RefreshRack()
         {
             Rack.Clear();
-            foreach (var slot in new[] { SlotType.High, SlotType.Mid })
+            foreach (var slot in new[] { SlotType.High, SlotType.Mid, SlotType.Web })
             {
+                if (!P.Fitting.ContainsKey(slot)) continue;
                 var arr = P.Fitting[slot];
                 for (int i = 0; i < arr.Length; i++)
                     if (!string.IsNullOrEmpty(arr[i]))
@@ -159,7 +160,8 @@ namespace SpaceGame
                 return;
             }
             var m = r.Def;
-            if ((m.Kind == ModuleKind.Miner || m.Kind == ModuleKind.Weapon) && !ValidTarget(m))
+            if ((m.Kind == ModuleKind.Miner || m.Kind == ModuleKind.Weapon || m.Kind == ModuleKind.Web)
+                && !ValidTarget(m))
             {
                 var sel = GM.Selected;
                 bool rightKind = m.Kind == ModuleKind.Miner ? sel is AsteroidBody : sel is NpcPirate;
@@ -186,7 +188,8 @@ namespace SpaceGame
             if (sel == null) return false;
             float d = Vector3.Distance(transform.position, sel.transform.position);
             if (m.Kind == ModuleKind.Miner) return sel is AsteroidBody && d <= m.Range && GM.Locked;
-            if (m.Kind == ModuleKind.Weapon) return sel is NpcPirate && d <= m.Range && GM.Locked;
+            if (m.Kind == ModuleKind.Weapon || m.Kind == ModuleKind.Web)
+                return sel is NpcPirate && d <= m.Range && GM.Locked;
             return true;
         }
 
@@ -329,13 +332,15 @@ namespace SpaceGame
 
                 if (m.Kind == ModuleKind.Miner) CompleteMiningCycle(m, r);
                 else if (m.Kind == ModuleKind.Weapon) CompleteWeaponCycle(m, r);
+                else if (m.Kind == ModuleKind.Web) CompleteWebCycle(m, r);
                 else if (m.Kind == ModuleKind.ShieldBooster)
                     P.Shield = Mathf.Min(P.ComputeStats().MaxShield, P.Shield + m.BoostAmount);
 
                 // Decide whether the next cycle starts.
                 if (r.Active)
                 {
-                    if ((m.Kind == ModuleKind.Miner || m.Kind == ModuleKind.Weapon) && !ValidTarget(m))
+                    if ((m.Kind == ModuleKind.Miner || m.Kind == ModuleKind.Weapon
+                        || m.Kind == ModuleKind.Web) && !ValidTarget(m))
                     {
                         r.Active = false;
                         GM.Log(m.Name + " deactivated — target lost or out of range.");
@@ -408,6 +413,18 @@ namespace SpaceGame
             }
         }
 
+        void CompleteWebCycle(ModuleDef m, RackEntry r)
+        {
+            var npc = GM.Selected as NpcPirate;
+            if (npc == null || Vector3.Distance(transform.position, npc.transform.position) > m.Range)
+            {
+                r.Active = false;
+                return;
+            }
+            npc.ApplyWeb(m.Cycle + 0.6f);
+            Sfx.Web();
+        }
+
         void UpdateBeam()
         {
             var sel = GM.Selected;
@@ -428,6 +445,12 @@ namespace SpaceGame
                     {
                         show = true;
                         color = new Color(1f, 0.45f, 0.3f);
+                        break;
+                    }
+                    if (r.Def.Kind == ModuleKind.Web && sel is NpcPirate)
+                    {
+                        show = true;
+                        color = new Color(0.35f, 0.95f, 0.85f);
                         break;
                     }
                 }

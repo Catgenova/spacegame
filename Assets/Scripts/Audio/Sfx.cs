@@ -138,5 +138,8 @@ namespace SpaceGame
 
         public static void PlayerHit(bool onShield)
             => Play(onShield ? _shieldHit : _armorHit, 0.7f, Jit());
+
+        /// <summary>Stasis web cycle — the shield zap, slowed down.</summary>
+        public static void Web() => Play(_shieldHit, 0.4f, 0.65f);
     }
 }

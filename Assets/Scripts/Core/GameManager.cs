@@ -335,7 +335,11 @@ namespace SpaceGame
                 for (int i = 0; i < count; i++)
                     loot.Add(table.Pool[Random.Range(0, table.Pool.Length)]);
             }
-            View.SpawnWreck(npc.Def, npc.transform.position, loot);
+            var wreck = View.SpawnWreck(npc.Def, npc.transform.position, loot);
+
+            // Ship blueprint chips: rarer, and the real reason to hunt convoys.
+            if (Random.value < npc.Def.BpChance)
+                wreck.BpLoot.Add(HiveGenerator.RollBlueprint());
 
             View.RemoveObject(npc);
 
@@ -372,9 +376,20 @@ namespace SpaceGame
             var w = Selected as Wreck;
             if (w == null || Docked) return;
             if (DistTo(w) > LootRange) { Log("Get within " + GameData.FmtDist(LootRange) + " to salvage."); return; }
+
+            // Blueprint chips are data — no cargo space needed.
+            for (int i = w.BpLoot.Count - 1; i >= 0; i--)
+            {
+                var bp = w.BpLoot[i];
+                Player.Blueprints.Add(bp);
+                Log("BLUEPRINT acquired: " + HiveGenerator.DescribeBlueprint(bp)
+                    + " — see the Industry tab at any station.");
+                w.BpLoot.RemoveAt(i);
+            }
+
             if (w.Loot.Count == 0)
             {
-                Log("Nothing of value in the wreck.");
+                Log("Nothing more of value in the wreck.");
                 Select(null);
                 View.RemoveObject(w);
                 return;
@@ -399,7 +414,7 @@ namespace SpaceGame
                         + (m.SalvageDone >= m.SalvageRequired ? " — report to the agent!" : "."));
                 }
             }
-            if (w.Loot.Count == 0)
+            if (w.Loot.Count == 0 && w.BpLoot.Count == 0)
             {
                 Select(null);
                 View.RemoveObject(w);
@@ -565,9 +580,7 @@ namespace SpaceGame
                 return;
             }
             Player.Credits -= cost;
-            foreach (var slot in new[] { SlotType.High, SlotType.Mid, SlotType.Low })
-                foreach (var modId in Player.Fitting[slot])
-                    if (!string.IsNullOrEmpty(modId)) Player.Hangar.Add(modId);
+            StripModulesToHangar();
             Player.SetHull(shipId);
             Ship.RebuildVisual();
             Log("Now flying a " + GameData.Ships[shipId].Name + ". Net cost "
@@ -575,11 +588,32 @@ namespace SpaceGame
             SaveSystem.Save(this);
         }
 
+        void StripModulesToHangar()
+        {
+            foreach (var slot in Slots.All)
+            {
+                if (!Player.Fitting.ContainsKey(slot)) continue;
+                foreach (var modId in Player.Fitting[slot])
+                    if (!string.IsNullOrEmpty(modId)) Player.Hangar.Add(modId);
+            }
+        }
+
         public void FitModule(int hangarIndex)
         {
             if (!Docked || hangarIndex < 0 || hangarIndex >= Player.Hangar.Count) return;
             string modId = Player.Hangar[hangarIndex];
             var m = GameData.Modules[modId];
+            if (m.Slot == SlotType.High && Player.Hull.TurretOnly && m.Kind != ModuleKind.Weapon)
+            {
+                Log("Hive hardpoints only accept turrets — no " + m.Name + " here.");
+                return;
+            }
+            if (!Player.Fitting.ContainsKey(m.Slot) || Player.Fitting[m.Slot].Length == 0)
+            {
+                Log("This hull has no " + (m.Slot == SlotType.Web ? "web" : m.Slot.ToString().ToLower())
+                    + " slot.");
+                return;
+            }
             var arr = Player.Fitting[m.Slot];
             int free = -1;
             for (int i = 0; i < arr.Length; i++)
@@ -599,6 +633,63 @@ namespace SpaceGame
             Player.Fitting[slot][idx] = null;
             Player.Hangar.Add(modId);
             Log("Unfitted " + GameData.Modules[modId].Name + ".");
+            SaveSystem.Save(this);
+        }
+
+        // ---------- manufacturing (Industry tab) ----------
+
+        /// <summary>Why this blueprint can't be built right now, or null if it can.</summary>
+        public string ManufactureBlocker(Blueprint bp)
+        {
+            if (!Docked) return "Dock at a station to manufacture.";
+            if (bp.RunsLeft <= 0) return "Blueprint exhausted.";
+            foreach (var kv in HiveGenerator.MaterialCost(bp.Class))
+            {
+                Player.Cargo.TryGetValue(kv.Key, out float have);
+                if (have < kv.Value)
+                    return "Missing " + Mathf.Round(kv.Value - have) + " m3 "
+                        + GameData.Minerals[kv.Key].Name + " (must be in your cargo hold).";
+            }
+            if (Player.Credits < HiveGenerator.ManufactureFee)
+                return "Assembly fee is " + GameData.FmtCredits(HiveGenerator.ManufactureFee) + ".";
+            return null;
+        }
+
+        public void Manufacture(Blueprint bp)
+        {
+            if (ManufactureBlocker(bp) != null) { Log(ManufactureBlocker(bp)); return; }
+            var def = HiveGenerator.Def(bp.Hash);
+
+            // Everything left in the hold after the minerals burn must fit the new hull.
+            float materialVolume = 0f;
+            foreach (var kv in HiveGenerator.MaterialCost(bp.Class)) materialVolume += kv.Value;
+            if (Player.CargoUsed() - materialVolume > def.Cargo)
+            {
+                Log("Your remaining cargo would not fit the " + def.Name + "'s hold. Sell some first.");
+                return;
+            }
+
+            foreach (var kv in HiveGenerator.MaterialCost(bp.Class))
+            {
+                Player.Cargo[kv.Key] -= kv.Value;
+                if (Player.Cargo[kv.Key] <= 0.01f) Player.Cargo.Remove(kv.Key);
+            }
+            Player.Credits -= HiveGenerator.ManufactureFee;
+            long tradeIn = Market.ShipTradeInValue(StationId, Player.HullId);
+            Player.Credits += tradeIn;
+
+            StripModulesToHangar();
+            Player.SetHull(def.Id);
+            Ship.RebuildVisual();
+
+            bp.RunsLeft--;
+            Log("Manufactured " + def.Name + " (body " + bp.Hash + "). Old hull traded in for "
+                + GameData.FmtCredits(tradeIn) + ".");
+            if (bp.RunsLeft <= 0)
+            {
+                Player.Blueprints.Remove(bp);
+                Log("Blueprint " + bp.Hash + " is spent — this body will never be built again.");
+            }
             SaveSystem.Save(this);
         }
 

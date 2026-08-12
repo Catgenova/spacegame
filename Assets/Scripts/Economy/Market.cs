@@ -47,7 +47,7 @@ namespace SpaceGame
 
         public static long ShipBuyPrice(string stationId, string shipId)
         {
-            float basePrice = GameData.Ships[shipId].Price;
+            float basePrice = GameData.ResolveShip(shipId).Price;
             return (long)Mathf.Max(1f, Mathf.Round(basePrice * Mults(stationId).Ship * Jitter(stationId, shipId, 0.1f)));
         }
 

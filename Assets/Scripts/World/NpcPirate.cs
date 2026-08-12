@@ -14,6 +14,7 @@ namespace SpaceGame
 
         Vector3 _vel;
         float _cycleT;
+        float _webT; // stasis-webbed while > 0: half speed
         float _lockT;      // pirates need a moment to lock you too
         float _fireFlash;  // seconds the fire beam stays visible
         bool _fleeing;
@@ -44,11 +45,18 @@ namespace SpaceGame
             _beam.enabled = false;
         }
 
+        /// <summary>Stasis web: halves velocity while the effect holds.</summary>
+        public void ApplyWeb(float duration) => _webT = Mathf.Max(_webT, duration);
+        public bool Webbed => _webT > 0f;
+
+        float EffSpeed => Def.Speed * (_webT > 0f ? 0.5f : 1f);
+
         void Update()
         {
             var gm = GameManager.I;
             if (gm == null || !gm.Ready) return;
             float dt = Time.deltaTime;
+            if (_webT > 0f) _webT -= dt;
 
             Vector3 desired = Vector3.zero;
             bool playerVulnerable = !gm.Docked && !gm.Ship.InWarp;
@@ -64,7 +72,7 @@ namespace SpaceGame
             {
                 Vector3 away = transform.position - gm.Ship.transform.position;
                 desired = (away.sqrMagnitude > 1f ? away.normalized : transform.forward)
-                    * Def.Speed * 1.25f;
+                    * EffSpeed * 1.25f;
                 _fleeT += dt;
                 float k2 = Mathf.Min(1f, dt / Inertia);
                 _vel += (desired - _vel) * k2;
@@ -82,7 +90,7 @@ namespace SpaceGame
                 Vector3 toPlayer = gm.Ship.transform.position - transform.position;
                 if (d > Def.Orbit * 1.25f)
                 {
-                    desired = toPlayer.normalized * Def.Speed;
+                    desired = toPlayer.normalized * EffSpeed;
                 }
                 else
                 {
@@ -90,7 +98,7 @@ namespace SpaceGame
                     Vector3 radial = -toPlayer.normalized;
                     Vector3 tangent = Vector3.Cross(radial, Vector3.up).normalized;
                     float radialErr = Mathf.Clamp((d - Def.Orbit) / Def.Orbit, -0.6f, 0.6f);
-                    desired = (tangent + radial * -radialErr).normalized * Def.Speed;
+                    desired = (tangent + radial * -radialErr).normalized * EffSpeed;
                 }
 
                 _lockT += dt;
