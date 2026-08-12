@@ -908,37 +908,27 @@ namespace SpaceGame
             // Gold deck saddles over thorax and abdomen.
             if (deck && ((tm > 0.30f && tm < 0.40f) || (tm > 0.55f && tm < 0.64f))) return 0;
 
-            // Gold flank cells with chevron skew.
+            // Gold shoulder patches — smaller cells so the chitin stays black.
             if (upper || lower)
             {
                 float skew = (upper ? 0f : 0.045f) + p * 0.018f;
                 float ft = tm - 0.26f - skew;
-                if (ft >= 0f && ft < 0.40f)
+                if (ft >= 0f && ft < 0.26f)
                 {
-                    int cell = Mathf.Min(2, (int)(ft / 0.1334f));
+                    int cell = Mathf.Min(2, (int)(ft / 0.0867f));
                     int band = upper ? 0 : 1;
-                    if (flankCell[side * 6 + band * 3 + cell]) return 0;
+                    if (flankCell[side * 6 + band * 3 + cell] && (ft - cell * 0.0867f) > 0.012f) return 0;
                 }
             }
 
             // Gold belly keel.
             if (belly && p == 2 && tm > 0.34f && tm < 0.60f) return 0;
 
-            // Banding family — gold rings on black chitin.
-            if (g.BandMode == 1 && tm > 0.68f && tm < 0.94f)
-            {
-                float u = (tm - 0.68f) / 0.26f;
-                if ((int)(u * g.BandCount * 2 + g.BandPhase * 2f) % 2 == 0) return 0;
-            }
-            else if (g.BandMode == 2 && tm > 0.18f && tm < 0.34f)
-            {
-                float u = (tm - 0.18f) / 0.16f;
-                if ((int)(u * g.BandCount * 2.5f + g.BandPhase * 2f) % 2 == 0) return 0;
-            }
-            else if (g.BandMode == 3 && deck && p == 0 && tm > 0.24f && tm < 0.72f)
-            {
-                return 0;
-            }
+            // Gold trim seam where the abdomen plating starts, and a gold
+            // tail collar ahead of the drive cluster — plates, not rings.
+            if (tm > 0.665f && tm < 0.69f) return 0;
+            if (deck && tm > 0.74f && tm < 0.82f && p == 1) return 0;
+            if (tm > 0.90f && tm < 0.935f) return 0;
 
             if (microHit && tm > 0.12f && tm < 0.92f) return 0;
             return 1;
@@ -958,6 +948,20 @@ namespace SpaceGame
             {
                 float f0 = 0.14f + rib * 0.20f;
                 WingPlate(b, lead, ts, trail, ts, 0.07f, 0.020f, f0, f0 + 0.05f, 1);
+            }
+            // chordwise ribs crossing the span ribs — the honeycomb lattice
+            for (int cw = 0; cw < 2; cw++)
+            {
+                float c0 = 0.32f + cw * 0.26f, c1 = c0 + 0.05f;
+                for (int seg = 0; seg < 4; seg++)
+                {
+                    float u0 = 0.10f + seg * 0.20f, u1 = u0 + 0.20f;
+                    var pa = WingSurfPt(lead, ts, trail, ts, 0.07f, 0.020f, u0, c0, 0.020f);
+                    var pb = WingSurfPt(lead, ts, trail, ts, 0.07f, 0.020f, u0, c1, 0.020f);
+                    var pc = WingSurfPt(lead, ts, trail, ts, 0.07f, 0.020f, u1, c1, 0.020f);
+                    var pd = WingSurfPt(lead, ts, trail, ts, 0.07f, 0.020f, u1, c0, 0.020f);
+                    b.QuadUDS(pa, pb, pc, pd, 1);
+                }
             }
             WingPlate(b, lead, ts, trail, ts, 0.07f, 0.020f, 0.02f, 0.10f, 0);
         }
@@ -1005,7 +1009,7 @@ namespace SpaceGame
                     float sc = CrSample(cts, csc, t);
                     return HalfPt3(0, t).y * H * sc + CrSample(cts, clf, t) * H;
                 };
-                Canopy(b, zC + halfLen, zC - halfLen, 0.30f, 0.26f, deckAt, 2, 1, 2);
+                Canopy(b, zC + halfLen * 1.10f, zC - halfLen, 0.36f, 0.30f, deckAt, 2, 1, 2);
             }
 
             // Two swept-back antennae off the head.
@@ -1062,6 +1066,7 @@ namespace SpaceGame
                 var rootB = new Vector3(s * W * 0.36f, H * 0.56f, (0.5f - 0.48f) * L);
                 var tipB = rootB + new Vector3(s * g.WingUpSpan * 0.62f, g.WingUpSpan * g.WingUpRake, -g.WingUpSweep);
                 var tipF = rootF + new Vector3(s * g.WingUpSpan * 0.72f, g.WingUpSpan * g.WingUpRake * 0.94f, -g.WingUpSweep * 0.50f);
+                tipF = tipB + (tipF - tipB) * 0.28f;
                 MembraneWing(b, rootF, rootB, tipB, tipF, side < 0);
             }
 
@@ -1073,6 +1078,7 @@ namespace SpaceGame
                 var rootB = new Vector3(s * W * 0.50f, H * 0.00f, (0.5f - 0.68f) * L);
                 var tipB = rootB + new Vector3(s * g.WingLowSpan, g.WingLowSpan * g.WingLowRake, -g.WingLowSweep);
                 var tipF = rootF + new Vector3(s * g.WingLowSpan * 0.88f, g.WingLowSpan * g.WingLowRake * 0.9f, -g.WingLowSweep * 0.5f);
+                tipF = tipB + (tipF - tipB) * 0.28f;
                 MembraneWing(b, rootF, rootB, tipB, tipF, side < 0);
             }
 
