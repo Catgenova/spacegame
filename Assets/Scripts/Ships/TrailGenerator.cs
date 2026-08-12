@@ -11,12 +11,14 @@ namespace SpaceGame
     /// 3 mids, 2 lows.
     /// Class 2 "Otocyon": 2 sensors, 2 collectors, 3 mids, 3 lows — the
     /// bat-eared dark-space explorer.
+    /// Class 3 "Nanook": 3 sensors, 2 collectors, 4 mids, 3 lows — the
+    /// arctic surveyor that noses out everything in the deep.
     /// Streams: traildef / trailbody / trailpanels.
     /// </summary>
     public static class TrailGenerator
     {
         public const string TypeId = "trail";
-        public const int MaxClass = 2;
+        public const int MaxClass = 3;
 
         class TrailClass
         {
@@ -69,6 +71,24 @@ namespace SpaceGame
                     ["tritanium"] = 2000f, ["pyerite"] = 1150f, ["mexallon"] = 460f, ["isogen"] = 200f,
                 },
             },
+            [3] = new TrailClass
+            {
+                Label = "Trail-class Nanook (C3)",
+                Doctrine = "Arctic surveyor: slow, patient, unarmed — nothing drifts past its nose.",
+                Names = new[] { "Nanook", "Ursus", "Maritimus", "Kodiak", "Polaris", "Bruin", "Isbjorn", "Grizzled" },
+                SensorSlots = 3, CollectorSlots = 2, MidSlots = 4, LowSlots = 3,
+                ShieldMin = 400, ShieldMax = 480, ArmorMin = 260, ArmorMax = 320,
+                HullMin = 280, HullMax = 340,
+                SpeedMin = 3.0f, SpeedMax = 3.6f, TurnMin = 80, TurnMax = 100,
+                CapMin = 560, CapMax = 680, RegenMin = 22, RegenMax = 27,
+                CargoMin = 700, CargoMax = 900,
+                PriceMin = 1100000, PriceMax = 1350000,
+                Fee = 280000,
+                Materials = new Dictionary<string, float>
+                {
+                    ["tritanium"] = 4200f, ["pyerite"] = 2400f, ["mexallon"] = 1000f, ["isogen"] = 450f,
+                },
+            },
         };
 
         static readonly string[] NamePool =
@@ -106,15 +126,16 @@ namespace SpaceGame
         /// <summary>Higher classes drop from more dangerous wrecks.</summary>
         static int RollClass(string npcId)
         {
-            float c2;
+            float c3, c2;
             switch (npcId)
             {
-                case "convoyhauler": c2 = 0.28f; break;
-                case "overlord": c2 = 0.20f; break;
-                case "marauder": c2 = 0.08f; break;
-                default: c2 = 0.025f; break;
+                case "convoyhauler": c3 = 0.10f; c2 = 0.24f; break;
+                case "overlord": c3 = 0.07f; c2 = 0.18f; break;
+                case "marauder": c3 = 0.025f; c2 = 0.07f; break;
+                default: c3 = 0.006f; c2 = 0.022f; break;
             }
-            return Random.value < c2 ? 2 : 1;
+            float r2 = Random.value;
+            return r2 < c3 ? 3 : r2 < c3 + c2 ? 2 : 1;
         }
 
         public static Blueprint RollBlueprint(string npcId)
