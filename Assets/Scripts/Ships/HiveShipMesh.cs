@@ -66,6 +66,8 @@ namespace SpaceGame
             public float Hue, Sat, Val, SurfAmp, SurfPhase;
             public int StackSegs;
             public float[] LegL = new float[4], LegA = new float[4];
+            public float Splay, BandPhase;
+            public int BandMode, BandCount;
             public Color Gold;
         }
 
@@ -96,6 +98,11 @@ namespace SpaceGame
             g.StackSegs = 4 + rng.Next(2);
             for (int i = 0; i < 4; i++) g.LegL[i] = R(0.90f, 1.10f);
             for (int i = 0; i < 4; i++) g.LegA[i] = R(-0.08f, 0.08f);
+            // Mk.IV.1 additions, appended so earlier rolls keep their values.
+            g.Splay = R(0.00f, 0.18f);
+            g.BandMode = rng.Next(4);   // 0 none, 1 tail rings, 2 nose rings, 3 deck stripe
+            g.BandCount = 2 + rng.Next(3);
+            g.BandPhase = R(0f, 1f);
             g.Gold = Color.HSVToRGB(g.Hue, g.Sat, g.Val);
             return g;
         }
@@ -435,18 +442,18 @@ namespace SpaceGame
                 {
                     int li = (side < 0 ? 0 : 2) + leg;
                     float tm = leg == 0 ? 0.78f : 0.92f;
-                    var mount = new Vector3(side * W * 0.42f, -0.50f * H, (0.5f - tm) * L);
-                    var d1 = new Vector3(side * (0.55f + g.LegA[li]), -0.55f, -0.35f).normalized;
-                    float len1 = 0.55f * g.LegScale;
+                    var mount = new Vector3(side * W * 0.50f, -0.48f * H, (0.5f - tm) * L);
+                    var d1 = new Vector3(side * (0.90f + g.Splay + g.LegA[li]), -0.40f, -0.30f).normalized;
+                    float len1 = 0.60f * g.LegScale;
                     var j1 = mount + d1 * len1;
                     Tube(b, new[] { mount, j1 }, new[] { 0.09f, 0.075f }, 8, 1, false);
                     Ball(b, j1, 0.115f, 1, 4, 8);
-                    var d2 = new Vector3(side * 0.18f, -0.72f, 0.42f + g.LegA[li]).normalized;
+                    var d2 = new Vector3(side * (0.48f + g.Splay), -0.60f, 0.40f + g.LegA[li]).normalized;
                     float len2 = 1.7f * g.LegL[li] * g.LegScale;
                     var j2 = j1 + d2 * len2;
                     Tube(b, new[] { j1, j1 + d2 * (len2 * 0.5f), j2 }, new[] { 0.13f, 0.11f, 0.07f }, 4, 0, false);
                     Ball(b, j2, 0.09f, 1, 4, 8);
-                    var d3 = new Vector3(side * 0.05f, -0.80f, -0.25f).normalized;
+                    var d3 = new Vector3(side * (0.22f + g.Splay * 0.5f), -0.75f, -0.22f).normalized;
                     float len3 = 0.9f * g.LegL[li] * g.LegScale;
                     Tube(b, new[] { j2, j2 + d3 * (len3 * 0.55f), j2 + d3 * len3 + new Vector3(0f, -0.05f, 0.18f) },
                         new[] { 0.06f, 0.045f, 0.006f }, 5, 1, true);
@@ -550,6 +557,24 @@ namespace SpaceGame
 
             // Belly recess.
             if (belly && tm > 0.52f && tm < 0.78f) return 1;
+
+            // Rolled banding family — each body picks one pattern.
+            if (g.BandMode == 1 && tm > 0.76f && tm < 0.97f)
+            {
+                float u = (tm - 0.76f) / 0.21f;
+                int band = (int)(u * g.BandCount * 2 + g.BandPhase * 2f);
+                if (band % 2 == 0) return 1;
+            }
+            else if (g.BandMode == 2 && tm > 0.16f && tm < 0.34f)
+            {
+                float u = (tm - 0.16f) / 0.18f;
+                int band = (int)(u * g.BandCount * 2.5f + g.BandPhase * 2f);
+                if (band % 2 == 0) return 1;
+            }
+            else if (g.BandMode == 3 && deck && p == 0 && tm > 0.22f && tm < 0.78f)
+            {
+                return 1;
+            }
 
             // Rare micro panels.
             if (microHit && tm > 0.15f && tm < 0.9f) return 1;
