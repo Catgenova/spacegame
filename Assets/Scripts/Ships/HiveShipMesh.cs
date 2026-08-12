@@ -4,32 +4,33 @@ using UnityEngine;
 namespace SpaceGame
 {
     /// <summary>
-    /// Generates the Hive body mesh from a 10-digit hash — v2, high resolution.
-    /// True wasp anatomy: head bulge, thorax, waist pinch, striped abdomen and
-    /// a stinger tail, lofted smoothly (Catmull-Rom stations, 16-point rounded
-    /// profile, shared-vertex smooth normals) with crisp mechanical details on
-    /// top: curved segmented antennae with joint beads, three-part folded legs,
-    /// thickness-extruded wing blades, a turret drum + barrel marking the
-    /// hardpoint, a teal web-emitter ring on the belly, spine greebles, and
-    /// twin engines with inset nozzles and glow discs.
+    /// Generates the Hive body mesh from a 10-digit hash — Mk.III, aligned to
+    /// the type reference: one continuous dart-shaped hull with a long bladed
+    /// nose, flat belly, dark canopy plate on the rear-top, bold angular black
+    /// inset panels on the flanks, a segmented piston stack at the stern, two
+    /// long straight antennae raking up-back, one kite wing blade per side
+    /// with a black claw tip, two fold-forward segmented legs per side, a
+    /// ventral fin, a low dorsal turret drum (the hardpoint) and a teal
+    /// web-emitter ring on the belly (the web slot).
     ///
-    /// Submeshes: 0 gold metal, 1 black metal, 2 amber glow, 3 teal glow.
-    /// All randomness is rolled up front in a fixed order (Roll + a separate
-    /// panel stream), so the hash-to-body mapping is stable and portable.
+    /// Bodies of one type must read as the SAME ship: proportions vary only a
+    /// few percent; individuality comes from the flank panel patchwork, hue,
+    /// antenna rake, and limb pose. ~6k triangles; the hull shades smooth,
+    /// machinery stays crisp. Submeshes: 0 gold, 1 black, 2 amber, 3 teal.
     /// </summary>
     public static class HiveShipMesh
     {
-        const int Rings = 26;   // hull loft samples
-        const int Segs = 16;    // profile points per ring
+        const int Rings = 33;
+        const int Segs = 20;
 
         class Genome
         {
-            public float L, W, H, Head, Waist, Abdomen, Nose;
-            public float AntLen, AntUp, AntCurve;
-            public float WingSpan, WingSweep, LegScale, Panels, StripePhase;
+            public float L, W, H, Nose, CanopyStart, CanopyLen;
+            public float AntLen, AntRake, AntCurve;
+            public float WingSpan, WingSweep, LegScale, FlankOdds;
             public float Hue, Sat, Val, SurfAmp, SurfPhase;
-            public int Legs, Stripes, Greebles;
-            public float[] LegLen1 = new float[4], LegLen2 = new float[4];
+            public int StackSegs;
+            public float[] LegL = new float[4], LegA = new float[4];
             public Color Gold;
         }
 
@@ -38,31 +39,27 @@ namespace SpaceGame
             var rng = Rng.Stream("hivebody:" + hash);
             System.Func<float, float, float> R = (lo, hi) => lo + (float)rng.NextDouble() * (hi - lo);
             var g = new Genome();
-            g.L = R(5.0f, 6.2f);
-            g.W = R(0.78f, 1.08f);
-            g.H = R(0.60f, 0.85f);
-            g.Head = R(0.90f, 1.15f);
-            g.Waist = R(0.42f, 0.60f);
-            g.Abdomen = R(0.90f, 1.12f);
-            g.Nose = R(0.50f, 0.95f);
-            g.AntLen = R(3.4f, 5.2f);
-            g.AntUp = R(0.35f, 0.65f);
-            g.AntCurve = R(0.20f, 0.60f);
-            g.WingSpan = R(1.7f, 2.9f);
-            g.WingSweep = R(0.9f, 1.9f);
-            g.Legs = rng.NextDouble() < 0.5 ? 1 : 2;
-            g.LegScale = R(0.9f, 1.2f);
-            g.Panels = R(0.05f, 0.14f);
-            g.Stripes = 2 + rng.Next(3);
-            g.StripePhase = R(0f, 1f);
-            g.Hue = R(0.09f, 0.135f);
-            g.Sat = R(0.75f, 0.95f);
-            g.Val = R(0.72f, 0.92f);
-            g.SurfAmp = R(0f, 1f);
+            g.L = R(5.6f, 6.1f);
+            g.W = R(0.95f, 1.10f);
+            g.H = R(0.50f, 0.58f);
+            g.Nose = R(0.25f, 0.45f);
+            g.CanopyStart = R(0.48f, 0.55f);
+            g.CanopyLen = R(0.22f, 0.28f);
+            g.AntLen = R(4.2f, 5.0f);
+            g.AntRake = R(0.32f, 0.48f);
+            g.AntCurve = R(0.00f, 0.15f);
+            g.WingSpan = R(2.1f, 2.6f);
+            g.WingSweep = R(1.15f, 1.55f);
+            g.LegScale = R(0.92f, 1.10f);
+            g.FlankOdds = R(0.45f, 0.70f);
+            g.Hue = R(0.100f, 0.125f);
+            g.Sat = R(0.82f, 0.92f);
+            g.Val = R(0.78f, 0.90f);
+            g.SurfAmp = R(0f, 0.5f);
             g.SurfPhase = R(0f, 1f);
-            g.Greebles = 3 + rng.Next(4);
-            for (int i = 0; i < 4; i++) g.LegLen1[i] = R(1.0f, 1.4f);
-            for (int i = 0; i < 4; i++) g.LegLen2[i] = R(1.5f, 2.2f);
+            g.StackSegs = 4 + rng.Next(2);
+            for (int i = 0; i < 4; i++) g.LegL[i] = R(0.90f, 1.10f);
+            for (int i = 0; i < 4; i++) g.LegA[i] = R(-0.08f, 0.08f);
             g.Gold = Color.HSVToRGB(g.Hue, g.Sat, g.Val);
             return g;
         }
@@ -79,13 +76,11 @@ namespace SpaceGame
                 Sub[mat].Add(a); Sub[mat].Add(b); Sub[mat].Add(c);
             }
 
-            // a=front-upper, b=front-lower, c=back-lower, d=back-upper (outward CW).
             public void FaceQ(int a, int b, int c, int d, int mat)
             {
                 Face(a, d, c, mat); Face(a, c, b, mat);
             }
 
-            // Unshared (crisp/flat) primitives; DS = double-sided.
             public void TriU(Vector3 a, Vector3 b, Vector3 c, int mat)
             {
                 Face(Add(a), Add(b), Add(c), mat);
@@ -102,7 +97,6 @@ namespace SpaceGame
             }
         }
 
-        // Catmull-Rom over ordered control points.
         static float CrSample(float[] ts, float[] vs, float t)
         {
             int n = ts.Length;
@@ -117,14 +111,14 @@ namespace SpaceGame
                 + (-p0 + 3f * p1 - 3f * p2 + p3) * u3);
         }
 
-        // Rounded-square profile point k of Segs; x right, y up (front view).
+        // Wide, flat-bellied angular profile. k=0 top, clockwise (front view).
         static Vector2 ProfilePt(int k)
         {
             float ang = k / (float)Segs * Mathf.PI * 2f;
             float s = Mathf.Sin(ang), c = Mathf.Cos(ang);
-            float x = Mathf.Sign(s) * Mathf.Pow(Mathf.Abs(s), 0.78f);
-            float y = Mathf.Sign(c) * Mathf.Pow(Mathf.Abs(c), 0.82f);
-            if (y < 0f) y *= 0.85f; // flattened belly
+            float x = Mathf.Sign(s) * Mathf.Pow(Mathf.Abs(s), 0.72f);
+            float y = Mathf.Sign(c) * Mathf.Pow(Mathf.Abs(c), 0.90f);
+            if (y < 0f) y *= 0.72f; // flat belly
             return new Vector2(x, y);
         }
 
@@ -135,7 +129,6 @@ namespace SpaceGame
             up = Vector3.Cross(dir, right).normalized;
         }
 
-        // Flat-shaded double-sided tube along a path (mechanical limb look).
         static void Tube(Builder b, Vector3[] path, float[] radii, int sides, int mat, bool capEnd)
         {
             var prev = new Vector3[sides];
@@ -161,10 +154,8 @@ namespace SpaceGame
                     b.TriUDS(path[path.Length - 1], prev[k], prev[(k + 1) % sides], mat);
         }
 
-        // Small flat-shaded ball (joints, antenna beads).
-        static void Ball(Builder b, Vector3 c, float r, int mat)
+        static void Ball(Builder b, Vector3 c, float r, int mat, int lat, int lon)
         {
-            const int lat = 4, lon = 6;
             var pts = new Vector3[lat + 1][];
             for (int i = 0; i <= lat; i++)
             {
@@ -184,47 +175,25 @@ namespace SpaceGame
                     b.QuadUDS(pts[i][k], pts[i][(k + 1) % lon], pts[i + 1][(k + 1) % lon], pts[i + 1][k], mat);
         }
 
-        // Axis-aligned greeble box.
-        static void Box(Builder b, Vector3 c, Vector3 half, int mat)
-        {
-            var p000 = c + new Vector3(-half.x, -half.y, -half.z);
-            var p001 = c + new Vector3(-half.x, -half.y, half.z);
-            var p010 = c + new Vector3(-half.x, half.y, -half.z);
-            var p011 = c + new Vector3(-half.x, half.y, half.z);
-            var p100 = c + new Vector3(half.x, -half.y, -half.z);
-            var p101 = c + new Vector3(half.x, -half.y, half.z);
-            var p110 = c + new Vector3(half.x, half.y, -half.z);
-            var p111 = c + new Vector3(half.x, half.y, half.z);
-            b.QuadUDS(p011, p111, p110, p010, mat); // top
-            b.QuadUDS(p001, p101, p100, p000, mat); // bottom
-            b.QuadUDS(p011, p001, p101, p111, mat); // front (+z)
-            b.QuadUDS(p010, p000, p100, p110, mat); // back (-z)
-            b.QuadUDS(p111, p101, p100, p110, mat); // +x
-            b.QuadUDS(p011, p001, p000, p010, mat); // -x
-        }
-
         public static GameObject Build(string hash, Transform shipRoot)
         {
             var g = Roll(hash);
             var b = new Builder();
+            float L = g.L, W = g.W, H = g.H;
 
-            // Pre-consume the panel stream in a fixed order.
+            // Panel stream (fixed consumption order): 12 flank cells, then micro panels.
             var panelRng = Rng.Stream("hivepanels:" + hash);
-            var sparse = new bool[Rings - 1, Segs];
+            var flankCell = new bool[12];
+            for (int i = 0; i < 12; i++) flankCell[i] = panelRng.NextDouble() < g.FlankOdds;
+            var micro = new bool[Rings - 1, Segs];
             for (int i = 0; i < Rings - 1; i++)
                 for (int j = 0; j < Segs; j++)
-                    sparse[i, j] = panelRng.NextDouble() < g.Panels;
-            var greebleJit = new float[12];
-            for (int i = 0; i < 12; i++) greebleJit[i] = (float)panelRng.NextDouble();
+                    micro[i, j] = panelRng.NextDouble() < 0.04;
 
-            // ---- hull loft: wasp silhouette control stations ----
-            float[] cts = { 0.00f, 0.05f, 0.13f, 0.21f, 0.32f, 0.43f, 0.53f, 0.60f, 0.68f, 0.78f, 0.88f, 1.00f };
-            float[] csc =
-            {
-                0.05f, 0.30f, 0.62f * g.Head, 0.50f * g.Head, 0.86f, 1.00f, 0.80f,
-                g.Waist, 0.82f * g.Abdomen, 0.90f * g.Abdomen, 0.58f * g.Abdomen, 0.14f,
-            };
-            float[] clf = { 0.08f, 0.10f, 0.15f, 0.11f, 0.06f, 0.03f, 0.01f, 0.00f, -0.01f, -0.03f, -0.02f, 0.00f };
+            // ---- hull: one continuous dart, widest near the stern ----
+            float[] cts = { 0.00f, 0.10f, 0.25f, 0.42f, 0.60f, 0.75f, 0.88f, 1.00f };
+            float[] csc = { 0.035f, 0.20f, 0.42f, 0.68f, 0.90f, 1.00f, 0.96f, 0.78f };
+            float[] clf = { 0.00f, 0.01f, 0.02f, 0.05f, 0.09f, 0.11f, 0.07f, 0.02f };
 
             var ringStart = new int[Rings];
             var ringT = new float[Rings];
@@ -233,155 +202,215 @@ namespace SpaceGame
                 float t = i / (float)(Rings - 1);
                 ringT[i] = t;
                 float sc = CrSample(cts, csc, t);
-                sc *= 1f + g.SurfAmp * 0.025f * Mathf.Sin((t * 5.5f + g.SurfPhase) * Mathf.PI * 2f);
-                float lift = CrSample(cts, clf, t) * g.H;
-                float z = (0.5f - t) * g.L;
+                sc *= 1f + g.SurfAmp * 0.015f * Mathf.Sin((t * 6f + g.SurfPhase) * Mathf.PI * 2f);
+                float lift = CrSample(cts, clf, t) * H;
+                float z = (0.5f - t) * L;
                 ringStart[i] = b.V.Count;
                 for (int j = 0; j < Segs; j++)
                 {
                     var p = ProfilePt(j);
-                    b.Add(new Vector3(p.x * g.W * sc, p.y * g.H * sc + lift, z));
+                    b.Add(new Vector3(p.x * W * sc, p.y * H * sc + lift, z));
                 }
             }
 
-            // Panel scheme on the smooth hull (color only — normals stay smooth).
+            // Paint scheme, reference-faithful: big bold shapes, minimal noise.
             for (int i = 0; i < Rings - 1; i++)
             {
                 float tm = (ringT[i] + ringT[i + 1]) * 0.5f;
                 for (int j = 0; j < Segs; j++)
                 {
                     int j2 = (j + 1) % Segs;
-                    bool topSeg = j >= Segs - 2 || j <= 1; // 14,15,0,1
-                    bool canopy = topSeg && tm > 0.10f && tm < 0.26f;
-                    bool stripe = false;
-                    if (tm > 0.62f && tm < 0.96f)
+                    int mat = 0;
+
+                    // Dark chisel nose.
+                    if (tm < 0.07f) mat = 1;
+
+                    // Nose-top accent strip.
+                    bool noseTop = (j >= Segs - 1 || j <= 0) && tm > 0.09f && tm < 0.18f;
+                    if (noseTop) mat = 1;
+
+                    // Canopy plate on the rear-top.
+                    bool topSeg = j >= Segs - 3 || j <= 2;
+                    if (topSeg && tm > g.CanopyStart && tm < g.CanopyStart + g.CanopyLen) mat = 1;
+
+                    // Angular flank patchwork: 3 t-cells x 2 j-bands per side,
+                    // cell edges skewed per j for a chevron look.
+                    bool flankUpper = j >= 3 && j <= 4, flankLower = j >= 5 && j <= 6;
+                    bool flankUpperM = j >= Segs - 5 && j <= Segs - 4, flankLowerM = j >= Segs - 7 && j <= Segs - 6;
+                    if (flankUpper || flankLower || flankUpperM || flankLowerM)
                     {
-                        float u = (tm - 0.62f) / 0.34f;
-                        int band = (int)(u * g.Stripes * 2 + g.StripePhase * 2f);
-                        stripe = band % 2 == 0;
+                        float skew = (flankUpper || flankUpperM ? 0f : 0.045f) + (j % 2) * 0.02f;
+                        float ft = tm - 0.12f - skew;
+                        if (ft >= 0f && ft < 0.40f)
+                        {
+                            int cell = Mathf.Min(2, (int)(ft / 0.1334f));
+                            int band = flankUpper || flankUpperM ? 0 : 1;
+                            int side = flankUpper || flankLower ? 0 : 1;
+                            if (flankCell[side * 6 + band * 3 + cell]) mat = 1;
+                        }
                     }
-                    bool side = sparse[i, j] && tm > 0.28f && tm < 0.58f;
-                    int mat = canopy || stripe || side ? 1 : 0;
+
+                    // Belly recess under the canopy.
+                    bool belly = j >= 9 && j <= 11;
+                    if (belly && tm > 0.52f && tm < 0.78f) mat = 1;
+
+                    // Rare micro panels for wear.
+                    if (mat == 0 && micro[i, j] && tm > 0.15f && tm < 0.9f) mat = 1;
+
                     b.FaceQ(ringStart[i] + j, ringStart[i] + j2, ringStart[i + 1] + j2, ringStart[i + 1] + j, mat);
                 }
             }
 
-            // Nose cone and stinger (crisp black).
-            var noseTip = new Vector3(0f, 0.06f * g.H, 0.5f * g.L + g.Nose);
+            // Nose point and stern cap (dark).
+            var noseTip = new Vector3(0f, 0f, 0.5f * L + g.Nose);
             for (int j = 0; j < Segs; j++)
                 b.TriU(noseTip, b.V[ringStart[0] + (j + 1) % Segs], b.V[ringStart[0] + j], 1);
-            var stinger = new Vector3(0f, 0f, -0.5f * g.L - 0.55f);
+            var sternC = new Vector3(0f, 0.03f * H, -0.5f * L - 0.05f);
             for (int j = 0; j < Segs; j++)
-                b.TriU(stinger, b.V[ringStart[Rings - 1] + j], b.V[ringStart[Rings - 1] + (j + 1) % Segs], 1);
+                b.TriU(sternC, b.V[ringStart[Rings - 1] + j], b.V[ringStart[Rings - 1] + (j + 1) % Segs], 1);
 
-            // ---- antennae: curved segmented feelers with beads ----
+            // ---- stern piston stacks (segmented machinery) ----
+            {
+                int segsN = g.StackSegs;
+                var path = new Vector3[segsN + 1];
+                var radii = new float[segsN + 1];
+                for (int i = 0; i <= segsN; i++)
+                {
+                    path[i] = new Vector3(0f, 0.02f * H, -0.5f * L - 0.05f - i * 0.22f);
+                    radii[i] = i % 2 == 0 ? 0.27f : 0.21f;
+                }
+                Tube(b, path, radii, 12, 1, false);
+                // gold collar rings on the even segments
+                for (int i = 1; i < segsN; i += 2)
+                    Tube(b, new[] { path[i] + Vector3.forward * 0.03f, path[i] - Vector3.forward * 0.03f },
+                        new[] { 0.285f, 0.285f }, 12, 0, false);
+                // amber glow disc at the very back
+                var gc = path[segsN] + Vector3.forward * -0.02f;
+                for (int k = 0; k < 12; k++)
+                {
+                    float a0 = k / 12f * Mathf.PI * 2f, a1 = (k + 1) / 12f * Mathf.PI * 2f;
+                    b.TriUDS(gc,
+                        gc + new Vector3(Mathf.Cos(a0) * 0.17f, 0.02f * H + Mathf.Sin(a0) * 0.17f, 0f),
+                        gc + new Vector3(Mathf.Cos(a1) * 0.17f, 0.02f * H + Mathf.Sin(a1) * 0.17f, 0f), 2);
+                }
+                // smaller offset piston, like the reference's secondary cylinder
+                var p2 = new Vector3[4];
+                var r2 = new float[4];
+                for (int i = 0; i < 4; i++)
+                {
+                    p2[i] = new Vector3(0f, 0.42f * H, -0.5f * L - 0.02f - i * 0.19f);
+                    r2[i] = i % 2 == 0 ? 0.13f : 0.10f;
+                }
+                Tube(b, p2, r2, 10, 1, true);
+            }
+
+            // ---- antennae: long straight spikes, up-back ----
             for (int side = -1; side <= 1; side += 2)
             {
-                var mount = new Vector3(side * g.W * 0.26f, g.H * 0.5f, 0.30f * g.L);
-                var dir = new Vector3(side * 0.16f, g.AntUp, -0.85f).normalized;
-                var bend = new Vector3(0f, g.AntCurve, 0f);
-                const int segsA = 5;
+                var mount = new Vector3(side * W * 0.22f, H * 0.55f, (0.5f - 0.70f) * L);
+                var dir = new Vector3(side * 0.05f, g.AntRake, -0.90f).normalized;
+                const int segsA = 4;
                 var path = new Vector3[segsA + 1];
                 var radii = new float[segsA + 1];
                 for (int i = 0; i <= segsA; i++)
                 {
                     float u = i / (float)segsA;
-                    path[i] = mount + dir * (g.AntLen * u) + bend * (u * u);
-                    radii[i] = Mathf.Lerp(0.06f, 0.014f, u);
+                    path[i] = mount + dir * (g.AntLen * u) + new Vector3(0f, g.AntCurve * u * u, 0f);
+                    radii[i] = Mathf.Lerp(0.055f, 0.010f, u);
                 }
-                Tube(b, path, radii, 6, 0, false);
-                Ball(b, mount, 0.10f, 1);                      // base joint
-                Ball(b, path[segsA], 0.045f, 1);               // tip bead
+                Tube(b, path, radii, 8, 0, true);
+                Ball(b, mount, 0.09f, 1, 4, 8); // dark socket
             }
 
-            // ---- wing blades with real thickness ----
+            // ---- wing blades: one big angular kite per side, black claw tip ----
             for (int side = -1; side <= 1; side += 2)
             {
                 float s = side;
-                var rootF = new Vector3(s * g.W * 0.8f, 0.12f * g.H, 0.10f * g.L);
-                var rootB = new Vector3(s * g.W * 0.72f, 0.06f * g.H, -0.12f * g.L);
-                var tipB = new Vector3(s * (g.W * 0.8f + g.WingSpan), -0.22f * g.H, -0.12f * g.L - g.WingSweep);
-                var tipF = new Vector3(s * (g.W * 0.8f + g.WingSpan * 0.75f), -0.13f * g.H, 0.02f * g.L - g.WingSweep * 0.4f);
+                var rootF = new Vector3(s * W * 0.85f, 0.05f * H, (0.5f - 0.50f) * L);
+                var rootB = new Vector3(s * W * 0.80f, 0.00f, (0.5f - 0.78f) * L);
+                var tipB = new Vector3(s * (W * 0.85f + g.WingSpan), -0.35f * H, (0.5f - 0.78f) * L - g.WingSweep);
+                var claw = new Vector3(s * (W * 0.85f + g.WingSpan * 1.12f), -0.42f * H, (0.5f - 0.66f) * L - g.WingSweep * 0.75f);
+                var tipF = new Vector3(s * (W * 0.85f + g.WingSpan * 0.72f), -0.28f * H, (0.5f - 0.55f) * L - g.WingSweep * 0.35f);
                 var th = new Vector3(0f, 0.05f, 0f);
-                // top + bottom skins
-                b.QuadUDS(rootF + th, rootB + th, tipB + th, tipF + th, 0);
-                b.QuadUDS(rootF - th, rootB - th, tipB - th, tipF - th, 0);
-                // edge strips (black rim)
+
+                // top and bottom skins (fan from rootF)
+                b.TriUDS(rootF + th, rootB + th, tipB + th, 0);
+                b.TriUDS(rootF + th, tipB + th, claw + th, 0);
+                b.TriUDS(rootF + th, claw + th, tipF + th, 0);
+                b.TriUDS(rootF - th, rootB - th, tipB - th, 0);
+                b.TriUDS(rootF - th, tipB - th, claw - th, 0);
+                b.TriUDS(rootF - th, claw - th, tipF - th, 0);
+                // black edge rims
                 b.QuadUDS(rootF + th, rootF - th, rootB - th, rootB + th, 1);
                 b.QuadUDS(rootB + th, rootB - th, tipB - th, tipB + th, 1);
-                b.QuadUDS(tipB + th, tipB - th, tipF - th, tipF + th, 1);
+                b.QuadUDS(tipB + th, tipB - th, claw - th, claw + th, 1);
+                b.QuadUDS(claw + th, claw - th, tipF - th, tipF + th, 1);
                 b.QuadUDS(tipF + th, tipF - th, rootF - th, rootF + th, 1);
+                // black claw spike off the outer point
+                var clawDir = new Vector3(s * 0.55f, -0.35f, -0.75f).normalized;
+                Tube(b, new[] { claw, claw + clawDir * 0.55f }, new[] { 0.06f, 0.008f }, 5, 1, true);
             }
 
-            // ---- legs: coxa tube, femur tube, black tarsus spike, joint balls ----
+            // ---- legs: two per side, folding down-forward, black claws ----
             for (int side = -1; side <= 1; side += 2)
             {
-                for (int leg = 0; leg < g.Legs; leg++)
+                for (int leg = 0; leg < 2; leg++)
                 {
                     int li = (side < 0 ? 0 : 2) + leg;
-                    float zOff = (0.02f - leg * 0.16f) * g.L;
-                    var mount = new Vector3(side * g.W * 0.55f, -0.32f * g.H, zOff);
-                    var d1 = new Vector3(side * 0.55f, 0.35f, -0.5f).normalized;
-                    float len1 = g.LegLen1[li] * g.LegScale;
-                    var elbow = mount + d1 * len1;
-                    Tube(b, new[] { mount, elbow }, new[] { 0.11f, 0.08f }, 6, 0, false);
-                    Ball(b, elbow, 0.12f, 1);
-                    var d2 = new Vector3(side * 0.12f, -0.82f, -0.45f).normalized;
-                    float len2 = g.LegLen2[li] * g.LegScale;
-                    var knee = elbow + d2 * (len2 * 0.45f);
-                    var tip = elbow + d2 * len2 + new Vector3(0f, -0.1f, -0.25f);
-                    Tube(b, new[] { elbow, knee }, new[] { 0.07f, 0.055f }, 6, 0, false);
-                    Ball(b, knee, 0.08f, 1);
-                    Tube(b, new[] { knee, tip }, new[] { 0.05f, 0.008f }, 5, 1, true);
+                    float tm = leg == 0 ? 0.78f : 0.92f;
+                    var mount = new Vector3(side * W * 0.45f, -0.50f * H, (0.5f - tm) * L);
+                    // coxa: short dark link down-out-back
+                    var d1 = new Vector3(side * (0.55f + g.LegA[li]), -0.55f, -0.35f).normalized;
+                    float len1 = 0.55f * g.LegScale;
+                    var j1 = mount + d1 * len1;
+                    Tube(b, new[] { mount, j1 }, new[] { 0.09f, 0.075f }, 8, 1, false);
+                    Ball(b, j1, 0.115f, 1, 4, 8);
+                    // femur: long angular gold blade, down-forward
+                    var d2 = new Vector3(side * 0.18f, -0.72f, 0.42f + g.LegA[li]).normalized;
+                    float len2 = 1.7f * g.LegL[li] * g.LegScale;
+                    var j2 = j1 + d2 * len2;
+                    Tube(b, new[] { j1, j1 + d2 * (len2 * 0.5f), j2 }, new[] { 0.13f, 0.11f, 0.07f }, 4, 0, false);
+                    Ball(b, j2, 0.09f, 1, 4, 8);
+                    // tarsus: black claw, curving slightly back-down
+                    var d3 = new Vector3(side * 0.05f, -0.80f, -0.25f).normalized;
+                    float len3 = 0.9f * g.LegL[li] * g.LegScale;
+                    Tube(b, new[] { j2, j2 + d3 * (len3 * 0.55f), j2 + d3 * len3 + new Vector3(0f, -0.05f, 0.18f) },
+                        new[] { 0.06f, 0.045f, 0.006f }, 5, 1, true);
                 }
             }
 
-            // ---- turret drum + barrel on the thorax spine (the hardpoint) ----
-            var drumC = new Vector3(0f, g.H * 0.95f, 0.06f * g.L);
-            Tube(b, new[] { drumC + Vector3.up * -0.06f, drumC + Vector3.up * 0.10f },
-                new[] { 0.17f, 0.15f }, 8, 1, true);
-            Tube(b, new[] { drumC + new Vector3(0f, 0.05f, 0.05f), drumC + new Vector3(0f, 0.05f, 0.95f) },
-                new[] { 0.05f, 0.04f }, 6, 1, true);
-
-            // ---- web emitter ring on the belly (teal glow) ----
-            var webC = new Vector3(0f, -g.H * 0.78f, -0.02f * g.L);
-            for (int k = 0; k < 8; k++)
+            // ---- ventral fin ----
             {
-                float a0 = k / 8f * Mathf.PI * 2f, a1 = (k + 1) / 8f * Mathf.PI * 2f;
-                var r0 = 0.14f; var r1 = 0.22f;
-                Vector3 pA = webC + new Vector3(Mathf.Cos(a0) * r0, 0f, Mathf.Sin(a0) * r0);
-                Vector3 pB = webC + new Vector3(Mathf.Cos(a0) * r1, 0f, Mathf.Sin(a0) * r1);
-                Vector3 pC = webC + new Vector3(Mathf.Cos(a1) * r1, 0f, Mathf.Sin(a1) * r1);
-                Vector3 pD = webC + new Vector3(Mathf.Cos(a1) * r0, 0f, Mathf.Sin(a1) * r0);
-                b.QuadUDS(pA, pB, pC, pD, 3);
+                float z0 = (0.5f - 0.72f) * L;
+                var a = new Vector3(0f, -H * 0.68f, z0);
+                var bb = new Vector3(0f, -H * 1.35f, z0 - 0.55f);
+                var c = new Vector3(0f, -H * 0.62f, z0 - 0.45f);
+                b.TriUDS(a, bb, c, 0);
+                b.TriUDS(a + new Vector3(0, 0, -0.04f), bb + new Vector3(0, 0, -0.04f), c + new Vector3(0, 0, -0.04f), 1);
             }
 
-            // ---- spine greebles ----
-            for (int i = 0; i < g.Greebles; i++)
+            // ---- dorsal turret drum + barrel (the hardpoint) ----
             {
-                float t = 0.30f + i * (0.24f / Mathf.Max(1, g.Greebles - 1));
-                float jx = (greebleJit[i * 2] - 0.5f) * 0.2f;
-                float jz = (greebleJit[i * 2 + 1] - 0.5f) * 0.04f;
-                float sc = CrSample(cts, csc, t);
-                var c = new Vector3(jx, g.H * sc * 0.92f + 0.05f, (0.5f - t + jz) * g.L);
-                Box(b, c, new Vector3(0.10f, 0.045f, 0.14f), i % 2 == 0 ? 1 : 0);
+                float sc = CrSample(cts, csc, 0.40f);
+                float lift = CrSample(cts, clf, 0.40f) * H;
+                var dc = new Vector3(0f, H * sc * 0.98f + lift, (0.5f - 0.40f) * L);
+                Tube(b, new[] { dc, dc + Vector3.up * 0.09f }, new[] { 0.13f, 0.115f }, 10, 1, true);
+                Tube(b, new[] { dc + new Vector3(0f, 0.055f, 0.06f), dc + new Vector3(0f, 0.055f, 0.62f) },
+                    new[] { 0.035f, 0.028f }, 6, 1, true);
             }
 
-            // ---- twin engines: casing, inset nozzle, glow disc ----
-            for (int side = -1; side <= 1; side += 2)
+            // ---- belly web-emitter ring (the web slot, teal) ----
             {
-                var ec = new Vector3(side * g.W * 0.30f, -0.02f * g.H, -0.5f * g.L + 0.25f);
-                var back = ec + Vector3.forward * -0.95f;
-                Tube(b, new[] { ec, back }, new[] { 0.30f, 0.26f }, 10, 1, false);
-                Tube(b, new[] { back, back + Vector3.forward * 0.18f }, new[] { 0.26f, 0.15f }, 10, 1, false);
-                // glow disc
-                var gc = back + Vector3.forward * 0.10f;
+                var wc = new Vector3(0f, -H * 0.70f, (0.5f - 0.62f) * L);
                 for (int k = 0; k < 10; k++)
                 {
                     float a0 = k / 10f * Mathf.PI * 2f, a1 = (k + 1) / 10f * Mathf.PI * 2f;
-                    b.TriUDS(gc,
-                        gc + new Vector3(Mathf.Cos(a0) * 0.14f, Mathf.Sin(a0) * 0.14f, 0f),
-                        gc + new Vector3(Mathf.Cos(a1) * 0.14f, Mathf.Sin(a1) * 0.14f, 0f), 2);
+                    const float r0 = 0.10f, r1 = 0.165f;
+                    b.QuadUDS(
+                        wc + new Vector3(Mathf.Cos(a0) * r0, 0f, Mathf.Sin(a0) * r0),
+                        wc + new Vector3(Mathf.Cos(a0) * r1, 0f, Mathf.Sin(a0) * r1),
+                        wc + new Vector3(Mathf.Cos(a1) * r1, 0f, Mathf.Sin(a1) * r1),
+                        wc + new Vector3(Mathf.Cos(a1) * r0, 0f, Mathf.Sin(a1) * r0), 3);
                 }
             }
 
@@ -410,8 +439,8 @@ namespace SpaceGame
         {
             var m = SystemView.Mat(c);
             m.SetFloat("_Metallic", metallic);
-            m.SetFloat("_Glossiness", smooth);  // Built-in Standard
-            m.SetFloat("_Smoothness", smooth);  // URP Lit
+            m.SetFloat("_Glossiness", smooth);
+            m.SetFloat("_Smoothness", smooth);
             return m;
         }
     }
