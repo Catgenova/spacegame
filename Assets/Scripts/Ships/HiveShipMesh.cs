@@ -45,10 +45,10 @@ namespace SpaceGame
         };
         static readonly float[,] MidP =
         {
-            {0.00f, 0.95f}, {0.30f, 0.88f}, {0.55f, 0.72f}, {0.72f, 0.52f},
-            {0.88f, 0.30f}, {0.98f, 0.08f}, {1.00f, -0.12f},
-            {0.85f, -0.32f}, {0.65f, -0.45f}, {0.42f, -0.52f},
-            {0.28f, -0.55f}, {0.12f, -0.58f}, {0.00f, -0.58f},
+            {0.00f, 0.92f}, {0.42f, 0.90f}, {0.66f, 0.74f}, {0.84f, 0.48f},
+            {0.96f, 0.18f}, {1.00f, -0.06f}, {0.97f, -0.22f},
+            {0.82f, -0.36f}, {0.62f, -0.46f}, {0.40f, -0.52f},
+            {0.26f, -0.55f}, {0.12f, -0.58f}, {0.00f, -0.58f},
         };
         static readonly float[,] SternP =
         {
@@ -208,9 +208,9 @@ namespace SpaceGame
                     {
                         float th = k / (float)lon * Mathf.PI * 2f;
                         rows[i][k] = c + new Vector3(
-                            Mathf.Sin(phi) * Mathf.Cos(th) * 0.30f,
-                            Mathf.Cos(phi) * 0.16f,
-                            Mathf.Sin(phi) * Mathf.Sin(th) * (g.CanopyLen * L * 0.42f));
+                            Mathf.Sin(phi) * Mathf.Cos(th) * 0.26f,
+                            Mathf.Cos(phi) * 0.10f,
+                            Mathf.Sin(phi) * Mathf.Sin(th) * (g.CanopyLen * L * 0.48f));
                     }
                 }
                 for (int i = 0; i < lat; i++)
@@ -242,6 +242,24 @@ namespace SpaceGame
                     r2[i] = i % 2 == 0 ? 0.13f : 0.10f;
                 }
                 Tube(b, p2, r2, 10, 1, true);
+
+                // twin banded drive drums high on the rear flanks
+                for (int side = -1; side <= 1; side += 2)
+                {
+                    var ec = new Vector3(side * W * 0.52f, 0.30f * H, -0.5f * L + 0.28f);
+                    var pd = new Vector3[5];
+                    var rd = new float[5];
+                    for (int i = 0; i < 5; i++)
+                    {
+                        pd[i] = ec + Vector3.forward * (-i * 0.20f);
+                        rd[i] = i % 2 == 0 ? 0.20f : 0.16f;
+                    }
+                    Tube(b, pd, rd, 12, 1, false);
+                    for (int i = 1; i <= 3; i += 2)
+                        Tube(b, new[] { pd[i] + Vector3.forward * 0.03f, pd[i] - Vector3.forward * 0.03f },
+                            new[] { 0.21f, 0.21f }, 12, 0, false);
+                    Nozzle(b, pd[4] + Vector3.forward * -0.02f, Vector3.back, 0.20f, 0.24f, 12, 1, 2);
+                }
             }
 
             // ---- antennae with collar detail ----
@@ -273,12 +291,12 @@ namespace SpaceGame
                 Tube(b, new[] { hullPt, rootMid }, new[] { 0.16f, 0.12f }, 4, 0, false);
 
                 var rootF = new Vector3(s * W * 1.00f, 0.02f * H, (0.5f - 0.52f) * L);
-                var rootB = new Vector3(s * W * 0.95f, -0.05f * H, (0.5f - 0.80f) * L);
-                var notch = new Vector3(s * (W + g.WingSpan * 0.45f), -0.18f * H, (0.5f - 0.83f) * L - g.WingSweep * 0.55f);
-                var tipB = new Vector3(s * (W + g.WingSpan), -0.33f * H, (0.5f - 0.80f) * L - g.WingSweep);
-                var clawB = new Vector3(s * (W + g.WingSpan * 1.10f), -0.40f * H, (0.5f - 0.70f) * L - g.WingSweep * 0.80f);
-                var clawF = new Vector3(s * (W + g.WingSpan * 0.95f), -0.36f * H, (0.5f - 0.60f) * L - g.WingSweep * 0.55f);
-                var midF = new Vector3(s * (W + g.WingSpan * 0.50f), -0.18f * H, (0.5f - 0.52f) * L - g.WingSweep * 0.20f);
+                var rootB = new Vector3(s * W * 0.95f, -0.08f * H, (0.5f - 0.80f) * L);
+                var notch = new Vector3(s * (W + g.WingSpan * 0.45f), -0.30f * H, (0.5f - 0.83f) * L - g.WingSweep * 0.55f);
+                var tipB = new Vector3(s * (W + g.WingSpan), -0.52f * H, (0.5f - 0.80f) * L - g.WingSweep);
+                var clawB = new Vector3(s * (W + g.WingSpan * 1.10f), -0.62f * H, (0.5f - 0.70f) * L - g.WingSweep * 0.80f);
+                var clawF = new Vector3(s * (W + g.WingSpan * 0.95f), -0.56f * H, (0.5f - 0.60f) * L - g.WingSweep * 0.55f);
+                var midF = new Vector3(s * (W + g.WingSpan * 0.50f), -0.28f * H, (0.5f - 0.52f) * L - g.WingSweep * 0.20f);
 
                 // volumetric loft over the same plan-form outline
                 var lead = new[] { rootF, midF, clawF };
@@ -311,12 +329,12 @@ namespace SpaceGame
                     var j1 = mount + d1 * len1;
                     Fairing(b, mount - d1 * 0.02f, d1, 0.105f, 0.19f, 0.09f, 8, 1);
                     Tube(b, new[] { mount, j1 }, new[] { 0.09f, 0.075f }, 8, 1, false);
-                    Ball(b, j1, 0.115f, 1, 4, 8);
+                    Ball(b, j1, 0.115f, 0, 4, 8);
                     var d2 = new Vector3(side * (0.48f + g.Splay), -0.60f, 0.40f + g.LegA[li]).normalized;
                     float len2 = 1.7f * g.LegL[li] * g.LegScale;
                     var j2 = j1 + d2 * len2;
-                    Tube(b, new[] { j1, j1 + d2 * (len2 * 0.5f), j2 }, new[] { 0.13f, 0.11f, 0.07f }, 4, 0, false);
-                    Ball(b, j2, 0.09f, 1, 4, 8);
+                    Tube(b, new[] { j1, j1 + d2 * (len2 * 0.5f), j2 }, new[] { 0.15f, 0.12f, 0.08f }, 4, 0, false);
+                    Ball(b, j2, 0.10f, 0, 4, 8);
                     var d3 = new Vector3(side * (0.22f + g.Splay * 0.5f), -0.75f, -0.22f).normalized;
                     float len3 = 0.9f * g.LegL[li] * g.LegScale;
                     Tube(b, new[] { j2, j2 + d3 * (len3 * 0.55f), j2 + d3 * len3 + new Vector3(0f, -0.05f, 0.18f) },
@@ -395,53 +413,39 @@ namespace SpaceGame
             bool belly = s == 3 || s == 4;
             int side = s <= 3 ? 0 : 1;
 
-            // Nose-top accent.
-            if (deck && tm > 0.09f && tm < 0.18f) return 1;
+            // Big black dorsal saddle wrapping the canopy and running aft,
+            // with a raked edge that steps down the upper flank.
+            float sadF = g.CanopyStart - 0.10f, sadB = g.CanopyStart + g.CanopyLen + 0.16f;
+            if (deck && tm > sadF && tm < sadB) return 1;
+            if (upper && p <= 1 && tm > sadF + 0.05f + p * 0.04f && tm < sadB - 0.05f - p * 0.04f) return 1;
 
-            // Canopy deck paint around the dome.
-            if (deck && tm > g.CanopyStart && tm < g.CanopyStart + g.CanopyLen) return 1;
-
-            // Chine stripe: the spans hugging the crease run dark.
+            // Slim dark chine slash along the forward blade.
             bool chineSpan = (s == 1 && p == 2) || (s == 2 && p == 0)
                 || (s == 6 && p == 0) || (s == 5 && p == 2);
-            if (chineSpan && tm > 0.10f && tm < 0.52f) return 1;
+            if (chineSpan && tm > 0.10f && tm < 0.55f) return 1;
 
-            // Flank patchwork.
+            // Angular dark inlays on the fore flanks.
             if (upper || lower)
             {
-                float skew = (upper ? 0f : 0.045f) + p * 0.018f;
-                float ft = tm - 0.12f - skew;
-                if (ft >= 0f && ft < 0.40f)
+                float skew = (upper ? 0f : 0.05f) + p * 0.02f;
+                float ft = tm - 0.10f - skew;
+                if (ft >= 0f && ft < 0.30f)
                 {
-                    int cell = Mathf.Min(2, (int)(ft / 0.1334f));
+                    int cell = Mathf.Min(2, (int)(ft / 0.1001f));
                     int band = upper ? 0 : 1;
                     if (flankCell[side * 6 + band * 3 + cell]) return 1;
                 }
             }
 
-            // Belly recess.
-            if (belly && tm > 0.52f && tm < 0.78f) return 1;
+            // Dark belly recess under the rear machinery.
+            if (belly && tm > 0.55f && tm < 0.85f) return 1;
 
-            // Rolled banding family — each body picks one pattern.
-            if (g.BandMode == 1 && tm > 0.76f && tm < 0.97f)
-            {
-                float u = (tm - 0.76f) / 0.21f;
-                int band = (int)(u * g.BandCount * 2 + g.BandPhase * 2f);
-                if (band % 2 == 0) return 1;
-            }
-            else if (g.BandMode == 2 && tm > 0.16f && tm < 0.34f)
-            {
-                float u = (tm - 0.16f) / 0.18f;
-                int band = (int)(u * g.BandCount * 2.5f + g.BandPhase * 2f);
-                if (band % 2 == 0) return 1;
-            }
-            else if (g.BandMode == 3 && deck && p == 0 && tm > 0.22f && tm < 0.78f)
-            {
-                return 1;
-            }
+            // A single subtle stern ring is all that survives of the old
+            // banding families — the reference is paneled, not striped.
+            if (g.BandMode == 1 && tm > 0.86f && tm < 0.91f) return 1;
 
             // Rare micro panels.
-            if (microHit && tm > 0.15f && tm < 0.9f) return 1;
+            if (microHit && tm > 0.12f && tm < 0.9f) return 1;
             return 0;
         }
 
