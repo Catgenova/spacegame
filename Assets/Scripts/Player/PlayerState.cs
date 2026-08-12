@@ -15,16 +15,55 @@ namespace SpaceGame
     }
 
     /// <summary>
-    /// Everything the player owns and is: credits, skills, hangar, and the
-    /// current ship (hull, fitting, cargo, HP pools). Plain data — no Unity
-    /// scene objects — so it can be saved/loaded wholesale.
+    /// One station's storage bay. Capacity is unlimited, but the contents are
+    /// only reachable while docked at that station — haul it or leave it.
+    /// </summary>
+    public class StationStore
+    {
+        public readonly Dictionary<string, float> Cargo = new Dictionary<string, float>();
+        public readonly List<string> Modules = new List<string>();
+        public readonly List<Blueprint> Blueprints = new List<Blueprint>();
+
+        public bool IsEmpty => Cargo.Count == 0 && Modules.Count == 0 && Blueprints.Count == 0;
+
+        public float TotalM3()
+        {
+            float sum = 0f;
+            foreach (var v in Cargo.Values) sum += v;
+            return sum + Modules.Count * GameData.ModuleCargoVolume;
+        }
+
+        public void AddCargo(string id, float m3)
+        {
+            if (m3 <= 0f) return;
+            Cargo.TryGetValue(id, out var had);
+            Cargo[id] = had + m3;
+        }
+    }
+
+    /// <summary>
+    /// Everything the player owns and is: credits, skills, per-station storage,
+    /// and the current ship (hull, fitting, cargo, HP pools). Plain data — no
+    /// Unity scene objects — so it can be saved/loaded wholesale.
     /// </summary>
     public class PlayerState
     {
         public long Credits;
         public string ActiveSkill = "mining";
         public readonly Dictionary<string, SkillState> Skills = new Dictionary<string, SkillState>();
-        public readonly List<string> Hangar = new List<string>();
+        /// <summary>Storage bay per station id. Created on first use.</summary>
+        public readonly Dictionary<string, StationStore> Stations = new Dictionary<string, StationStore>();
+
+        public StationStore StoreAt(string stationId)
+        {
+            if (string.IsNullOrEmpty(stationId)) stationId = "solara_prime";
+            if (!Stations.TryGetValue(stationId, out var s))
+            {
+                s = new StationStore();
+                Stations[stationId] = s;
+            }
+            return s;
+        }
 
         public string HullId;
         public readonly Dictionary<string, float> Cargo = new Dictionary<string, float>();

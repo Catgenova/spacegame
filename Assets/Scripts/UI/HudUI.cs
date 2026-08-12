@@ -352,7 +352,7 @@ namespace SpaceGame
 
             GUI.Label(new Rect(r.x + 12, r.y + 8, w - 24, 20), GM.Station.Name.ToUpper(), _titleStyle);
 
-            string[] tabs = { "Market", "Refine", "Fitting", "Ships", "Industry", "Repair", "Agent" };
+            string[] tabs = { "Market", "Storage", "Refine", "Fitting", "Ships", "Industry", "Repair", "Agent" };
             for (int i = 0; i < tabs.Length; i++)
             {
                 GUI.backgroundColor = _stationTab == i ? new Color(0.5f, 0.75f, 1f) : Color.white;
@@ -375,15 +375,77 @@ namespace SpaceGame
             switch (_stationTab)
             {
                 case 0: DrawMarketTab(); break;
-                case 1: DrawRefineTab(); break;
-                case 2: DrawFittingTab(); break;
-                case 3: DrawShipsTab(); break;
-                case 4: DrawIndustryTab(); break;
-                case 5: DrawRepairTab(); break;
-                case 6: DrawAgentTab(); break;
+                case 1: DrawStorageTab(); break;
+                case 2: DrawRefineTab(); break;
+                case 3: DrawFittingTab(); break;
+                case 4: DrawShipsTab(); break;
+                case 5: DrawIndustryTab(); break;
+                case 6: DrawRepairTab(); break;
+                case 7: DrawAgentTab(); break;
             }
             GUILayout.EndScrollView();
             GUILayout.EndArea();
+        }
+
+        void DrawStorageTab()
+        {
+            var p = GM.Player;
+            var store = GM.Store;
+            var st = p.ComputeStats();
+
+            GUILayout.Label("— STORAGE BAY: " + GM.HereName() + " —", _smallStyle);
+            GUILayout.Label("Unlimited, but local — collect it here or not at all. Holding "
+                + Mathf.Round(store.TotalM3()) + " m3.", _smallStyle);
+
+            GUILayout.Label("— IN YOUR HOLD (" + Mathf.Round(p.CargoUsed())
+                + " / " + Mathf.Round(st.CargoCap) + " m3) —", _smallStyle);
+            bool anyHold = false;
+            foreach (var id in new List<string>(p.Cargo.Keys))
+            {
+                float qty = p.Cargo[id];
+                if (qty <= 0f) continue;
+                anyHold = true;
+                GUILayout.BeginHorizontal();
+                GUILayout.Label(GameData.Commodity(id).Name + "  ×" + Mathf.Round(qty) + " m3",
+                    GUILayout.Width(240));
+                if (GUILayout.Button("Store", GUILayout.Width(70))) GM.DepositCommodity(id);
+                GUILayout.EndHorizontal();
+            }
+            if (!anyHold) GUILayout.Label("Hold is empty.", _smallStyle);
+            else if (GUILayout.Button("Store Everything", GUILayout.Width(150))) GM.DepositAllCargo();
+
+            GUILayout.Label("— STORED HERE —", _smallStyle);
+            bool anyStored = false;
+            foreach (var id in new List<string>(store.Cargo.Keys))
+            {
+                float qty = store.Cargo[id];
+                if (qty <= 0f) continue;
+                anyStored = true;
+                GUILayout.BeginHorizontal();
+                GUILayout.Label(GameData.Commodity(id).Name + "  ×" + Mathf.Round(qty) + " m3",
+                    GUILayout.Width(240));
+                if (GUILayout.Button("Load", GUILayout.Width(70))) GM.WithdrawCommodity(id);
+                GUILayout.EndHorizontal();
+            }
+            if (!anyStored) GUILayout.Label("No commodities stored here.", _smallStyle);
+
+            GUILayout.Label("— BLUEPRINT VAULT —", _smallStyle);
+            for (int i = 0; i < p.Blueprints.Count; i++)
+            {
+                GUILayout.BeginHorizontal();
+                GUILayout.Label(ShipGen.DescribeBlueprint(p.Blueprints[i]), GUILayout.Width(360));
+                if (GUILayout.Button("File", GUILayout.Width(70))) { GM.DepositBlueprint(i); break; }
+                GUILayout.EndHorizontal();
+            }
+            for (int i = 0; i < store.Blueprints.Count; i++)
+            {
+                GUILayout.BeginHorizontal();
+                GUILayout.Label(ShipGen.DescribeBlueprint(store.Blueprints[i]), GUILayout.Width(360));
+                if (GUILayout.Button("Collect", GUILayout.Width(70))) { GM.WithdrawBlueprint(i); break; }
+                GUILayout.EndHorizontal();
+            }
+            if (p.Blueprints.Count == 0 && store.Blueprints.Count == 0)
+                GUILayout.Label("No blueprints carried or filed.", _smallStyle);
         }
 
         void DrawMarketTab()
@@ -489,12 +551,12 @@ namespace SpaceGame
 
             GUILayout.Space(14);
             GUILayout.Label("— HANGAR —", _smallStyle);
-            if (p.Hangar.Count == 0) GUILayout.Label("No spare modules. Buy some on the market.", _smallStyle);
-            for (int i = 0; i < p.Hangar.Count; i++)
+            if (GM.Store.Modules.Count == 0) GUILayout.Label("No spare modules. Buy some on the market.", _smallStyle);
+            for (int i = 0; i < GM.Store.Modules.Count; i++)
             {
                 GUILayout.BeginHorizontal();
-                GUILayout.Label(GameData.Modules[p.Hangar[i]].Name
-                    + "  [" + GameData.Modules[p.Hangar[i]].Slot + "]", GUILayout.Width(320));
+                GUILayout.Label(GameData.Modules[GM.Store.Modules[i]].Name
+                    + "  [" + GameData.Modules[GM.Store.Modules[i]].Slot + "]", GUILayout.Width(320));
                 if (GUILayout.Button("Fit", GUILayout.Width(80))) { GM.FitModule(i); GUILayout.EndHorizontal(); break; }
                 GUILayout.EndHorizontal();
             }

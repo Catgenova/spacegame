@@ -95,6 +95,11 @@ too, so an early warp-out beats their first volley.
   engine hum pitched to your speed, blaster crack vs railgun thud
   (glancing hits sound weaker), mining chunks, shield zaps vs armor
   thumps, warp swell, lock chime, dock clunks, and payout arpeggios.
+- **Store** anything at any station — each has an **unlimited storage bay**
+  on the Storage tab. Deposit ore, minerals, scrap or blueprints and they
+  wait there forever, but the bay is strictly local: you must fly back to
+  that station to collect it. Salvaged and purchased modules land in the
+  local bay too, so plan where you stage your gear.
 - **Fit** your ship at stations: weapons, miners, shield boosters,
   afterburners, cargo/armor/cap passives.
 - **Upgrade** hulls: Wasp → Prospector (miner) / Talon (fighter) →

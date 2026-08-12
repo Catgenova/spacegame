@@ -232,8 +232,8 @@ namespace SpaceGame
             Log("Docked at " + st.DisplayName + ".");
             if (Player.CargoModules.Count > 0)
             {
-                Player.Hangar.AddRange(Player.CargoModules);
-                Log(Player.CargoModules.Count + " salvaged module(s) transferred to your hangar.");
+                Store.Modules.AddRange(Player.CargoModules);
+                Log(Player.CargoModules.Count + " salvaged module(s) moved into this station's storage.");
                 Player.CargoModules.Clear();
             }
             SaveSystem.Save(this);
@@ -373,7 +373,76 @@ namespace SpaceGame
             View.RemoveObject(npc);
         }
 
+        /// <summary>The storage bay of the station we're docked at.</summary>
+        public StationStore Store => Player.StoreAt(StationId);
+
+        /// <summary>Display name of the station we're docked at.</summary>
+        public string HereName() => Station != null ? Station.Name : "this station";
+
         public const float LootRange = 40f;
+
+        // ---------- station storage ----------
+        // Unlimited capacity, but strictly local: what you leave here can only
+        // be picked up here.
+
+        /// <summary>Move one commodity from the hold into station storage.</summary>
+        public void DepositCommodity(string id)
+        {
+            if (!Docked || !Player.Cargo.TryGetValue(id, out float qty) || qty <= 0f) return;
+            Store.AddCargo(id, qty);
+            Player.Cargo.Remove(id);
+            Log("Stored " + Mathf.Round(qty) + " m3 " + GameData.Commodity(id).Name
+                + " at " + HereName() + ".");
+            SaveSystem.Save(this);
+        }
+
+        /// <summary>Empty the whole hold into station storage.</summary>
+        public void DepositAllCargo()
+        {
+            if (!Docked || Player.Cargo.Count == 0) return;
+            float moved = 0f;
+            foreach (var kv in Player.Cargo) { Store.AddCargo(kv.Key, kv.Value); moved += kv.Value; }
+            Player.Cargo.Clear();
+            Log("Stored " + Mathf.Round(moved) + " m3 of cargo at " + HereName() + ".");
+            SaveSystem.Save(this);
+        }
+
+        /// <summary>Pull a commodity back out, as much as the hold will take.</summary>
+        public void WithdrawCommodity(string id)
+        {
+            if (!Docked || !Store.Cargo.TryGetValue(id, out float have) || have <= 0f) return;
+            float room = Player.ComputeStats().CargoCap - Player.CargoUsed();
+            if (room <= 0.01f) { Log("Cargo hold is full."); return; }
+            float take = Mathf.Min(have, room);
+            Player.Cargo.TryGetValue(id, out var had);
+            Player.Cargo[id] = had + take;
+            Store.Cargo[id] = have - take;
+            if (Store.Cargo[id] <= 0.01f) Store.Cargo.Remove(id);
+            Log("Loaded " + Mathf.Round(take) + " m3 " + GameData.Commodity(id).Name
+                + (take < have ? " (hold full — rest still stored)." : "."));
+            SaveSystem.Save(this);
+        }
+
+        /// <summary>Leave a blueprint in this station's vault.</summary>
+        public void DepositBlueprint(int index)
+        {
+            if (!Docked || index < 0 || index >= Player.Blueprints.Count) return;
+            var bp = Player.Blueprints[index];
+            Store.Blueprints.Add(bp);
+            Player.Blueprints.RemoveAt(index);
+            Log("Filed " + ShipGen.DescribeBlueprint(bp) + " at " + HereName() + ".");
+            SaveSystem.Save(this);
+        }
+
+        public void WithdrawBlueprint(int index)
+        {
+            if (!Docked || index < 0 || index >= Store.Blueprints.Count) return;
+            var bp = Store.Blueprints[index];
+            Player.Blueprints.Add(bp);
+            Store.Blueprints.RemoveAt(index);
+            Log("Collected " + ShipGen.DescribeBlueprint(bp) + ".");
+            SaveSystem.Save(this);
+        }
 
         /// <summary>Tick a salvage mission for one recovered haul.</summary>
         public void CountSalvageMission()
@@ -592,8 +661,8 @@ namespace SpaceGame
             long price = Market.ApplyTradeSkill(Market.ModuleBuyPrice(StationId, modId), TradeLevel, false);
             if (Player.Credits < price) { Log("Not enough credits."); return; }
             Player.Credits -= price;
-            Player.Hangar.Add(modId);
-            Log("Bought " + GameData.Modules[modId].Name + " for " + GameData.FmtCredits(price) + " (in hangar).");
+            Store.Modules.Add(modId);
+            Log("Bought " + GameData.Modules[modId].Name + " for " + GameData.FmtCredits(price) + " (into station storage).");
             SaveSystem.Save(this);
         }
 
@@ -624,14 +693,14 @@ namespace SpaceGame
             {
                 if (!Player.Fitting.ContainsKey(slot)) continue;
                 foreach (var modId in Player.Fitting[slot])
-                    if (!string.IsNullOrEmpty(modId)) Player.Hangar.Add(modId);
+                    if (!string.IsNullOrEmpty(modId)) Store.Modules.Add(modId);
             }
         }
 
         public void FitModule(int hangarIndex)
         {
-            if (!Docked || hangarIndex < 0 || hangarIndex >= Player.Hangar.Count) return;
-            string modId = Player.Hangar[hangarIndex];
+            if (!Docked || hangarIndex < 0 || hangarIndex >= Store.Modules.Count) return;
+            string modId = Store.Modules[hangarIndex];
             var m = GameData.Modules[modId];
             if (m.Slot == SlotType.High && Player.Hull.TurretOnly && m.Kind != ModuleKind.Weapon)
             {
@@ -650,7 +719,7 @@ namespace SpaceGame
                 if (string.IsNullOrEmpty(arr[i])) { free = i; break; }
             if (free == -1) { Log("No free " + m.Slot + " slot."); return; }
             arr[free] = modId;
-            Player.Hangar.RemoveAt(hangarIndex);
+            Store.Modules.RemoveAt(hangarIndex);
             Log("Fitted " + m.Name + ".");
             SaveSystem.Save(this);
         }
@@ -661,7 +730,7 @@ namespace SpaceGame
             string modId = Player.Fitting[slot][idx];
             if (string.IsNullOrEmpty(modId)) return;
             Player.Fitting[slot][idx] = null;
-            Player.Hangar.Add(modId);
+            Store.Modules.Add(modId);
             Log("Unfitted " + GameData.Modules[modId].Name + ".");
             SaveSystem.Save(this);
         }

@@ -16,10 +16,20 @@ namespace SpaceGame
         [System.Serializable] class FitSave { public int Slot; public int Index; public string ModId; }
         [System.Serializable] class BpSave { public string Hash, Type; public int Class, Rarity, RunsLeft; }
 
+        /// <summary>v3: one station's unlimited storage bay, flattened.</summary>
+        [System.Serializable]
+        class StoreSave
+        {
+            public string StationId;
+            public List<OreSave> Cargo = new List<OreSave>();
+            public List<string> Modules = new List<string>();
+            public List<BpSave> Blueprints = new List<BpSave>();
+        }
+
         [System.Serializable]
         class SaveData
         {
-            public int V = 2;
+            public int V = 3;
             public long Credits;
             public string ActiveSkill;
             public List<SkillSave> Skills = new List<SkillSave>();
@@ -52,6 +62,9 @@ namespace SpaceGame
             public string MsnDestStation, MsnDestSystem;
             public float MsnPackageM3;
             public long MsnReward;
+
+            // v3: unlimited per-station storage
+            public List<StoreSave> Stores = new List<StoreSave>();
         }
 
         public static void Save(GameManager gm)
@@ -96,7 +109,21 @@ namespace SpaceGame
             }
             foreach (var kv in p.Skills)
                 d.Skills.Add(new SkillSave { Id = kv.Key, Level = kv.Value.Level, Xp = kv.Value.Xp });
-            d.Hangar.AddRange(p.Hangar);
+            foreach (var kv in p.Stations)
+            {
+                if (kv.Value.IsEmpty) continue;
+                var ss = new StoreSave { StationId = kv.Key };
+                foreach (var c in kv.Value.Cargo)
+                    ss.Cargo.Add(new OreSave { Id = c.Key, Amount = c.Value });
+                ss.Modules.AddRange(kv.Value.Modules);
+                foreach (var bp in kv.Value.Blueprints)
+                    ss.Blueprints.Add(new BpSave
+                    {
+                        Hash = bp.Hash, Type = bp.TypeId, Class = bp.Class,
+                        Rarity = bp.Rarity, RunsLeft = bp.RunsLeft,
+                    });
+                d.Stores.Add(ss);
+            }
             d.CargoMods.AddRange(p.CargoModules);
             foreach (var bp in p.Blueprints)
                 d.Blueprints.Add(new BpSave
@@ -124,7 +151,7 @@ namespace SpaceGame
             try
             {
                 var d = JsonUtility.FromJson<SaveData>(PlayerPrefs.GetString(Key));
-                if (d == null || d.V < 1 || d.V > 2) return false;
+                if (d == null || d.V < 1 || d.V > 3) return false;
                 if (!GameData.ShipExists(d.HullId)) return false;
                 if (!gm.Universe.Systems.ContainsKey(d.SystemId)) return false;
 
@@ -141,8 +168,33 @@ namespace SpaceGame
                         && f.Index >= 0 && f.Index < p.Fitting[slot].Length)
                         p.Fitting[slot][f.Index] = f.ModId;
                 }
-                foreach (var modId in d.Hangar)
-                    if (GameData.Modules.ContainsKey(modId)) p.Hangar.Add(modId);
+                if (d.Stores != null)
+                    foreach (var ss in d.Stores)
+                    {
+                        if (string.IsNullOrEmpty(ss.StationId)) continue;
+                        var store = p.StoreAt(ss.StationId);
+                        if (ss.Cargo != null)
+                            foreach (var c in ss.Cargo)
+                                if (GameData.CommodityExists(c.Id)) store.AddCargo(c.Id, c.Amount);
+                        if (ss.Modules != null)
+                            foreach (var modId in ss.Modules)
+                                if (GameData.Modules.ContainsKey(modId)) store.Modules.Add(modId);
+                        if (ss.Blueprints != null)
+                            foreach (var bp in ss.Blueprints)
+                                if (!string.IsNullOrEmpty(bp.Hash))
+                                    store.Blueprints.Add(new Blueprint
+                                    {
+                                        Hash = bp.Hash, TypeId = bp.Type, Class = bp.Class,
+                                        Rarity = bp.Rarity, RunsLeft = bp.RunsLeft,
+                                    });
+                    }
+                // Pre-v3 saves kept one global hangar; bank it where they were last docked.
+                if (d.V < 3 && d.Hangar != null && d.Hangar.Count > 0)
+                {
+                    var legacy = p.StoreAt(string.IsNullOrEmpty(d.StationId) ? "solara_prime" : d.StationId);
+                    foreach (var modId in d.Hangar)
+                        if (GameData.Modules.ContainsKey(modId)) legacy.Modules.Add(modId);
+                }
                 if (d.CargoMods != null)
                     foreach (var modId in d.CargoMods)
                         if (GameData.Modules.ContainsKey(modId)) p.CargoModules.Add(modId);

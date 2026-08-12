@@ -509,7 +509,7 @@ namespace SpaceGame
             tabRow.style.flexDirection = FlexDirection.Row;
             tabRow.style.marginTop = 6;
             tabRow.style.marginBottom = 6;
-            string[] tabs = { "Market", "Refine", "Fitting", "Ships", "Industry", "Repair", "Agent" };
+            string[] tabs = { "Market", "Storage", "Refine", "Fitting", "Ships", "Industry", "Repair", "Agent" };
             for (int i = 0; i < tabs.Length; i++)
             {
                 int idx = i;
@@ -1010,13 +1010,76 @@ namespace SpaceGame
             switch (_stationTab)
             {
                 case 0: BuildMarketTab(gm); break;
-                case 1: BuildRefineTab(gm); break;
-                case 2: BuildFittingTab(gm); break;
-                case 3: BuildShipsTab(gm); break;
-                case 4: BuildIndustryTab(gm); break;
-                case 5: BuildRepairTab(gm); break;
-                case 6: BuildAgentTab(gm); break;
+                case 1: BuildStorageTab(gm); break;
+                case 2: BuildRefineTab(gm); break;
+                case 3: BuildFittingTab(gm); break;
+                case 4: BuildShipsTab(gm); break;
+                case 5: BuildIndustryTab(gm); break;
+                case 6: BuildRepairTab(gm); break;
+                case 7: BuildAgentTab(gm); break;
             }
+        }
+
+        void BuildStorageTab(GameManager gm)
+        {
+            var p = gm.Player;
+            var store = gm.Store;
+            var st = p.ComputeStats();
+
+            _stationContent.Add(Section("STORAGE BAY — " + gm.HereName().ToUpper()));
+            _stationContent.Add(WrapText(
+                "Unlimited capacity, but strictly local: anything left here can only be "
+                + "collected at this station. Holding "
+                + Mathf.Round(store.TotalM3()) + " m3.", UiSkin.TextDim));
+
+            _stationContent.Add(Section("IN YOUR HOLD  ("
+                + Mathf.Round(p.CargoUsed()) + " / " + Mathf.Round(st.CargoCap) + " m3)"));
+            bool anyHold = false;
+            foreach (var id in new List<string>(p.Cargo.Keys))
+            {
+                float qty = p.Cargo[id];
+                if (qty <= 0f) continue;
+                anyHold = true;
+                string cid = id;
+                _stationContent.Add(Row(
+                    Cell(GameData.Commodity(id).Name + "  ×" + Mathf.Round(qty) + " m3", 300, UiSkin.TextMain),
+                    Btn("Store", () => { gm.DepositCommodity(cid); RefreshStationTab(); })));
+            }
+            if (!anyHold) _stationContent.Add(WrapText("Hold is empty.", UiSkin.TextDim));
+            else _stationContent.Add(Row(Btn("Store Everything",
+                () => { gm.DepositAllCargo(); RefreshStationTab(); })));
+
+            _stationContent.Add(Section("STORED HERE"));
+            bool anyStored = false;
+            foreach (var id in new List<string>(store.Cargo.Keys))
+            {
+                float qty = store.Cargo[id];
+                if (qty <= 0f) continue;
+                anyStored = true;
+                string cid = id;
+                _stationContent.Add(Row(
+                    Cell(GameData.Commodity(id).Name + "  ×" + Mathf.Round(qty) + " m3", 300, UiSkin.TextMain),
+                    Btn("Load", () => { gm.WithdrawCommodity(cid); RefreshStationTab(); })));
+            }
+            if (!anyStored) _stationContent.Add(WrapText("No commodities stored here.", UiSkin.TextDim));
+
+            _stationContent.Add(Section("BLUEPRINT VAULT"));
+            for (int i = 0; i < p.Blueprints.Count; i++)
+            {
+                int idx = i;
+                _stationContent.Add(Row(
+                    Cell(ShipGen.DescribeBlueprint(p.Blueprints[i]), 420, UiSkin.TextMain),
+                    Btn("File", () => { gm.DepositBlueprint(idx); RefreshStationTab(); })));
+            }
+            for (int i = 0; i < store.Blueprints.Count; i++)
+            {
+                int idx = i;
+                _stationContent.Add(Row(
+                    Cell(ShipGen.DescribeBlueprint(store.Blueprints[i]), 420, UiSkin.TextDim),
+                    Btn("Collect", () => { gm.WithdrawBlueprint(idx); RefreshStationTab(); })));
+            }
+            if (p.Blueprints.Count == 0 && store.Blueprints.Count == 0)
+                _stationContent.Add(WrapText("No blueprints carried or filed.", UiSkin.TextDim));
         }
 
         void BuildMarketTab(GameManager gm)
@@ -1113,13 +1176,13 @@ namespace SpaceGame
             }
 
             _stationContent.Add(Section("HANGAR"));
-            if (p.Hangar.Count == 0)
+            if (gm.Store.Modules.Count == 0)
                 _stationContent.Add(WrapText("No spare modules. Buy some on the market.", UiSkin.TextDim));
-            for (int i = 0; i < p.Hangar.Count; i++)
+            for (int i = 0; i < gm.Store.Modules.Count; i++)
             {
                 int idx = i;
                 _stationContent.Add(Row(
-                    Cell(GameData.Modules[p.Hangar[i]].Name + "  [" + GameData.Modules[p.Hangar[i]].Slot + "]",
+                    Cell(GameData.Modules[gm.Store.Modules[i]].Name + "  [" + GameData.Modules[gm.Store.Modules[i]].Slot + "]",
                         330, UiSkin.TextMain),
                     Btn("Fit", () => { gm.FitModule(idx); RefreshStationTab(); })));
             }
