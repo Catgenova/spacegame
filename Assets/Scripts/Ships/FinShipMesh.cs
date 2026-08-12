@@ -503,11 +503,10 @@ namespace SpaceGame
             bool belly = s == 3 || s == 4;
             int side = s <= 3 ? 0 : 1;
 
+            // Cobalt-dominant coat: blue base, white mottle patches, and a
+            // white spine blaze sweeping back from the canopy.
             if (tm < 0.08f) return 1;
-            if (deck && p == 0 && tm < 0.55f) return 1;
-            bool chineSpan = (s == 1 && p == 2) || (s == 2 && p == 0)
-                || (s == 6 && p == 0) || (s == 5 && p == 2);
-            if (chineSpan && tm > 0.12f && tm < 0.88f) return 1;
+            if (deck && p == 0 && tm > 0.20f && tm < 0.58f) return 0;
             if (deck || upper || lower)
             {
                 float skew = (deck ? 0f : upper ? 0.03f : 0.06f) + p * 0.02f;
@@ -517,21 +516,11 @@ namespace SpaceGame
                     int cell = Mathf.Min(4, (int)(ft / 0.141f));
                     int band = deck ? 0 : upper ? 1 : 2;
                     bool hit = camoCell[(side * 15 + band * 5 + cell) % 30];
-                    if (hit && !(lower && p == 1)) return 1;
+                    if (hit && !(lower && p == 1)) return 0;
                 }
             }
-            if (g.BandMode == 1 && tm > 0.78f && tm < 0.95f)
-            {
-                float u = (tm - 0.78f) / 0.17f;
-                if ((int)(u * g.BandCount * 2 + g.BandPhase * 2f) % 2 == 0) return 1;
-            }
-            else if (g.BandMode == 2 && !belly && tm > 0.12f && tm < 0.30f)
-            {
-                float u = (tm - 0.12f) / 0.18f;
-                if ((int)(u * g.BandCount * 2.5f + g.BandPhase * 2f) % 2 == 0) return 1;
-            }
-            if (microHit && !belly && tm > 0.10f && tm < 0.92f) return 1;
-            return 0;
+            if (microHit && !belly && tm > 0.10f && tm < 0.92f) return 0;
+            return 1;
         }
 
         static GameObject BuildC2(string hash, Transform shipRoot)
@@ -577,7 +566,7 @@ namespace SpaceGame
                     float sc = CrSample(cts, csc, t);
                     return HalfPtF(0, t).y * H * sc + CrSample(cts, clf, t) * H;
                 };
-                Canopy(b, zC + halfLen, zC - halfLen, 0.42f, 0.20f, deckAt, 3, 1, 1);
+                Canopy(b, zC + halfLen, zC - halfLen, 0.46f, 0.30f, deckAt, 3, 1, 1);
             }
 
             // Crescent wings: leading edge bows forward, trailing edge
@@ -587,21 +576,21 @@ namespace SpaceGame
                 float s = side;
                 float z20 = (0.5f - 0.20f) * L;
                 float z72 = (0.5f - 0.72f) * L;
-                var tip = new Vector3(s * (W * 0.55f + g.WingSpan * 1.05f), 0.05f * H + g.WingCurl, z20 - g.WingSweep * 1.05f);
+                var tip = new Vector3(s * (W * 0.55f + g.WingSpan * 1.05f), 0.05f * H + g.WingCurl, z20 - g.WingSweep * 0.95f);
                 var lead = new[]
                 {
                     new Vector3(s * W * 0.55f, 0.05f * H, z20),
-                    new Vector3(s * (W * 0.55f + g.WingSpan * 0.45f), 0.08f * H, z20 + 0.15f),
-                    new Vector3(s * (W * 0.55f + g.WingSpan * 0.85f), 0.05f * H + g.WingCurl * 0.35f, z20 - g.WingSweep * 0.45f),
+                    new Vector3(s * (W * 0.55f + g.WingSpan * 0.45f), 0.08f * H, z20 - g.WingSweep * 0.52f),
+                    new Vector3(s * (W * 0.55f + g.WingSpan * 0.85f), 0.05f * H + g.WingCurl * 0.35f, z20 - g.WingSweep * 0.78f),
                     tip,
                 };
                 var leadT = new[] { 0f, 0.35f, 0.72f, 1f };
                 var trail = new[]
                 {
                     new Vector3(s * W * 0.60f, 0f, z72),
-                    new Vector3(s * (W * 0.60f + g.WingSpan * 0.35f), 0.02f * H, z72 + 0.55f),
-                    new Vector3(s * (W * 0.60f + g.WingSpan * 0.75f), 0.03f * H + g.WingCurl * 0.30f, z72 - g.WingSweep * 0.25f),
-                    tip + new Vector3(-s * 0.06f, -0.02f, -0.10f),
+                    new Vector3(s * (W * 0.60f + g.WingSpan * 0.35f), 0.02f * H, z72 - g.WingSweep * 0.06f),
+                    new Vector3(s * (W * 0.60f + g.WingSpan * 0.75f), 0.03f * H + g.WingCurl * 0.30f, z72 - g.WingSweep * 0.48f),
+                    tip + new Vector3(-s * 0.06f, -0.02f, -0.12f),
                 };
                 var trailT = new[] { 0f, 0.40f, 0.75f, 1f };
                 LoftWing(b, lead, leadT, trail, trailT, 0.14f, 0.020f, 10, side < 0, 1);
@@ -626,12 +615,12 @@ namespace SpaceGame
 
             // Three segmented lance guns: two chin, one keel — the turret
             // hardpoints made visible.
-            for (int gun = 0; gun < 3; gun++)
+            for (int gun = 0; gun < 2; gun++)
             {
-                float x = gun == 2 ? 0f : (gun == 0 ? -1f : 1f) * W * g.GunSpread;
-                float y = gun == 2 ? -0.34f * H : -0.16f * H;
-                float t0 = gun == 2 ? 0.30f : 0.18f;
-                float len = g.GunLen * (gun == 2 ? 1.1f : 1f);
+                float x = (gun == 0 ? -1f : 1f) * W * g.GunSpread;
+                float y = -0.16f * H;
+                float t0 = 0.18f;
+                float len = g.GunLen * 1.25f;
                 var housing0 = new Vector3(x, y, (0.5f - t0 - 0.14f) * L);
                 var housing1 = new Vector3(x, y, (0.5f - t0) * L);
                 Tube(b, new[] { housing0, housing1 }, new[] { 0.11f, 0.095f }, 8, 1, false);
