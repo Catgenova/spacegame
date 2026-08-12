@@ -844,7 +844,10 @@ namespace SpaceGame
                 extra = GameData.Ores[rock.Data.Ore].Name + ": " + Mathf.Round(rock.Data.Amount) + " m3 remaining";
             else if (sel is Wreck wreck)
             {
-                extra = wreck.Loot.Count > 0 ? wreck.Loot.Count + " item(s) detected inside" : "Scan inconclusive";
+                extra = wreck.ScrapM3() > 0f
+                    ? Mathf.Round(wreck.ScrapM3()) + " m3 scrap detected inside"
+                    : wreck.Loot.Count > 0 ? wreck.Loot.Count + " item(s) detected inside"
+                    : "Scan inconclusive";
                 if (wreck.BpLoot.Count > 0) extra += "  +  BLUEPRINT SIGNATURE";
             }
             else if (sel is NpcPirate target2)

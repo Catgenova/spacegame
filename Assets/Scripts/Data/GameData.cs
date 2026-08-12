@@ -86,6 +86,8 @@ namespace SpaceGame
         public float StandingGain; // faction standing awarded per kill
         public bool NeverFlees;    // overlords fight to the death
         public float BpChance;     // chance a wreck contains a ship blueprint
+        public int ScrapClass;     // 1..3 — grade of scrap this hull leaves
+        public float ScrapMin, ScrapMax; // m3 of scrap in the wreck
     }
 
     public class SkillDef
@@ -115,6 +117,9 @@ namespace SpaceGame
 
         public static readonly Dictionary<string, OreDef> Ores = new Dictionary<string, OreDef>();
         public static readonly Dictionary<string, OreDef> Minerals = new Dictionary<string, OreDef>();
+        /// <summary>Combat salvage, graded by the class of hull it came off.
+        /// Sells well but takes hold space — the reason to loot a kill.</summary>
+        public static readonly Dictionary<string, OreDef> Scraps = new Dictionary<string, OreDef>();
         public static readonly Dictionary<string, LootTable> Loot = new Dictionary<string, LootTable>();
         public static readonly Dictionary<string, ShipDef> Ships = new Dictionary<string, ShipDef>();
         public static readonly Dictionary<string, ModuleDef> Modules = new Dictionary<string, ModuleDef>();
@@ -139,16 +144,26 @@ namespace SpaceGame
             Mineral("titanium", "Titanium", 72f, new Color(0.45f, 0.70f, 0.80f));
             Mineral("beryllium", "Beryllium", 120f, new Color(0.74f, 0.79f, 0.72f));
 
+            // Wreck salvage. Class N scrap comes off a Class N hull, so the
+            // grade you recover tracks how hard the target was to kill.
+            Scrap("scrap1", "Class 1 Scrap", 45f, new Color(0.62f, 0.60f, 0.56f));
+            Scrap("scrap2", "Class 2 Scrap", 130f, new Color(0.66f, 0.58f, 0.44f));
+            Scrap("scrap3", "Class 3 Scrap", 380f, new Color(0.70f, 0.56f, 0.32f));
+
             Ores["hematite"].RefineInto = new Dictionary<string, float> { { "iron", 1f } };
             Ores["pyroxene"].RefineInto = new Dictionary<string, float> { { "iron", 0.65f }, { "aluminium", 0.35f } };
             Ores["plagioclase"].RefineInto = new Dictionary<string, float> { { "iron", 0.3f }, { "aluminium", 0.45f }, { "titanium", 0.25f } };
             Ores["ilmenite"].RefineInto = new Dictionary<string, float> { { "aluminium", 0.35f }, { "titanium", 0.45f }, { "beryllium", 0.2f } };
             Ores["beryl"].RefineInto = new Dictionary<string, float> { { "aluminium", 0.2f }, { "titanium", 0.3f }, { "beryllium", 0.5f } };
 
-            Loot["rookie"] = new LootTable { Chance = 0.45f, MaxItems = 1, Pool = new[] { "blaster1", "miner1", "afterburner1" } };
-            Loot["marauder"] = new LootTable { Chance = 0.75f, MaxItems = 1, Pool = new[] { "rail1", "shieldboost1", "plate1", "cargo1" } };
-            Loot["overlord"] = new LootTable { Chance = 1f, MaxItems = 2, Pool = new[] { "rail2", "miner2", "capbattery1", "plate1", "shieldboost1" } };
-            Loot["convoyhauler"] = new LootTable { Chance = 1f, MaxItems = 3, Pool = new[] { "rail2", "miner2", "shieldboost1", "capbattery1", "cargo1" } };
+            // Pirates never carry salvageable gear — their wrecks yield graded
+            // scrap and, rarely, a blueprint chip. Modules come from drifting
+            // caches turned up by a sensor sweep, or from the market.
+            Loot["cache"] = new LootTable
+            {
+                Chance = 1f, MaxItems = 2,
+                Pool = new[] { "shieldboost1", "afterburner1", "cargo1", "plate1", "capbattery1", "rail1" },
+            };
 
             Ships["wasp"] = new ShipDef
             {
@@ -298,6 +313,7 @@ namespace SpaceGame
                 Shield = 90, Armor = 70, Hull = 70,
                 Dmg = 7, Cycle = 2.5f, Range = 100f, Engage = 700f, Speed = 2.8f, Orbit = 60f,
                 Tracking = 0.30f, Bounty = 3500, StandingGain = 0.04f, BpChance = 0.04f,
+                ScrapClass = 1, ScrapMin = 6f, ScrapMax = 12f,
             };
             Npcs["marauder"] = new NpcDef
             {
@@ -305,6 +321,7 @@ namespace SpaceGame
                 Shield = 220, Armor = 180, Hull = 160,
                 Dmg = 16, Cycle = 2.8f, Range = 160f, Engage = 900f, Speed = 2.6f, Orbit = 100f,
                 Tracking = 0.13f, Bounty = 11000, StandingGain = 0.1f, BpChance = 0.1f,
+                ScrapClass = 2, ScrapMin = 10f, ScrapMax = 20f,
             };
             Npcs["overlord"] = new NpcDef
             {
@@ -312,6 +329,7 @@ namespace SpaceGame
                 Shield = 500, Armor = 420, Hull = 380,
                 Dmg = 34, Cycle = 3.2f, Range = 240f, Engage = 1200f, Speed = 2.2f, Orbit = 140f,
                 Tracking = 0.055f, Bounty = 38000, StandingGain = 0.25f, NeverFlees = true,
+                ScrapClass = 3, ScrapMin = 18f, ScrapMax = 32f,
                 BpChance = 0.25f,
             };
             Npcs["convoyhauler"] = new NpcDef
@@ -320,6 +338,7 @@ namespace SpaceGame
                 Shield = 700, Armor = 800, Hull = 900,
                 Dmg = 8, Cycle = 3f, Range = 90f, Engage = 500f, Speed = 1.2f, Orbit = 220f,
                 Tracking = 0.2f, Bounty = 60000, StandingGain = 0.3f, BpChance = 0.6f,
+                ScrapClass = 3, ScrapMin = 30f, ScrapMax = 50f,
             };
 
             Skill("mining", "Mining", "+5% mining laser yield per level.");
@@ -371,10 +390,17 @@ namespace SpaceGame
 
         /// <summary>Look up any tradable commodity (ore or mineral).</summary>
         public static OreDef Commodity(string id)
-            => Ores.TryGetValue(id, out var o) ? o : Minerals[id];
+            => Ores.TryGetValue(id, out var o) ? o
+             : Minerals.TryGetValue(id, out var m) ? m : Scraps[id];
 
         public static bool CommodityExists(string id)
-            => Ores.ContainsKey(id) || Minerals.ContainsKey(id);
+            => Ores.ContainsKey(id) || Minerals.ContainsKey(id) || Scraps.ContainsKey(id);
+
+        static void Scrap(string id, string name, float price, Color c)
+            => Scraps[id] = new OreDef { Id = id, Name = name, PricePerM3 = price, Color = c };
+
+        public static string ScrapIdForClass(int cls)
+            => "scrap" + Mathf.Clamp(cls, 1, 3);
 
         static void Skill(string id, string name, string desc)
             => Skills[id] = new SkillDef { Id = id, Name = name, Desc = desc };

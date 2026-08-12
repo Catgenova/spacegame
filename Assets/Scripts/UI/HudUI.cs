@@ -272,7 +272,10 @@ namespace SpaceGame
             else if (sel is Wreck wreck)
             {
                 GUI.Label(new Rect(r.x + 8, y, r.width - 16, 14),
-                    (wreck.Loot.Count > 0 ? wreck.Loot.Count + " item(s) detected inside" : "Scan inconclusive")
+                    (wreck.ScrapM3() > 0f
+                        ? Mathf.Round(wreck.ScrapM3()) + " m3 scrap detected inside"
+                        : wreck.Loot.Count > 0 ? wreck.Loot.Count + " item(s) detected inside"
+                        : "Scan inconclusive")
                     + (wreck.BpLoot.Count > 0 ? " + BLUEPRINT" : ""),
                     _smallStyle);
                 y += 17;

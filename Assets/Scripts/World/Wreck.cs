@@ -11,6 +11,15 @@ namespace SpaceGame
     {
         public readonly List<string> Loot = new List<string>();
         public readonly List<Blueprint> BpLoot = new List<Blueprint>();
+        /// <summary>Graded scrap in the hulk: commodity id -> m3 remaining.</summary>
+        public readonly Dictionary<string, float> ScrapLoot = new Dictionary<string, float>();
+
+        public float ScrapM3()
+        {
+            float sum = 0f;
+            foreach (var v in ScrapLoot.Values) sum += v;
+            return sum;
+        }
         public float Life = 180f;
 
         void Update()

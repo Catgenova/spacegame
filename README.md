@@ -59,13 +59,17 @@ too, so an early warp-out beats their first volley.
   Solara (1.0) is safe; Abyss (0.0) is overlord country. Turrets have
   tracking speeds: orbit fast and close to make big slow guns miss you
   (the target panel shows your expected hit quality).
-- **Salvage** wrecks — destroyed pirates leave wrecks that can hold real
-  modules (better pirates drop better loot). Salvage rides in your cargo
-  and transfers to your hangar when you dock.
+- **Salvage** wrecks — destroyed pirates never carry fittable gear. Their
+  hulks yield **graded scrap** (Class 1/2/3, priced 45/130/380 cr per m3)
+  and, rarely, a blueprint chip. Tougher targets leave a richer grade and
+  more of it, so a full hold of Class 3 scrap is worth the trip. Fittable
+  modules come from the market or from **drifting caches** turned up by a
+  sensor sweep.
 - **Watch them run** — badly damaged pirates break off and warp out
   (overlords fight to the death), idle pirates roam between belts, and
-  **pirate convoys** appear in low-sec: a fat hauler with a 60k bounty and
-  guaranteed loot, escorted by guards.
+  **pirate convoys** appear in low-sec: a fat hauler with a 60k bounty, a
+  hold full of Class 3 scrap and a 60% blueprint chance, escorted by
+  guards.
 - **Build standing** with the Frontier Authority — every kill raises it.
   Tiers (Trusted / Honored / Legend) grant better mission pay and repair
   discounts, and Trusted unlocks **"The Abyss Job"**, a three-stage story

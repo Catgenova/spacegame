@@ -508,8 +508,6 @@ namespace SpaceGame
         // A sensor sweep sometimes turns up a drifting salvage cache —
         // the Trail line's whole reason to leave the station.
         static readonly NpcDef CacheDef = new NpcDef { Id = "cache", Name = "Drifting Cache" };
-        static readonly string[] CachePool =
-            { "shieldboost1", "afterburner1", "cargo1", "plate1", "capbattery1", "rail1" };
 
         void CompleteSensorCycle(ModuleDef m, RackEntry r)
         {
@@ -520,9 +518,10 @@ namespace SpaceGame
                 dir = dir.normalized;
                 var pos = transform.position + dir * Random.Range(250f, 600f);
                 var loot = new List<string>();
+                var cachePool = GameData.Loot["cache"].Pool;
                 int n = Random.value < 0.4f ? 2 : 1;
                 for (int i = 0; i < n; i++)
-                    loot.Add(CachePool[Random.Range(0, CachePool.Length)]);
+                    loot.Add(cachePool[Random.Range(0, cachePool.Length)]);
                 var wreck = GM.View.SpawnWreck(CacheDef, pos, loot);
                 if (Random.value < 0.08f)
                     wreck.BpLoot.Add(ShipGen.RollBlueprint("cache"));
@@ -554,7 +553,30 @@ namespace SpaceGame
                     + " — see the Industry tab at any station.");
                 w.BpLoot.RemoveAt(i);
             }
-            if (w.Loot.Count > 0)
+            // Scrap first: one graded batch per cycle, as much as the hold takes.
+            if (w.ScrapLoot.Count > 0)
+            {
+                var st2 = P.ComputeStats();
+                float room = st2.CargoCap - P.CargoUsed();
+                if (room <= 0.01f)
+                {
+                    r.Active = false;
+                    GM.Log("Cargo hold full — scrap left in the wreck.");
+                    return;
+                }
+                string sid = null;
+                foreach (var k in w.ScrapLoot.Keys) { sid = k; break; }
+                float take = Mathf.Min(w.ScrapLoot[sid], Mathf.Min(room, 10f));
+                P.Cargo.TryGetValue(sid, out var had);
+                P.Cargo[sid] = had + take;
+                w.ScrapLoot[sid] -= take;
+                if (w.ScrapLoot[sid] <= 0.01f) w.ScrapLoot.Remove(sid);
+                GM.Log("Collector reeled in " + Mathf.Round(take) + " m3 "
+                    + GameData.Commodity(sid).Name + ".");
+                Sfx.MinerChunk();
+                GM.CountSalvageMission();
+            }
+            else if (w.Loot.Count > 0)
             {
                 var st = P.ComputeStats();
                 if (st.CargoCap - P.CargoUsed() < GameData.ModuleCargoVolume)
@@ -569,15 +591,9 @@ namespace SpaceGame
                 GM.Log("Collector reeled in " + GameData.Modules[modId].Name + ".");
                 w.Loot.RemoveAt(last);
                 Sfx.MinerChunk();
-                var mi = GM.ActiveMission;
-                if (mi != null && mi.Type == "salvage" && mi.SalvageDone < mi.SalvageRequired)
-                {
-                    mi.SalvageDone++;
-                    GM.Log("Mission: " + mi.SalvageDone + "/" + mi.SalvageRequired + " salvage recovered"
-                        + (mi.SalvageDone >= mi.SalvageRequired ? " — report to the agent!" : "."));
-                }
+                GM.CountSalvageMission();
             }
-            if (w.Loot.Count == 0 && w.BpLoot.Count == 0)
+            if (w.Loot.Count == 0 && w.BpLoot.Count == 0 && w.ScrapLoot.Count == 0)
             {
                 r.Active = false;
                 GM.Log("Wreck stripped clean.");

@@ -327,15 +327,19 @@ namespace SpaceGame
                 Log("Frontier Authority standing increased: you are now " + tierAfter
                     + ". Better mission pay and cheaper repairs unlocked.");
 
-            // Leave a wreck, maybe with salvage.
-            var loot = new List<string>();
-            if (GameData.Loot.TryGetValue(npc.Def.Id, out var table) && Random.value < table.Chance)
+            // Leave a wreck. Pirates carry no fittable gear — the hulk yields
+            // graded scrap, and rarely a blueprint chip.
+            var wreck = View.SpawnWreck(npc.Def, npc.transform.position, null);
+            if (npc.Def.ScrapClass > 0 && npc.Def.ScrapMax > 0f)
             {
-                int count = Random.Range(1, table.MaxItems + 1);
-                for (int i = 0; i < count; i++)
-                    loot.Add(table.Pool[Random.Range(0, table.Pool.Length)]);
+                string sid = GameData.ScrapIdForClass(npc.Def.ScrapClass);
+                float m3 = Mathf.Round(Random.Range(npc.Def.ScrapMin, npc.Def.ScrapMax));
+                if (m3 > 0f)
+                {
+                    wreck.ScrapLoot.TryGetValue(sid, out var had);
+                    wreck.ScrapLoot[sid] = had + m3;
+                }
             }
-            var wreck = View.SpawnWreck(npc.Def, npc.transform.position, loot);
 
             // Ship blueprint chips: rarer, and the real reason to hunt convoys.
             if (Random.value < npc.Def.BpChance)
@@ -371,6 +375,16 @@ namespace SpaceGame
 
         public const float LootRange = 40f;
 
+        /// <summary>Tick a salvage mission for one recovered haul.</summary>
+        public void CountSalvageMission()
+        {
+            var m = ActiveMission;
+            if (m == null || m.Type != "salvage" || m.SalvageDone >= m.SalvageRequired) return;
+            m.SalvageDone++;
+            Log("Mission: " + m.SalvageDone + "/" + m.SalvageRequired + " salvage recovered"
+                + (m.SalvageDone >= m.SalvageRequired ? " — report to the agent!" : "."));
+        }
+
         public void LootWreck()
         {
             var w = Selected as Wreck;
@@ -387,14 +401,37 @@ namespace SpaceGame
                 w.BpLoot.RemoveAt(i);
             }
 
+            var st = Player.ComputeStats();
+
+            // Scrap is a bulk commodity — take as much as the hold allows.
+            if (w.ScrapLoot.Count > 0)
+            {
+                var sids = new List<string>(w.ScrapLoot.Keys);
+                foreach (var sid in sids)
+                {
+                    float room = st.CargoCap - Player.CargoUsed();
+                    if (room <= 0.01f) { Log("Cargo hold full — scrap left in the wreck."); break; }
+                    float take = Mathf.Min(w.ScrapLoot[sid], room);
+                    Player.Cargo.TryGetValue(sid, out var had);
+                    Player.Cargo[sid] = had + take;
+                    w.ScrapLoot[sid] -= take;
+                    if (w.ScrapLoot[sid] <= 0.01f) w.ScrapLoot.Remove(sid);
+                    Log("Salvaged " + Mathf.Round(take) + " m3 "
+                        + GameData.Commodity(sid).Name + ".");
+                    CountSalvageMission();
+                }
+            }
+
             if (w.Loot.Count == 0)
             {
-                Log("Nothing more of value in the wreck.");
-                Select(null);
-                View.RemoveObject(w);
+                if (w.ScrapLoot.Count == 0)
+                {
+                    Log("Nothing more of value in the wreck.");
+                    Select(null);
+                    View.RemoveObject(w);
+                }
                 return;
             }
-            var st = Player.ComputeStats();
             for (int i = w.Loot.Count - 1; i >= 0; i--)
             {
                 if (st.CargoCap - Player.CargoUsed() < GameData.ModuleCargoVolume)
@@ -405,16 +442,9 @@ namespace SpaceGame
                 Player.CargoModules.Add(w.Loot[i]);
                 Log("Salvaged " + GameData.Modules[w.Loot[i]].Name + ".");
                 w.Loot.RemoveAt(i);
-
-                var m = ActiveMission;
-                if (m != null && m.Type == "salvage" && m.SalvageDone < m.SalvageRequired)
-                {
-                    m.SalvageDone++;
-                    Log("Mission: " + m.SalvageDone + "/" + m.SalvageRequired + " salvage recovered"
-                        + (m.SalvageDone >= m.SalvageRequired ? " — report to the agent!" : "."));
-                }
+                CountSalvageMission();
             }
-            if (w.Loot.Count == 0 && w.BpLoot.Count == 0)
+            if (w.Loot.Count == 0 && w.BpLoot.Count == 0 && w.ScrapLoot.Count == 0)
             {
                 Select(null);
                 View.RemoveObject(w);
