@@ -58,6 +58,7 @@ namespace SpaceGame
             Fitting[SlotType.Mid] = new string[def.MidSlots];
             Fitting[SlotType.Low] = new string[def.LowSlots];
             Fitting[SlotType.Web] = new string[def.WebSlots];
+            Fitting[SlotType.Disruptor] = new string[def.DisruptorSlots];
             var st = ComputeStats();
             Shield = st.MaxShield;
             Armor = st.MaxArmor;

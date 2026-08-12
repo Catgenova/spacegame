@@ -467,6 +467,7 @@ namespace SpaceGame
                 if (!p.Fitting.ContainsKey(slot)) continue;
                 var arr = p.Fitting[slot];
                 string slotName = slot == SlotType.Web ? "Web"
+                    : slot == SlotType.Disruptor ? "Disruptor"
                     : slot == SlotType.High && p.Hull.TurretOnly ? "Turret" : slot.ToString();
                 for (int i = 0; i < arr.Length; i++)
                 {
@@ -542,6 +543,7 @@ namespace SpaceGame
                 var def = HiveGenerator.Def(bp.Hash, bp.Class);
                 GUILayout.Label(HiveGenerator.DescribeBlueprint(bp) + "  ·  body #" + bp.Hash);
                 GUILayout.Label("    " + def.Class + " · Turrets " + def.HighSlots + " · Webs " + def.WebSlots
+                    + (def.DisruptorSlots > 0 ? " · Disr " + def.DisruptorSlots : "")
                     + " · " + Mathf.Round(def.Speed * GameData.UnitsToMs) + " m/s", _smallStyle);
                 string blocker = GM.ManufactureBlocker(bp);
                 if (blocker == null)

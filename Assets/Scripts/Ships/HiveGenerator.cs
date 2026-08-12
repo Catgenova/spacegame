@@ -14,12 +14,12 @@ namespace SpaceGame
     public static class HiveGenerator
     {
         public const string TypeId = "hive";
-        public const int MaxClass = 2;
+        public const int MaxClass = 3;
 
         class HiveClass
         {
             public string Label, Doctrine;
-            public int TurretSlots, WebSlots, LowSlots;
+            public int TurretSlots, WebSlots, LowSlots, DisruptorSlots;
             public float ShieldMin, ShieldMax, ArmorMin, ArmorMax, HullMin, HullMax;
             public float SpeedMin, SpeedMax, TurnMin, TurnMax;
             public float CapMin, CapMax, RegenMin, RegenMax;
@@ -65,6 +65,23 @@ namespace SpaceGame
                     ["tritanium"] = 640f, ["pyerite"] = 360f, ["mexallon"] = 140f, ["isogen"] = 60f,
                 },
             },
+            [3] = new HiveClass
+            {
+                Label = "Hive-class Interdictor (C3)",
+                Doctrine = "Swarm interdictor: jam the warp drive, web the hull, let the swarm feed.",
+                TurretSlots = 2, WebSlots = 1, LowSlots = 2, DisruptorSlots = 1,
+                ShieldMin = 260, ShieldMax = 330, ArmorMin = 180, ArmorMax = 240,
+                HullMin = 190, HullMax = 250,
+                SpeedMin = 3.2f, SpeedMax = 3.8f, TurnMin = 90, TurnMax = 115,
+                CapMin = 210, CapMax = 270, RegenMin = 13, RegenMax = 17,
+                CargoMin = 220, CargoMax = 320,
+                PriceMin = 320000, PriceMax = 420000,
+                Fee = 90000,
+                Materials = new Dictionary<string, float>
+                {
+                    ["tritanium"] = 1400f, ["pyerite"] = 800f, ["mexallon"] = 320f, ["isogen"] = 140f,
+                },
+            },
         };
 
         static readonly string[] NamePool =
@@ -106,23 +123,26 @@ namespace SpaceGame
             return s;
         }
 
-        /// <summary>Class-2 chance scales with how dangerous the source was.</summary>
-        static float C2Chance(string npcId)
+        /// <summary>Higher classes drop from more dangerous sources.</summary>
+        static int RollClass(string npcId)
         {
+            float c3, c2;
             switch (npcId)
             {
-                case "convoyhauler": return 0.50f;
-                case "overlord": return 0.35f;
-                case "marauder": return 0.15f;
-                default: return 0.05f;
+                case "convoyhauler": c3 = 0.15f; c2 = 0.45f; break;
+                case "overlord": c3 = 0.10f; c2 = 0.30f; break;
+                case "marauder": c3 = 0.04f; c2 = 0.13f; break;
+                default: c3 = 0.01f; c2 = 0.05f; break;
             }
+            float r2 = Random.value;
+            return r2 < c3 ? 3 : r2 < c3 + c2 ? 2 : 1;
         }
 
         public static Blueprint RollBlueprint(string npcId)
         {
             float r = Random.value;
             int rarity = r < 0.6f ? 0 : r < 0.85f ? 1 : r < 0.97f ? 2 : 3;
-            int cls = Random.value < C2Chance(npcId) ? 2 : 1;
+            int cls = RollClass(npcId);
             return new Blueprint
             {
                 Hash = NewHash(),
@@ -157,6 +177,7 @@ namespace SpaceGame
                 Price = (long)R(c.PriceMin, c.PriceMax),
                 Cargo = Mathf.Round(R(c.CargoMin, c.CargoMax)),
                 HighSlots = c.TurretSlots, MidSlots = 0, LowSlots = c.LowSlots, WebSlots = c.WebSlots,
+                DisruptorSlots = c.DisruptorSlots,
                 TurretOnly = true,
                 Shield = Mathf.Round(R(c.ShieldMin, c.ShieldMax)),
                 Armor = Mathf.Round(R(c.ArmorMin, c.ArmorMax)),

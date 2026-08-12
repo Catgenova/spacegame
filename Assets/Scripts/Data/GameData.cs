@@ -3,13 +3,13 @@ using UnityEngine;
 
 namespace SpaceGame
 {
-    public enum SlotType { High, Mid, Low, Web }
-    public enum ModuleKind { Miner, Weapon, ShieldBooster, Afterburner, Passive, Web }
+    public enum SlotType { High, Mid, Low, Web, Disruptor }
+    public enum ModuleKind { Miner, Weapon, ShieldBooster, Afterburner, Passive, Web, Disruptor }
 
     /// <summary>All fittable slot categories, in display/rack order.</summary>
     public static class Slots
     {
-        public static readonly SlotType[] All = { SlotType.High, SlotType.Mid, SlotType.Low, SlotType.Web };
+        public static readonly SlotType[] All = { SlotType.High, SlotType.Mid, SlotType.Low, SlotType.Web, SlotType.Disruptor };
     }
     public enum ObjKind { Sun, Planet, Belt, Station, Gate, Asteroid, Npc, Wreck }
 
@@ -34,7 +34,7 @@ namespace SpaceGame
         public string Id, Name, Class, Desc;
         public long Price;
         public float Cargo;
-        public int HighSlots, MidSlots, LowSlots, WebSlots;
+        public int HighSlots, MidSlots, LowSlots, WebSlots, DisruptorSlots;
         public float Shield, Armor, Hull;
         public float Cap, CapRegen;
         public float Speed;        // units/s (1 unit = 100 m)
@@ -254,6 +254,12 @@ namespace SpaceGame
                 Id = "web1", Name = "Stasis Webifier I", Short = "WEB", Slot = SlotType.Web,
                 Kind = ModuleKind.Web, Price = 14000, Cycle = 2f, Range = 110f, CapUse = 3f,
                 Desc = "Halves the target's velocity while active. Fleeing pirates hate it. Requires a web slot (Hive hulls).",
+            };
+            Modules["disrupt1"] = new ModuleDef
+            {
+                Id = "disrupt1", Name = "Warp Disruptor I", Short = "DISR", Slot = SlotType.Disruptor,
+                Kind = ModuleKind.Disruptor, Price = 26000, Cycle = 2f, Range = 130f, CapUse = 4f,
+                Desc = "Jams the target's warp drive — a pointed pirate aligns out but can never jump. Requires a disruptor slot (Hive interdictors).",
             };
 
             Npcs["rookie"] = new NpcDef

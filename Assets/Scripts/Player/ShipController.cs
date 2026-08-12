@@ -81,7 +81,7 @@ namespace SpaceGame
         public void RefreshRack()
         {
             Rack.Clear();
-            foreach (var slot in new[] { SlotType.High, SlotType.Mid, SlotType.Web })
+            foreach (var slot in new[] { SlotType.High, SlotType.Mid, SlotType.Web, SlotType.Disruptor })
             {
                 if (!P.Fitting.ContainsKey(slot)) continue;
                 var arr = P.Fitting[slot];
@@ -160,8 +160,8 @@ namespace SpaceGame
                 return;
             }
             var m = r.Def;
-            if ((m.Kind == ModuleKind.Miner || m.Kind == ModuleKind.Weapon || m.Kind == ModuleKind.Web)
-                && !ValidTarget(m))
+            if ((m.Kind == ModuleKind.Miner || m.Kind == ModuleKind.Weapon || m.Kind == ModuleKind.Web
+                || m.Kind == ModuleKind.Disruptor) && !ValidTarget(m))
             {
                 var sel = GM.Selected;
                 bool rightKind = m.Kind == ModuleKind.Miner ? sel is AsteroidBody : sel is NpcPirate;
@@ -188,7 +188,7 @@ namespace SpaceGame
             if (sel == null) return false;
             float d = Vector3.Distance(transform.position, sel.transform.position);
             if (m.Kind == ModuleKind.Miner) return sel is AsteroidBody && d <= m.Range && GM.Locked;
-            if (m.Kind == ModuleKind.Weapon || m.Kind == ModuleKind.Web)
+            if (m.Kind == ModuleKind.Weapon || m.Kind == ModuleKind.Web || m.Kind == ModuleKind.Disruptor)
                 return sel is NpcPirate && d <= m.Range && GM.Locked;
             return true;
         }
@@ -333,6 +333,7 @@ namespace SpaceGame
                 if (m.Kind == ModuleKind.Miner) CompleteMiningCycle(m, r);
                 else if (m.Kind == ModuleKind.Weapon) CompleteWeaponCycle(m, r);
                 else if (m.Kind == ModuleKind.Web) CompleteWebCycle(m, r);
+                else if (m.Kind == ModuleKind.Disruptor) CompleteDisruptCycle(m, r);
                 else if (m.Kind == ModuleKind.ShieldBooster)
                     P.Shield = Mathf.Min(P.ComputeStats().MaxShield, P.Shield + m.BoostAmount);
 
@@ -340,7 +341,7 @@ namespace SpaceGame
                 if (r.Active)
                 {
                     if ((m.Kind == ModuleKind.Miner || m.Kind == ModuleKind.Weapon
-                        || m.Kind == ModuleKind.Web) && !ValidTarget(m))
+                        || m.Kind == ModuleKind.Web || m.Kind == ModuleKind.Disruptor) && !ValidTarget(m))
                     {
                         r.Active = false;
                         GM.Log(m.Name + " deactivated — target lost or out of range.");
@@ -425,6 +426,18 @@ namespace SpaceGame
             Sfx.Web();
         }
 
+        void CompleteDisruptCycle(ModuleDef m, RackEntry r)
+        {
+            var npc = GM.Selected as NpcPirate;
+            if (npc == null || Vector3.Distance(transform.position, npc.transform.position) > m.Range)
+            {
+                r.Active = false;
+                return;
+            }
+            npc.ApplyDisrupt(m.Cycle + 0.6f);
+            Sfx.Web();
+        }
+
         void UpdateBeam()
         {
             var sel = GM.Selected;
@@ -451,6 +464,12 @@ namespace SpaceGame
                     {
                         show = true;
                         color = new Color(0.35f, 0.95f, 0.85f);
+                        break;
+                    }
+                    if (r.Def.Kind == ModuleKind.Disruptor && sel is NpcPirate)
+                    {
+                        show = true;
+                        color = new Color(0.72f, 0.45f, 1f);
                         break;
                     }
                 }

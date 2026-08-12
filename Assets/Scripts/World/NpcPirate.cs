@@ -15,6 +15,8 @@ namespace SpaceGame
         Vector3 _vel;
         float _cycleT;
         float _webT; // stasis-webbed while > 0: half speed
+        float _disruptT; // warp-disrupted while > 0: cannot warp out
+        bool _jamLogged;
         float _lockT;      // pirates need a moment to lock you too
         float _fireFlash;  // seconds the fire beam stays visible
         bool _fleeing;
@@ -49,6 +51,10 @@ namespace SpaceGame
         public void ApplyWeb(float duration) => _webT = Mathf.Max(_webT, duration);
         public bool Webbed => _webT > 0f;
 
+        /// <summary>Warp disruptor: the target aligns out but can never jump.</summary>
+        public void ApplyDisrupt(float duration) => _disruptT = Mathf.Max(_disruptT, duration);
+        public bool Disrupted => _disruptT > 0f;
+
         float EffSpeed => Def.Speed * (_webT > 0f ? 0.5f : 1f);
 
         void Update()
@@ -57,6 +63,7 @@ namespace SpaceGame
             if (gm == null || !gm.Ready) return;
             float dt = Time.deltaTime;
             if (_webT > 0f) _webT -= dt;
+            if (_disruptT > 0f) _disruptT -= dt;
 
             Vector3 desired = Vector3.zero;
             bool playerVulnerable = !gm.Docked && !gm.Ship.InWarp;
@@ -80,7 +87,23 @@ namespace SpaceGame
                 if (_vel.sqrMagnitude > 0.01f)
                     transform.rotation = Quaternion.LookRotation(_vel.normalized, Vector3.up);
                 if (_beam.enabled) _beam.enabled = false;
-                if (_fleeT >= FleeWarpTime) gm.NpcFled(this);
+                if (_fleeT >= FleeWarpTime)
+                {
+                    if (Disrupted)
+                    {
+                        // Held at the brink of warp — drop the point and it jumps.
+                        _fleeT = FleeWarpTime;
+                        if (!_jamLogged)
+                        {
+                            _jamLogged = true;
+                            gm.Log(Def.Name + "'s warp drive is jammed — it cannot escape!");
+                        }
+                    }
+                    else
+                    {
+                        gm.NpcFled(this);
+                    }
+                }
                 return;
             }
 

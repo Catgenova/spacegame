@@ -1091,6 +1091,7 @@ namespace SpaceGame
                 if (!p.Fitting.ContainsKey(slot)) continue;
                 var arr = p.Fitting[slot];
                 string slotName = slot == SlotType.Web ? "Web"
+                    : slot == SlotType.Disruptor ? "Disruptor"
                     : slot == SlotType.High && p.Hull.TurretOnly ? "Turret" : slot.ToString();
                 for (int i = 0; i < arr.Length; i++)
                 {
@@ -1173,7 +1174,8 @@ namespace SpaceGame
                     + "  ·  " + bp.RunsLeft + " run" + (bp.RunsLeft == 1 ? "" : "s") + " left  ·  body #" + bp.Hash));
                 _stationContent.Add(WrapText(def.Class + "  ·  " + def.Role, UiSkin.TextDim));
                 _stationContent.Add(WrapText(
-                    "Turrets " + def.HighSlots + " · Webs " + def.WebSlots + " · Lows " + def.LowSlots
+                    "Turrets " + def.HighSlots + " · Webs " + def.WebSlots
+                    + (def.DisruptorSlots > 0 ? " · Disr " + def.DisruptorSlots : "") + " · Lows " + def.LowSlots
                     + " · " + Mathf.Round(def.Speed * GameData.UnitsToMs) + " m/s · Shield "
                     + def.Shield + " · Cargo " + def.Cargo + " m3", UiSkin.TextDim));
                 if (def.Features != null)
