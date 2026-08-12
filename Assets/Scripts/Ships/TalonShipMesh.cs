@@ -119,8 +119,8 @@ namespace SpaceGame
             bool belly = s == 3 || s == 4;
             int side = s <= 3 ? 0 : 1;
 
-            // Dark ring where the neck socket meets the chest.
-            if (tm < 0.03f) return 1;
+            // Dark face and beak-root wash at the front of the body.
+            if (tm < 0.08f) return 1;
 
             // Mantle stripe down the spine.
             if (deck && p == 0 && tm > 0.24f && tm < 0.74f) return 1;
@@ -202,19 +202,15 @@ namespace SpaceGame
                 for (int j = 0; j < Spans; j++)
                     micro[i, j] = panelRng.NextDouble() < 0.03;
 
-            // ---- Mk.II layout: beak / head / neck pinch / chest-to-tail ----
-            float zHF = 0.48f * L;            // head front (beak base)
-            float Lh = 0.20f * L;             // head length
-            float zHR = zHF - Lh;             // head rear
-            float zBF = zHR - 0.12f * L;      // body front, past the neck
+            // ---- Mk.III layout: one body, face at the front ----
+            float zBF = 0.40f * L;            // face front; the beak hooks on here
             float Lb = zBF + 0.5f * L;        // body runs back to -0.5L
-            float yHead = 0.45f * H;
 
-            // Raptor back-line: deep chest at 22%, shoulder hump falling to
-            // a lean, dropped tail.
-            float[] cts = { 0.00f, 0.10f, 0.22f, 0.38f, 0.55f, 0.72f, 0.88f, 1.00f };
-            float[] csc = { 0.55f, 0.85f, 1.00f, 0.93f, 0.76f, 0.56f, 0.40f, 0.28f };
-            float[] clf = { 0.14f, 0.18f, 0.16f, 0.10f, 0.03f, -0.03f, -0.08f, -0.12f };
+            // Raptor back-line: narrow face swelling to a deep chest at 25%,
+            // shoulder hump falling to a lean, dropped tail.
+            float[] cts = { 0.00f, 0.08f, 0.25f, 0.40f, 0.55f, 0.72f, 0.88f, 1.00f };
+            float[] csc = { 0.40f, 0.72f, 1.00f, 0.93f, 0.78f, 0.58f, 0.42f, 0.30f };
+            float[] clf = { 0.10f, 0.15f, 0.16f, 0.10f, 0.03f, -0.03f, -0.08f, -0.12f };
 
             System.Func<float, float> zAt = t => zBF - t * Lb;
             System.Func<int, float, float> hullY = (k, t) =>
@@ -258,114 +254,70 @@ namespace SpaceGame
                     }
             }
 
-            // chest bulkhead (front) and tail cap
-            var chestC = new Vector3(0f, CrSample(cts, clf, 0f) * H, zBF + 0.04f);
+            // Face cap converging on the beak root; tail cap astern.
+            float yFace = CrSample(cts, clf, 0f) * H + 0.06f * H;
+            var beakBase = new Vector3(0f, yFace, zBF + 0.10f);
             for (int s = 0; s < 8; s++)
                 for (int p = 0; p < 3; p++)
-                    b.TriU(chestC, b.V[stripVerts[s][0][p + 1]], b.V[stripVerts[s][0][p]], 1);
+                    b.TriU(beakBase, b.V[stripVerts[s][0][p + 1]], b.V[stripVerts[s][0][p]], 1);
             var sternC = new Vector3(0f, CrSample(cts, clf, 1f) * H, -0.5f * L - 0.05f);
             for (int s = 0; s < 8; s++)
                 for (int p = 0; p < 3; p++)
                     b.TriU(sternC, b.V[stripVerts[s][rings - 1][p]], b.V[stripVerts[s][rings - 1][p + 1]], 1);
 
-            // ---- head loft: a separate skull on the neck ----
-            const int hRings = 12;
-            float[] hts = { 0f, 0.25f, 0.5f, 0.75f, 1f };
-            float[] hsc = { 0.50f, 0.90f, 1.00f, 0.90f, 0.70f };
-            float HeadW = W * 0.42f, HeadH = H * 0.50f;
-            var headVerts = new int[8][][];
-            for (int s = 0; s < 8; s++) headVerts[s] = new int[hRings][];
-            for (int i = 0; i < hRings; i++)
+            // ---- hooked beak straight off the face ----
             {
-                float th = i / (float)(hRings - 1);
-                float sc = CrSample(hts, hsc, th);
-                float z = zHF - th * Lh;
-                for (int s = 0; s < 8; s++)
-                {
-                    headVerts[s][i] = new int[4];
-                    for (int p = 0; p < 4; p++)
-                    {
-                        int li = (StripStart[s] + p) % LoopPts;
-                        var pt = LoopPtT(li, th);
-                        headVerts[s][i][p] = b.Add(new Vector3(pt.x * HeadW * sc, pt.y * HeadH * sc + yHead, z));
-                    }
-                }
-            }
-            for (int i = 0; i < hRings - 1; i++)
-                for (int s = 0; s < 8; s++)
-                    for (int p = 0; p < 3; p++)
-                    {
-                        int mat = (s == 0 || s == 7) ? 1 : 0; // dark crown
-                        b.FaceQ(headVerts[s][i][p], headVerts[s][i + 1][p],
-                            headVerts[s][i + 1][p + 1], headVerts[s][i][p + 1], mat);
-                    }
-            var beakBase = new Vector3(0f, yHead + 0.01f, zHF + 0.03f);
-            for (int s = 0; s < 8; s++)
-                for (int p = 0; p < 3; p++)
-                    b.TriU(beakBase, b.V[headVerts[s][0][p + 1]], b.V[headVerts[s][0][p]], 1);
-            var napeC = new Vector3(0f, yHead - 0.02f, zHR - 0.03f);
-            for (int s = 0; s < 8; s++)
-                for (int p = 0; p < 3; p++)
-                    b.TriU(napeC, b.V[headVerts[s][hRings - 1][p]], b.V[headVerts[s][hRings - 1][p + 1]], 1);
-
-            // ---- hooked beak: a curved dark cone ----
-            {
-                var b0 = new Vector3(0f, yHead + 0.02f, zHF - 0.02f);
-                var b1 = new Vector3(0f, yHead + 0.00f, zHF + g.Beak * 0.45f);
-                var b2p = new Vector3(0f, yHead - 0.14f, zHF + g.Beak * 0.80f);
-                var b3 = new Vector3(0f, yHead - 0.34f, zHF + g.Beak * 0.95f);
-                Tube(b, new[] { b0, b1, b2p, b3 }, new[] { 0.20f, 0.15f, 0.085f, 0.008f }, 8, 1, true);
+                var b1 = new Vector3(0f, yFace - 0.02f, zBF + 0.10f + g.Beak * 0.45f);
+                var b2p = new Vector3(0f, yFace - 0.16f, zBF + 0.10f + g.Beak * 0.80f);
+                var b3 = new Vector3(0f, yFace - 0.36f, zBF + 0.10f + g.Beak * 0.95f);
+                Tube(b, new[] { beakBase, b1, b2p, b3 }, new[] { 0.22f, 0.16f, 0.09f, 0.008f }, 8, 1, true);
             }
 
-            // ---- eye canopies + brow wedges ----
+            // ---- eyes + brow wedges on the face flanks ----
             for (int side = -1; side <= 1; side += 2)
             {
-                Ball(b, new Vector3(side * HeadW * 0.78f, yHead + 0.08f, zHF - Lh * 0.32f), 0.10f, 3, 3, 6);
-                var a = new Vector3(side * 0.10f, yHead + HeadH * 0.55f, zHF - Lh * 0.12f);
-                var b2 = new Vector3(side * HeadW * 0.95f, yHead + 0.10f, zHF - Lh * 0.22f);
-                var c = new Vector3(side * HeadW * 0.90f, yHead + 0.12f, zHF - Lh * 0.55f);
-                var d = new Vector3(side * 0.10f, yHead + HeadH * 0.62f, zHF - Lh * 0.60f);
+                float tE = 0.05f;
+                float scE = CrSample(cts, csc, tE);
+                float liftE = CrSample(cts, clf, tE) * H;
+                var eye = new Vector3(side * W * scE * 0.72f, liftE + H * scE * 0.30f, zAt(tE));
+                Ball(b, eye, 0.11f, 3, 3, 6);
+                var a = new Vector3(side * 0.08f, hullY(0, 0.02f) + 0.02f, zAt(0.02f));
+                var b2 = new Vector3(eye.x + side * 0.10f, eye.y + 0.14f, eye.z + 0.14f);
+                var c = new Vector3(eye.x + side * 0.06f, eye.y + 0.16f, eye.z - 0.16f);
+                var d = new Vector3(side * 0.08f, hullY(0, 0.09f) + 0.03f, zAt(0.09f));
                 b.QuadUDS(a, b2, c, d, 1);
             }
 
-            // ---- small head-top canopy behind the beak ----
+            // ---- cockpit canopy on the crown, right behind the beak ----
             {
-                float zC = zHF - Lh * 0.45f;
-                float halfLen = Lh * 0.28f;
-                System.Func<float, float> deckAtHead = z =>
+                float tCan = g.CanopyStart;
+                float zC = zAt(tCan);
+                float halfLen = g.CanopyLen * L * 0.55f;
+                System.Func<float, float> deckAt = z =>
                 {
-                    float th = Mathf.Clamp01((zHF - z) / Lh);
-                    float sc = CrSample(hts, hsc, th);
-                    return HalfPtT(0, th).y * HeadH * sc + yHead;
+                    float t = Mathf.Clamp01((zBF - z) / Lb);
+                    float sc = CrSample(cts, csc, t);
+                    return HalfPtT(0, t).y * H * sc + CrSample(cts, clf, t) * H;
                 };
-                Canopy(b, zC + halfLen, zC - halfLen, 0.18f, 0.12f, deckAtHead, 3, 1, 1);
+                Canopy(b, zC + halfLen, zC - halfLen, 0.24f, 0.15f, deckAt, 3, 1, 1);
             }
 
-            // ---- nape crest: swept spikes off the back of the skull ----
+            // ---- nape crest sweeping back off the crown ----
             for (int i = 0; i < 3; i++)
             {
                 float xoff = (i - 1) * 0.09f;
                 float len = i == 1 ? 0.85f : 0.60f;
-                var basePt = new Vector3(xoff, yHead + HeadH * 0.70f, zHR + 0.12f);
+                float tN = g.CanopyStart + g.CanopyLen + 0.06f;
+                var basePt = new Vector3(xoff, hullY(0, tN) - 0.01f, zAt(tN));
                 var dir = new Vector3((i - 1) * 0.10f, 0.40f, -0.90f).normalized;
                 Tube(b, new[] { basePt, basePt + dir * (len * 0.5f), basePt + dir * len },
                     new[] { 0.05f, 0.032f, 0.005f }, 5, 1, true);
             }
 
-            // ---- neck: the visible pinch between skull and chest ----
-            {
-                var n0 = new Vector3(0f, yHead - 0.02f, zHR + 0.10f);
-                var n1 = new Vector3(0f, yHead - 0.10f, (zHR + zBF) * 0.5f);
-                var n2 = new Vector3(0f, 0.16f * H + CrSample(cts, clf, 0f) * H, zBF - 0.08f);
-                Tube(b, new[] { n0, n1, n2 }, new[] { 0.26f, 0.22f, 0.36f }, 10, 0, false);
-                Tube(b, new[] { n1 + Vector3.forward * 0.05f, n1 - Vector3.forward * 0.05f },
-                    new[] { 0.24f, 0.24f }, 10, 1, false);
-            }
-
             // ---- angular avian details on the body ----
-            // Faceted collar ring at the shoulders.
+            // Faceted collar ring marking the head/body boundary.
             {
-                float t0 = 0.04f;
+                float t0 = 0.13f;
                 float scC = CrSample(cts, csc, t0) * 1.05f;
                 float liftC = CrSample(cts, clf, t0) * H;
                 float z = zAt(t0);
