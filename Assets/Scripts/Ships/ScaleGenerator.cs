@@ -9,12 +9,14 @@ namespace SpaceGame
     /// armored serpents of the line — four batteries behind ablative hide.
     /// Class 1 "Python": 4 turrets, 3 mids, 3 lows.
     /// Class 2 "Caiman": 5 turrets, 3 mids, 4 lows — the armored jaw.
+    /// Class 3 "Cobra": 6 turrets, 4 mids, 4 lows — the hooded command
+    /// battleship at the head of the line.
     /// Streams: scaledef / scalebody / scalepanels.
     /// </summary>
     public static class ScaleGenerator
     {
         public const string TypeId = "scale";
-        public const int MaxClass = 2;
+        public const int MaxClass = 3;
 
         class ScaleClass
         {
@@ -67,6 +69,24 @@ namespace SpaceGame
                     ["tritanium"] = 11000f, ["pyerite"] = 6500f, ["mexallon"] = 2800f, ["isogen"] = 1300f,
                 },
             },
+            [3] = new ScaleClass
+            {
+                Label = "Scale-class Cobra (C3)",
+                Doctrine = "Command battleship: six batteries under the hood, and the fleet listens.",
+                Names = new[] { "Cobra", "Naja", "Uraeus", "Hamadryad", "Aspis", "Sepedon", "Ringhals", "Monocled" },
+                TurretSlots = 6, MidSlots = 4, LowSlots = 4,
+                ShieldMin = 1100, ShieldMax = 1300, ArmorMin = 900, ArmorMax = 1100,
+                HullMin = 950, HullMax = 1150,
+                SpeedMin = 1.4f, SpeedMax = 1.8f, TurnMin = 26, TurnMax = 38,
+                CapMin = 800, CapMax = 950, RegenMin = 26, RegenMax = 32,
+                CargoMin = 700, CargoMax = 900,
+                PriceMin = 6000000, PriceMax = 7200000,
+                Fee = 1500000,
+                Materials = new Dictionary<string, float>
+                {
+                    ["tritanium"] = 20000f, ["pyerite"] = 12000f, ["mexallon"] = 5200f, ["isogen"] = 2400f,
+                },
+            },
         };
 
         static readonly string[] NamePool =
@@ -104,15 +124,16 @@ namespace SpaceGame
         /// <summary>Higher classes drop from more dangerous wrecks.</summary>
         static int RollClass(string npcId)
         {
-            float c2;
+            float c3, c2;
             switch (npcId)
             {
-                case "convoyhauler": c2 = 0.25f; break;
-                case "overlord": c2 = 0.18f; break;
-                case "marauder": c2 = 0.07f; break;
-                default: c2 = 0.02f; break;
+                case "convoyhauler": c3 = 0.10f; c2 = 0.22f; break;
+                case "overlord": c3 = 0.07f; c2 = 0.16f; break;
+                case "marauder": c3 = 0.025f; c2 = 0.07f; break;
+                default: c3 = 0.006f; c2 = 0.02f; break;
             }
-            return Random.value < c2 ? 2 : 1;
+            float r2 = Random.value;
+            return r2 < c3 ? 3 : r2 < c3 + c2 ? 2 : 1;
         }
 
         public static Blueprint RollBlueprint(string npcId)
