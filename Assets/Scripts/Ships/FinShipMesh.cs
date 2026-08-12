@@ -42,8 +42,8 @@ namespace SpaceGame
             System.Func<float, float, float> R = (lo, hi) => lo + (float)rng.NextDouble() * (hi - lo);
             var g = new GenomeF1();
             g.L = R(6.8f, 7.4f);
-            g.W = R(1.35f, 1.55f);
-            g.H = R(0.55f, 0.65f);
+            g.W = R(0.95f, 1.10f);
+            g.H = R(0.80f, 0.92f);
             g.Nose = R(0.60f, 0.90f);
             g.CanopyStart = R(0.18f, 0.24f);
             g.CanopyLen = R(0.16f, 0.22f);
@@ -52,9 +52,9 @@ namespace SpaceGame
             g.DorsalCount = 2 + rng.Next(2);
             g.DorsalSize = R(0.90f, 1.20f);
             g.DorsalSweep = R(1.10f, 1.50f);
-            g.PectSpan = R(2.6f, 3.2f);
+            g.PectSpan = R(1.9f, 2.4f);
             g.PectSweep = R(1.6f, 2.2f);
-            g.TailSpan = R(1.5f, 1.9f);
+            g.TailSpan = R(1.2f, 1.5f);
             g.TailSweep = R(1.0f, 1.4f);
             g.VentSize = R(0.35f, 0.55f);
             g.EngineSegs = 4 + rng.Next(2);
@@ -112,6 +112,50 @@ namespace SpaceGame
         {
             if (li <= 12) return HalfPtF(li, t);
             var p = HalfPtF(LoopPts - li, t);
+            return new Vector2(-p.x, p.y);
+        }
+
+
+        // Deep shark sections for the C1: rounded back, full flanks, keel —
+        // taller than wide once W/H scale in. The flat F set above stays
+        // with the Manta.
+        static readonly float[,] NoseS =
+        {
+            {0.00f, 0.20f}, {0.30f, 0.18f}, {0.55f, 0.15f}, {0.75f, 0.11f},
+            {0.90f, 0.06f}, {0.98f, 0.00f}, {1.00f, -0.05f},
+            {0.85f, -0.10f}, {0.62f, -0.14f}, {0.38f, -0.17f},
+            {0.24f, -0.18f}, {0.10f, -0.19f}, {0.00f, -0.19f},
+        };
+        static readonly float[,] MidS =
+        {
+            {0.00f, 0.72f}, {0.32f, 0.68f}, {0.58f, 0.56f}, {0.78f, 0.38f},
+            {0.92f, 0.16f}, {1.00f, -0.06f}, {0.94f, -0.28f},
+            {0.80f, -0.44f}, {0.60f, -0.54f}, {0.40f, -0.60f},
+            {0.25f, -0.63f}, {0.10f, -0.65f}, {0.00f, -0.66f},
+        };
+        static readonly float[,] SternS =
+        {
+            {0.00f, 0.66f}, {0.34f, 0.62f}, {0.60f, 0.52f}, {0.80f, 0.36f},
+            {0.92f, 0.16f}, {1.00f, -0.04f}, {0.94f, -0.26f},
+            {0.80f, -0.40f}, {0.60f, -0.50f}, {0.40f, -0.56f},
+            {0.25f, -0.58f}, {0.10f, -0.60f}, {0.00f, -0.60f},
+        };
+
+        static Vector2 HalfPtS(int k, float t)
+        {
+            float wMid = Smooth01(t / 0.38f);
+            float wStern = Smooth01((t - 0.60f) / 0.40f);
+            float x = Mathf.Lerp(NoseS[k, 0], MidS[k, 0], wMid);
+            float y = Mathf.Lerp(NoseS[k, 1], MidS[k, 1], wMid);
+            x = Mathf.Lerp(x, SternS[k, 0], wStern);
+            y = Mathf.Lerp(y, SternS[k, 1], wStern);
+            return new Vector2(x, y);
+        }
+
+        static Vector2 LoopPtS(int li, float t)
+        {
+            if (li <= 12) return HalfPtS(li, t);
+            var p = HalfPtS(LoopPts - li, t);
             return new Vector2(-p.x, p.y);
         }
 
@@ -182,7 +226,7 @@ namespace SpaceGame
                     micro[i, j] = panelRng.NextDouble() < 0.03;
 
             float[] cts = { 0.00f, 0.08f, 0.20f, 0.36f, 0.55f, 0.74f, 0.90f, 1.00f };
-            float[] csc = { 0.04f, 0.20f, 0.44f, 0.72f, 1.00f, 0.90f, 0.72f, 0.58f };
+            float[] csc = { 0.04f, 0.20f, 0.44f, 0.72f, 1.00f, 0.88f, 0.66f, 0.48f };
             float[] clf = { 0.00f, 0.01f, 0.03f, 0.05f, 0.06f, 0.05f, 0.03f, 0.01f };
 
             var stripVerts = new int[8][][];
@@ -202,7 +246,7 @@ namespace SpaceGame
                     for (int p = 0; p < 4; p++)
                     {
                         int li = (StripStart[s] + p) % LoopPts;
-                        var pt = LoopPtF(li, t);
+                        var pt = LoopPtS(li, t);
                         stripVerts[s][i][p] = b.Add(new Vector3(pt.x * W * sc, pt.y * H * sc + lift, z));
                     }
                 }
@@ -239,9 +283,9 @@ namespace SpaceGame
                 {
                     float t = Mathf.Clamp01(0.5f - z / L);
                     float sc = CrSample(cts, csc, t);
-                    return HalfPtF(0, t).y * H * sc + CrSample(cts, clf, t) * H;
+                    return HalfPtS(0, t).y * H * sc + CrSample(cts, clf, t) * H;
                 };
-                Canopy(b, zC + halfLen, zC - halfLen, 0.38f, 0.16f, deckAt, 3, 1, 1);
+                Canopy(b, zC + halfLen, zC - halfLen, 0.30f, 0.20f, deckAt, 3, 1, 1);
             }
 
             // Rake of swept dorsal fins along the spine, tallest first.
@@ -251,7 +295,7 @@ namespace SpaceGame
                 float size = g.DorsalSize * (1f - f * 0.22f);
                 float scD = CrSample(cts, csc, t0);
                 float liftD = CrSample(cts, clf, t0) * H;
-                float y0 = HalfPtF(0, t0).y * H * scD + liftD;
+                float y0 = HalfPtS(0, t0).y * H * scD + liftD;
                 float zA = (0.5f - t0) * L;
                 float zB = zA - 0.85f * (1f - f * 0.15f);
                 var rootF2 = new Vector3(0f, y0 - 0.03f, zA);
@@ -301,8 +345,8 @@ namespace SpaceGame
             for (int side = -1; side <= 1; side += 2)
             {
                 float s = side;
-                var rootF2 = new Vector3(s * W * 0.22f, -0.40f * H, (0.5f - 0.66f) * L);
-                var rootB2 = new Vector3(s * W * 0.22f, -0.40f * H, (0.5f - 0.78f) * L);
+                var rootF2 = new Vector3(s * W * 0.22f, -0.36f * H, (0.5f - 0.66f) * L);
+                var rootB2 = new Vector3(s * W * 0.22f, -0.36f * H, (0.5f - 0.78f) * L);
                 var tipF2 = rootF2 + new Vector3(s * g.VentSize * 0.7f, -g.VentSize, -0.30f);
                 var tipB2 = rootB2 + new Vector3(s * g.VentSize * 0.6f, -g.VentSize * 0.85f, -0.45f);
                 var lead = new[] { rootF2, tipF2 };
@@ -338,26 +382,26 @@ namespace SpaceGame
             // Twin engine drums with white collars and blue wake discs.
             for (int side = -1; side <= 1; side += 2)
             {
-                var ec = new Vector3(side * W * 0.38f, 0f, -0.5f * L + 0.35f);
+                var ec = new Vector3(side * W * 0.45f, 0f, -0.5f * L + 0.35f);
                 int n = g.EngineSegs;
                 var path = new Vector3[n + 1];
                 var radii = new float[n + 1];
                 for (int i = 0; i <= n; i++)
                 {
                     path[i] = ec + Vector3.forward * (-i * 0.32f);
-                    radii[i] = i % 2 == 0 ? 0.38f : 0.32f;
+                    radii[i] = i % 2 == 0 ? 0.34f : 0.29f;
                 }
                 Tube(b, path, radii, 16, 1, false);
                 for (int i = 1; i < n; i += 2)
                     Tube(b, new[] { path[i] + Vector3.forward * 0.04f, path[i] - Vector3.forward * 0.04f },
-                        new[] { 0.40f, 0.40f }, 16, 0, false);
+                        new[] { 0.36f, 0.36f }, 16, 0, false);
                 var gc = path[n] + Vector3.forward * -0.03f;
                 for (int k = 0; k < 16; k++)
                 {
                     float a0 = k / 16f * Mathf.PI * 2f, a1 = (k + 1) / 16f * Mathf.PI * 2f;
                     b.TriUDS(gc,
-                        gc + new Vector3(Mathf.Cos(a0) * 0.24f, Mathf.Sin(a0) * 0.24f, 0f),
-                        gc + new Vector3(Mathf.Cos(a1) * 0.24f, Mathf.Sin(a1) * 0.24f, 0f), 2);
+                        gc + new Vector3(Mathf.Cos(a0) * 0.21f, Mathf.Sin(a0) * 0.21f, 0f),
+                        gc + new Vector3(Mathf.Cos(a1) * 0.21f, Mathf.Sin(a1) * 0.21f, 0f), 2);
                 }
             }
 
