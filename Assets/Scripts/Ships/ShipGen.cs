@@ -4,14 +4,16 @@ using UnityEngine;
 namespace SpaceGame
 {
     /// <summary>
-    /// Routes generated-ship calls to the right line (Hive, Fin) so the
-    /// rest of the game never cares which type a blueprint or hull id is.
+    /// Routes generated-ship calls to the right line (Hive, Fin, Claw,
+    /// Talon, Scale) so the rest of the game never cares which type a
+    /// blueprint or hull id is.
     /// </summary>
     public static class ShipGen
     {
         public static bool IsGeneratedId(string id)
             => HiveGenerator.IsHiveId(id) || FinGenerator.IsFinId(id)
-               || ClawGenerator.IsClawId(id) || TalonGenerator.IsTalonId(id);
+               || ClawGenerator.IsClawId(id) || TalonGenerator.IsTalonId(id)
+               || ScaleGenerator.IsScaleId(id);
 
         public static ShipDef ResolveGenerated(string id)
         {
@@ -23,6 +25,8 @@ namespace SpaceGame
                 return ClawGenerator.Def(ClawGenerator.HashFromId(id), ClawGenerator.ClassFromId(id));
             if (TalonGenerator.IsTalonId(id))
                 return TalonGenerator.Def(TalonGenerator.HashFromId(id), TalonGenerator.ClassFromId(id));
+            if (ScaleGenerator.IsScaleId(id))
+                return ScaleGenerator.Def(ScaleGenerator.HashFromId(id), ScaleGenerator.ClassFromId(id));
             return null;
         }
 
@@ -30,35 +34,41 @@ namespace SpaceGame
             => bp.TypeId == FinGenerator.TypeId ? FinGenerator.Def(bp.Hash, bp.Class)
              : bp.TypeId == ClawGenerator.TypeId ? ClawGenerator.Def(bp.Hash, bp.Class)
              : bp.TypeId == TalonGenerator.TypeId ? TalonGenerator.Def(bp.Hash, bp.Class)
+             : bp.TypeId == ScaleGenerator.TypeId ? ScaleGenerator.Def(bp.Hash, bp.Class)
              : HiveGenerator.Def(bp.Hash, bp.Class);
 
         public static Dictionary<string, float> MaterialCost(Blueprint bp)
             => bp.TypeId == FinGenerator.TypeId ? FinGenerator.MaterialCost(bp.Class)
              : bp.TypeId == ClawGenerator.TypeId ? ClawGenerator.MaterialCost(bp.Class)
              : bp.TypeId == TalonGenerator.TypeId ? TalonGenerator.MaterialCost(bp.Class)
+             : bp.TypeId == ScaleGenerator.TypeId ? ScaleGenerator.MaterialCost(bp.Class)
              : HiveGenerator.MaterialCost(bp.Class);
 
         public static long Fee(Blueprint bp)
             => bp.TypeId == FinGenerator.TypeId ? FinGenerator.Fee(bp.Class)
              : bp.TypeId == ClawGenerator.TypeId ? ClawGenerator.Fee(bp.Class)
              : bp.TypeId == TalonGenerator.TypeId ? TalonGenerator.Fee(bp.Class)
+             : bp.TypeId == ScaleGenerator.TypeId ? ScaleGenerator.Fee(bp.Class)
              : HiveGenerator.Fee(bp.Class);
 
         /// <summary>Wreck loot: Fins drop often, Claws feed industry, Talons
-        /// command the flock, Hives carry the exotics.</summary>
+        /// command the flock, Scales anchor the line, Hives carry the
+        /// exotics.</summary>
         public static Blueprint RollBlueprint(string npcId)
         {
             float r = Random.value;
-            if (r < 0.32f) return FinGenerator.RollBlueprint(npcId);
-            if (r < 0.52f) return ClawGenerator.RollBlueprint(npcId);
-            if (r < 0.70f) return TalonGenerator.RollBlueprint(npcId);
+            if (r < 0.30f) return FinGenerator.RollBlueprint(npcId);
+            if (r < 0.49f) return ClawGenerator.RollBlueprint(npcId);
+            if (r < 0.66f) return TalonGenerator.RollBlueprint(npcId);
+            if (r < 0.72f) return ScaleGenerator.RollBlueprint(npcId);
             return HiveGenerator.RollBlueprint(npcId);
         }
 
         static string TypeName(Blueprint bp)
             => bp.TypeId == FinGenerator.TypeId ? "Fin"
              : bp.TypeId == ClawGenerator.TypeId ? "Claw"
-             : bp.TypeId == TalonGenerator.TypeId ? "Talon" : "Hive";
+             : bp.TypeId == TalonGenerator.TypeId ? "Talon"
+             : bp.TypeId == ScaleGenerator.TypeId ? "Scale" : "Hive";
 
         public static string DescribeBlueprint(Blueprint bp)
         {
@@ -76,6 +86,8 @@ namespace SpaceGame
                 return ClawShipMesh.Build(ClawGenerator.HashFromId(hullId), ClawGenerator.ClassFromId(hullId), shipRoot);
             if (TalonGenerator.IsTalonId(hullId))
                 return TalonShipMesh.Build(TalonGenerator.HashFromId(hullId), TalonGenerator.ClassFromId(hullId), shipRoot);
+            if (ScaleGenerator.IsScaleId(hullId))
+                return ScaleShipMesh.Build(ScaleGenerator.HashFromId(hullId), ScaleGenerator.ClassFromId(hullId), shipRoot);
             return HiveShipMesh.Build(HiveGenerator.HashFromId(hullId), HiveGenerator.ClassFromId(hullId), shipRoot);
         }
     }
