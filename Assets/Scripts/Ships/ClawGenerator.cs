@@ -9,12 +9,13 @@ namespace SpaceGame
     /// at 0 km, so the doctrine is: sprint to the rock, latch on, strip it.
     /// Class 1 "Urchin": 1 claw hardpoint, 1 mid, 2 lows. Small and fast.
     /// Class 2 "Lobster": 2 claw hardpoints, 1 mid, 3 lows. The ore barge.
+    /// Class 3 "Horseshoe": 2 claws, 2 mids, 5 lows. The armored surveyor.
     /// Streams: clawdef / clawbody / clawpanels.
     /// </summary>
     public static class ClawGenerator
     {
         public const string TypeId = "claw";
-        public const int MaxClass = 2;
+        public const int MaxClass = 3;
 
         class ClawClass
         {
@@ -65,6 +66,23 @@ namespace SpaceGame
                     ["tritanium"] = 780f, ["pyerite"] = 420f, ["mexallon"] = 160f, ["isogen"] = 65f,
                 },
             },
+            [3] = new ClawClass
+            {
+                Label = "Claw-class Horseshoe (C3)",
+                Doctrine = "Armored surveyor: a rolling refinery shell that empties belts and shrugs off ambushes.",
+                ClawSlots = 2, MidSlots = 2, LowSlots = 5,
+                ShieldMin = 220, ShieldMax = 270, ArmorMin = 220, ArmorMax = 280,
+                HullMin = 230, HullMax = 290,
+                SpeedMin = 2.8f, SpeedMax = 3.4f, TurnMin = 70, TurnMax = 90,
+                CapMin = 180, CapMax = 230, RegenMin = 12, RegenMax = 15,
+                CargoMin = 800, CargoMax = 1000,
+                PriceMin = 380000, PriceMax = 460000,
+                Fee = 90000,
+                Materials = new Dictionary<string, float>
+                {
+                    ["tritanium"] = 1600f, ["pyerite"] = 900f, ["mexallon"] = 360f, ["isogen"] = 160f,
+                },
+            },
         };
 
         static readonly string[] NamePool =
@@ -99,23 +117,26 @@ namespace SpaceGame
 
         // ---------- blueprints ----------
 
-        /// <summary>Class-2 chance scales with wreck tier, like the other lines.</summary>
-        static float C2Chance(string npcId)
+        /// <summary>Higher classes drop from more dangerous wrecks.</summary>
+        static int RollClass(string npcId)
         {
+            float c3, c2;
             switch (npcId)
             {
-                case "convoyhauler": return 0.35f;
-                case "overlord": return 0.22f;
-                case "marauder": return 0.10f;
-                default: return 0.03f;
+                case "convoyhauler": c3 = 0.10f; c2 = 0.30f; break;
+                case "overlord": c3 = 0.07f; c2 = 0.20f; break;
+                case "marauder": c3 = 0.025f; c2 = 0.09f; break;
+                default: c3 = 0.006f; c2 = 0.025f; break;
             }
+            float r2 = Random.value;
+            return r2 < c3 ? 3 : r2 < c3 + c2 ? 2 : 1;
         }
 
         public static Blueprint RollBlueprint(string npcId)
         {
             float r = Random.value;
             int rarity = r < 0.6f ? 0 : r < 0.85f ? 1 : r < 0.97f ? 2 : 3;
-            int cls = Random.value < C2Chance(npcId) ? 2 : 1;
+            int cls = RollClass(npcId);
             return new Blueprint
             {
                 Hash = HiveGenerator.NewHash(),
