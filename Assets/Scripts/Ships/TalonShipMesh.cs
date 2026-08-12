@@ -155,7 +155,9 @@ namespace SpaceGame
             return 0;
         }
 
-        // One thin feather blade lofted between two straight chains.
+        // One thin feather blade lofted between two straight chains, with a
+        // raised rachis shaft down the centerline, a dark tip, and barb
+        // vanes off the trailing edge.
         static void Feather(Builder b, Vector3 rootF, Vector3 rootB, Vector3 tipF, Vector3 tipB, bool flip)
         {
             var lead = new[] { rootF, tipF };
@@ -163,6 +165,27 @@ namespace SpaceGame
             var ts = new[] { 0f, 1f };
             LoftWing(b, lead, ts, trail, ts, 0.055f, 0.012f, 6, flip, 0);
             WingPlate(b, lead, ts, trail, ts, 0.055f, 0.012f, 0.55f, 0.80f, 1);
+            WingPlate(b, lead, ts, trail, ts, 0.055f, 0.012f, 0.84f, 0.97f, 1);
+            for (int seg = 0; seg < 4; seg++)
+            {
+                float u0 = 0.06f + seg * 0.22f;
+                float u1 = u0 + 0.22f;
+                var a = WingSurfPt(lead, ts, trail, ts, 0.055f, 0.012f, u0, 0.42f, 0.018f);
+                var b2 = WingSurfPt(lead, ts, trail, ts, 0.055f, 0.012f, u0, 0.52f, 0.018f);
+                var c = WingSurfPt(lead, ts, trail, ts, 0.055f, 0.012f, u1, 0.52f, 0.018f);
+                var d = WingSurfPt(lead, ts, trail, ts, 0.055f, 0.012f, u1, 0.42f, 0.018f);
+                b.QuadUDS(a, b2, c, d, 1);
+            }
+            for (int i = 0; i < 3; i++)
+            {
+                float u0 = 0.28f + i * 0.24f;
+                var e0 = Vector3.Lerp(rootB, tipB, u0);
+                var e1 = Vector3.Lerp(rootB, tipB, u0 + 0.10f);
+                var backDir = (Vector3.Lerp(rootB, tipB, u0 + 0.05f)
+                    - Vector3.Lerp(rootF, tipF, u0 + 0.05f)).normalized;
+                var apex = (e0 + e1) * 0.5f + backDir * 0.16f;
+                b.TriUDS(e0, e1, apex, 0);
+            }
         }
 
         static GameObject BuildC1(string hash, Transform shipRoot)
@@ -241,6 +264,88 @@ namespace SpaceGame
                     return HalfPtT(0, t).y * H * sc + CrSample(cts, clf, t) * H;
                 };
                 Canopy(b, zC + halfLen, zC - halfLen, 0.28f, 0.18f, deckAt, 3, 1, 1);
+            }
+
+            // ---- angular avian details ----
+            System.Func<int, float, float> hullY = (k, t) =>
+            {
+                float sc2 = CrSample(cts, csc, t);
+                return HalfPtT(k, t).y * H * sc2 + CrSample(cts, clf, t) * H;
+            };
+            System.Func<float, float> zAt = t => (0.5f - t) * L;
+
+            // Brow crest: faceted wedges hooding the canopy like a raptor's
+            // scowl.
+            for (int side = -1; side <= 1; side += 2)
+            {
+                float t0 = g.CanopyStart - 0.02f;
+                float t1 = g.CanopyStart + g.CanopyLen + 0.04f;
+                var a = new Vector3(side * 0.08f, hullY(0, t0) + 0.03f, zAt(t0));
+                var b2 = new Vector3(side * 0.30f, hullY(0, t0) - 0.06f, zAt(t0) - 0.10f);
+                var c = new Vector3(side * 0.34f, hullY(0, t1) - 0.02f, zAt(t1));
+                var d = new Vector3(side * 0.08f, hullY(0, t1) + 0.09f, zAt(t1) - 0.06f);
+                b.QuadUDS(a, b2, c, d, 1);
+            }
+
+            // Neck collar: a faceted ring of plates where head meets body.
+            {
+                float t0 = 0.20f;
+                float scC = CrSample(cts, csc, t0) * 1.05f;
+                float liftC = CrSample(cts, clf, t0) * H;
+                float z = zAt(t0);
+                for (int k = 0; k < 8; k++)
+                {
+                    int li0 = (k * 3) % LoopPts;
+                    int li1 = (k * 3 + 3) % LoopPts;
+                    var p0 = LoopPtT(li0, t0);
+                    var p1 = LoopPtT(li1, t0);
+                    var a = new Vector3(p0.x * W * scC, p0.y * H * scC + liftC, z + 0.10f);
+                    var b2 = new Vector3(p1.x * W * scC, p1.y * H * scC + liftC, z + 0.10f);
+                    var c = new Vector3(p1.x * W * scC, p1.y * H * scC + liftC, z - 0.10f);
+                    var d = new Vector3(p0.x * W * scC, p0.y * H * scC + liftC, z - 0.10f);
+                    b.QuadUDS(a, b2, c, d, k % 2 == 0 ? 1 : 0);
+                }
+            }
+
+            // Mantle chevrons over the wing shoulders.
+            for (int side = -1; side <= 1; side += 2)
+            {
+                for (int m2 = 0; m2 < 3; m2++)
+                {
+                    float t0 = 0.28f + m2 * 0.08f;
+                    float scM = CrSample(cts, csc, t0);
+                    float liftM = CrSample(cts, clf, t0) * H;
+                    var basePt = new Vector3(side * W * scM * 0.52f, H * scM * 0.40f + liftM, zAt(t0));
+                    var a = basePt + new Vector3(-side * 0.04f, 0.08f, 0.10f);
+                    var b2 = basePt + new Vector3(side * 0.24f, -0.04f, 0.02f);
+                    var c = basePt + new Vector3(side * 0.20f, -0.08f, -0.26f);
+                    var d = basePt + new Vector3(-side * 0.06f, 0.05f, -0.30f);
+                    b.QuadUDS(a, b2, c, d, m2 % 2 == 0 ? 1 : 0);
+                }
+            }
+
+            // Breast keel: an angular blade under the forward belly.
+            {
+                var kA = new Vector3(0f, hullY(12, 0.26f) + 0.02f, zAt(0.26f));
+                var kB = new Vector3(0f, hullY(12, 0.38f) - 0.32f, zAt(0.38f));
+                var kC = new Vector3(0f, hullY(12, 0.52f) + 0.02f, zAt(0.52f));
+                var xoff = new Vector3(0.035f, 0f, 0f);
+                b.TriUDS(kA + xoff, kB + xoff, kC + xoff, 0);
+                b.TriUDS(kA - xoff, kB - xoff, kC - xoff, 0);
+                b.QuadUDS(kA + xoff, kA - xoff, kB - xoff, kB + xoff, 1);
+                b.QuadUDS(kB + xoff, kB - xoff, kC - xoff, kC + xoff, 1);
+            }
+
+            // Dorsal ridge: a row of small angular plates down the spine.
+            for (int r2 = 0; r2 < 4; r2++)
+            {
+                float t0 = 0.46f + r2 * 0.09f;
+                float z = zAt(t0);
+                float y0 = hullY(0, t0);
+                var a = new Vector3(0f, y0 + 0.01f, z + 0.10f);
+                var apex = new Vector3(0f, y0 + 0.14f, z - 0.02f);
+                var c = new Vector3(0f, y0 + 0.01f, z - 0.14f);
+                b.TriUDS(a, apex, c, r2 % 2 == 0 ? 1 : 0);
             }
 
             // Layered feather wings: three primaries over two coverts.
