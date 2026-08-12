@@ -39,15 +39,12 @@ namespace SpaceGame
             cam.nearClipPlane = 1f;
             if (cam.GetComponent<CameraRig>() == null) cam.gameObject.AddComponent<CameraRig>();
 
-            // Player ship: an empty root with a capsule visual pointing forward.
+            // Background starfield (pinned to the camera — a cheap skybox).
+            ShipVisuals.BuildStarfield();
+
+            // Player ship: an empty root; the per-hull visual is built by
+            // ShipController.RebuildVisual once the player state is loaded.
             var shipGo = new GameObject("PlayerShip");
-            var visual = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-            Object.Destroy(visual.GetComponent<Collider>());
-            visual.name = "Hull";
-            visual.transform.SetParent(shipGo.transform, false);
-            visual.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
-            visual.transform.localScale = new Vector3(1.6f, 3f, 1.6f);
-            visual.GetComponent<Renderer>().material = SystemView.Mat(new Color(0.4f, 0.7f, 1f));
             var ship = shipGo.AddComponent<ShipController>();
 
             // Game root.

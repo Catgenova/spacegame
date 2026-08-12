@@ -15,10 +15,22 @@ namespace SpaceGame
         const float MinDist = 10f;
         const float MaxDist = 4000f;
 
+        Camera _cam;
+
+        void Awake()
+        {
+            _cam = GetComponent<Camera>();
+        }
+
         void LateUpdate()
         {
             var gm = GameManager.I;
             if (gm == null || !gm.Ready || gm.Ship == null) return;
+
+            // FOV kick while warping.
+            if (_cam != null)
+                _cam.fieldOfView = Mathf.Lerp(_cam.fieldOfView, gm.Ship.InWarp ? 78f : 60f,
+                    Time.deltaTime * 2.5f);
 
             if (Input.GetMouseButton(1))
             {

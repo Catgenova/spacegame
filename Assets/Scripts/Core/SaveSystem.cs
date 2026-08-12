@@ -18,7 +18,7 @@ namespace SpaceGame
         [System.Serializable]
         class SaveData
         {
-            public int V = 1;
+            public int V = 2;
             public long Credits;
             public string ActiveSkill;
             public List<SkillSave> Skills = new List<SkillSave>();
@@ -31,6 +31,20 @@ namespace SpaceGame
             public List<FitSave> Fitting = new List<FitSave>();
             public float Shield, Armor, HullHp, Cap;
             public Vector3 Pos;
+
+            // v2: missions
+            public int MissionCounter;
+            public float ExtraCargo;
+            public string MsnType = "";
+            public string MsnTitle, MsnDesc;
+            public string MsnOriginStation, MsnOriginSystem;
+            public string MsnTargetSystem;
+            public int MsnKillsRequired, MsnKillsDone;
+            public string MsnOre;
+            public float MsnOreAmount;
+            public string MsnDestStation, MsnDestSystem;
+            public float MsnPackageM3;
+            public long MsnReward;
         }
 
         public static void Save(GameManager gm)
@@ -46,7 +60,27 @@ namespace SpaceGame
                 HullId = p.HullId,
                 Shield = p.Shield, Armor = p.Armor, HullHp = p.HullHp, Cap = p.Cap,
                 Pos = gm.Ship != null ? gm.Ship.transform.position : Vector3.zero,
+                MissionCounter = gm.MissionCounter,
+                ExtraCargo = p.ExtraCargo,
             };
+            var m = gm.ActiveMission;
+            if (m != null)
+            {
+                d.MsnType = m.Type;
+                d.MsnTitle = m.Title;
+                d.MsnDesc = m.Desc;
+                d.MsnOriginStation = m.OriginStationId;
+                d.MsnOriginSystem = m.OriginSystemId;
+                d.MsnTargetSystem = m.TargetSystemId;
+                d.MsnKillsRequired = m.KillsRequired;
+                d.MsnKillsDone = m.KillsDone;
+                d.MsnOre = m.OreId;
+                d.MsnOreAmount = m.OreAmount;
+                d.MsnDestStation = m.DestStationId;
+                d.MsnDestSystem = m.DestSystemId;
+                d.MsnPackageM3 = m.PackageM3;
+                d.MsnReward = m.Reward;
+            }
             foreach (var kv in p.Skills)
                 d.Skills.Add(new SkillSave { Id = kv.Key, Level = kv.Value.Level, Xp = kv.Value.Xp });
             d.Hangar.AddRange(p.Hangar);
@@ -69,7 +103,7 @@ namespace SpaceGame
             try
             {
                 var d = JsonUtility.FromJson<SaveData>(PlayerPrefs.GetString(Key));
-                if (d == null || d.V != 1) return false;
+                if (d == null || d.V < 1 || d.V > 2) return false;
                 if (!GameData.Ships.ContainsKey(d.HullId)) return false;
                 if (!gm.Universe.Systems.ContainsKey(d.SystemId)) return false;
 
@@ -97,10 +131,32 @@ namespace SpaceGame
                 p.HullHp = Mathf.Clamp(d.HullHp, 1f, st.MaxHull);
                 p.Cap = Mathf.Clamp(d.Cap, 0f, st.MaxCap);
 
+                p.ExtraCargo = d.ExtraCargo;
                 gm.Player = p;
                 gm.SystemId = d.SystemId;
                 gm.Docked = d.Docked;
                 gm.StationId = d.StationId;
+                gm.MissionCounter = d.MissionCounter;
+                if (!string.IsNullOrEmpty(d.MsnType))
+                {
+                    gm.ActiveMission = new Mission
+                    {
+                        Type = d.MsnType,
+                        Title = d.MsnTitle,
+                        Desc = d.MsnDesc,
+                        OriginStationId = d.MsnOriginStation,
+                        OriginSystemId = d.MsnOriginSystem,
+                        TargetSystemId = d.MsnTargetSystem,
+                        KillsRequired = d.MsnKillsRequired,
+                        KillsDone = d.MsnKillsDone,
+                        OreId = d.MsnOre,
+                        OreAmount = d.MsnOreAmount,
+                        DestStationId = d.MsnDestStation,
+                        DestSystemId = d.MsnDestSystem,
+                        PackageM3 = d.MsnPackageM3,
+                        Reward = d.MsnReward,
+                    };
+                }
                 if (!d.Docked && gm.Ship != null) gm.Ship.transform.position = d.Pos;
                 gm.Log("Save loaded. Welcome back, capsuleer.");
                 return true;

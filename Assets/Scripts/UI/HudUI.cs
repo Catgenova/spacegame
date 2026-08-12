@@ -72,6 +72,7 @@ namespace SpaceGame
                 DrawModRack();
                 DrawOverview();
                 DrawTargetPanel();
+                DrawMissionTracker();
                 if (GM.Ship.InWarp) DrawCenterText("— WARP DRIVE ACTIVE —");
             }
 
@@ -236,7 +237,18 @@ namespace SpaceGame
             GUI.contentColor = KindColor(sel.Kind);
             GUI.Label(new Rect(r.x + 8, r.y + 5, r.width - 16, 18), sel.DisplayName, _titleStyle);
             GUI.contentColor = Color.white;
-            GUI.Label(new Rect(r.x + 8, r.y + 24, r.width - 16, 14), GameData.FmtDist(GM.DistTo(sel)), _smallStyle);
+            // Lock status for lockable targets.
+            string lockText = "";
+            if (sel is NpcPirate || sel is AsteroidBody)
+            {
+                if (GM.Locked) lockText = "  [LOCKED]";
+                else if (GM.DistTo(sel) > GameManager.LockRange) lockText = "  [OUT OF LOCK RANGE]";
+                else lockText = "  [LOCKING " + Mathf.RoundToInt(GM.LockProgress * 100f) + "%]";
+            }
+            GUI.contentColor = GM.Locked ? new Color(0.5f, 1f, 0.65f) : new Color(1f, 0.85f, 0.5f);
+            GUI.Label(new Rect(r.x + 8, r.y + 24, r.width - 16, 14),
+                GameData.FmtDist(GM.DistTo(sel)) + lockText, _smallStyle);
+            GUI.contentColor = Color.white;
 
             float y = r.y + 40;
             if (sel is NpcPirate npc)
@@ -302,7 +314,7 @@ namespace SpaceGame
 
             GUI.Label(new Rect(r.x + 12, r.y + 8, w - 24, 20), GM.Station.Name.ToUpper(), _titleStyle);
 
-            string[] tabs = { "Market", "Fitting", "Ships", "Repair" };
+            string[] tabs = { "Market", "Fitting", "Ships", "Repair", "Agent" };
             for (int i = 0; i < tabs.Length; i++)
             {
                 GUI.backgroundColor = _stationTab == i ? new Color(0.5f, 0.75f, 1f) : Color.white;
@@ -328,6 +340,7 @@ namespace SpaceGame
                 case 1: DrawFittingTab(); break;
                 case 2: DrawShipsTab(); break;
                 case 3: DrawRepairTab(); break;
+                case 4: DrawAgentTab(); break;
             }
             GUILayout.EndScrollView();
             GUILayout.EndArea();
@@ -451,6 +464,86 @@ namespace SpaceGame
                 GUI.enabled = GM.Player.Credits >= cost;
                 if (GUILayout.Button("Repair", GUILayout.Width(120))) GM.Repair();
                 GUI.enabled = true;
+            }
+        }
+
+        string MissionProgress(Mission m)
+        {
+            switch (m.Type)
+            {
+                case "bounty":
+                    return m.KillsDone + "/" + m.KillsRequired + " pirates in "
+                        + GM.Universe.Systems[m.TargetSystemId].Name
+                        + (m.KillsDone >= m.KillsRequired
+                            ? " — return to " + GM.StationName(m.OriginSystemId, m.OriginStationId)
+                            : "");
+                case "mining":
+                {
+                    GM.Player.Cargo.TryGetValue(m.OreId, out float have);
+                    return Mathf.Round(Mathf.Min(have, m.OreAmount)) + "/" + m.OreAmount + " m3 "
+                        + GameData.Ores[m.OreId].Name + " — deliver to "
+                        + GM.StationName(m.OriginSystemId, m.OriginStationId);
+                }
+                case "courier":
+                    return "Deliver package to " + GM.StationName(m.DestSystemId, m.DestStationId)
+                        + " in " + GM.Universe.Systems[m.DestSystemId].Name;
+                default:
+                    return "";
+            }
+        }
+
+        void DrawMissionTracker()
+        {
+            var m = GM.ActiveMission;
+            if (m == null) return;
+            var r = new Rect(Screen.width / 2f - 260, 32, 520, 38);
+            Panel(r);
+            GUI.contentColor = new Color(1f, 0.85f, 0.5f);
+            GUI.Label(new Rect(r.x + 8, r.y + 3, r.width - 16, 16), "MISSION: " + m.Title, _smallStyle);
+            GUI.contentColor = Color.white;
+            GUI.Label(new Rect(r.x + 8, r.y + 19, r.width - 16, 16), MissionProgress(m), _smallStyle);
+        }
+
+        void DrawAgentTab()
+        {
+            var m = GM.ActiveMission;
+            if (m != null)
+            {
+                GUILayout.Label("— ACTIVE MISSION —", _smallStyle);
+                GUILayout.Label(m.Title);
+                GUILayout.Label(m.Desc, _smallStyle);
+                GUILayout.Label("Progress: " + MissionProgress(m), _smallStyle);
+                GUILayout.Label("Reward: " + GameData.FmtCredits(m.Reward));
+                GUILayout.Space(8);
+                GUILayout.BeginHorizontal();
+                if (GM.CanTurnInMission())
+                {
+                    GUI.backgroundColor = new Color(0.45f, 1f, 0.6f);
+                    if (GUILayout.Button("Complete Mission", GUILayout.Width(150))) GM.TurnInMission();
+                    GUI.backgroundColor = Color.white;
+                }
+                if (GUILayout.Button("Abandon", GUILayout.Width(90))) GM.AbandonMission();
+                GUILayout.EndHorizontal();
+                return;
+            }
+
+            GUILayout.Label("— AVAILABLE CONTRACTS —", _smallStyle);
+            GUILayout.Label("One active mission at a time. New offers appear after each accept or turn-in.", _smallStyle);
+            GUILayout.Space(6);
+            foreach (var offer in GM.StationOffers())
+            {
+                GUILayout.BeginHorizontal();
+                GUILayout.Label(offer.Title, GUILayout.Width(330));
+                GUILayout.Label(GameData.FmtCredits(offer.Reward), GUILayout.Width(120));
+                if (GUILayout.Button("Accept", GUILayout.Width(80)))
+                {
+                    GM.AcceptMission(offer);
+                    GUILayout.EndHorizontal();
+                    break;
+                }
+                GUILayout.EndHorizontal();
+                GUILayout.Label("    " + offer.Desc, _smallStyle);
+                GUILayout.Space(6);
             }
         }
 

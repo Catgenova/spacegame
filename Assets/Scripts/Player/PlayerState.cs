@@ -30,6 +30,7 @@ namespace SpaceGame
         public readonly Dictionary<string, float> Cargo = new Dictionary<string, float>();
         public readonly Dictionary<SlotType, string[]> Fitting = new Dictionary<SlotType, string[]>();
         public float Shield, Armor, HullHp, Cap;
+        public float ExtraCargo; // e.g. a courier mission package occupying the hold
 
         public ShipDef Hull => GameData.Ships[HullId];
 
@@ -85,7 +86,7 @@ namespace SpaceGame
 
         public float CargoUsed()
         {
-            float sum = 0f;
+            float sum = ExtraCargo;
             foreach (var v in Cargo.Values) sum += v;
             return sum;
         }

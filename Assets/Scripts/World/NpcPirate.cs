@@ -13,8 +13,12 @@ namespace SpaceGame
 
         Vector3 _vel;
         float _cycleT;
+        float _lockT;      // pirates need a moment to lock you too
+        float _fireFlash;  // seconds the fire beam stays visible
+        LineRenderer _beam;
 
-        const float Inertia = 1.4f; // seconds to converge on desired velocity
+        const float Inertia = 1.4f;   // seconds to converge on desired velocity
+        const float LockDelay = 1.5f; // seconds before a pirate can open fire
 
         public void Init(NpcDef def)
         {
@@ -24,6 +28,15 @@ namespace SpaceGame
             Hull = def.Hull;
             Kind = ObjKind.Npc;
             DisplayName = def.Name;
+
+            var beamGo = new GameObject("Beam");
+            beamGo.transform.SetParent(transform, false);
+            _beam = beamGo.AddComponent<LineRenderer>();
+            _beam.positionCount = 2;
+            _beam.startWidth = 0.6f;
+            _beam.endWidth = 0.3f;
+            _beam.material = SystemView.Mat(new Color(1f, 0.35f, 0.25f), true);
+            _beam.enabled = false;
         }
 
         void Update()
@@ -52,16 +65,34 @@ namespace SpaceGame
                     desired = (tangent + radial * -radialErr).normalized * Def.Speed;
                 }
 
+                _lockT += dt;
                 _cycleT += dt;
-                if (d <= Def.Range && _cycleT >= Def.Cycle)
+                if (d <= Def.Range && _lockT >= LockDelay && _cycleT >= Def.Cycle)
                 {
                     _cycleT = 0f;
+                    _fireFlash = 0.28f;
                     gm.DamagePlayer(Def.Dmg, this);
                 }
             }
             else
             {
                 _cycleT = 0f;
+                _lockT = 0f;
+            }
+
+            if (_fireFlash > 0f)
+            {
+                _fireFlash -= dt;
+                _beam.enabled = _fireFlash > 0f;
+                if (_beam.enabled)
+                {
+                    _beam.SetPosition(0, transform.position);
+                    _beam.SetPosition(1, gm.Ship.transform.position);
+                }
+            }
+            else if (_beam.enabled)
+            {
+                _beam.enabled = false;
             }
 
             float k = Mathf.Min(1f, dt / Inertia);

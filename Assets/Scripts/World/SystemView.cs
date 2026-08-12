@@ -129,13 +129,13 @@ namespace SpaceGame
         public NpcPirate SpawnNpc(string typeId, Vector3 pos)
         {
             var def = GameData.Npcs[typeId];
-            var go = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-            go.name = def.Name;
+            var go = new GameObject(def.Name);
             go.transform.SetParent(_root, false);
             go.transform.position = pos;
-            go.transform.localScale = new Vector3(2.5f, 4f, 2.5f);
-            go.transform.rotation = Quaternion.Euler(90f, Random.Range(0f, 360f), 0f);
-            go.GetComponent<Renderer>().material = Mat(new Color(0.85f, 0.25f, 0.25f));
+            go.transform.rotation = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
+            ShipVisuals.BuildNpcVisual(def, go.transform);
+            var col = go.AddComponent<SphereCollider>();
+            col.radius = def.Id == "overlord" ? 8f : 5f;
             var npc = go.AddComponent<NpcPirate>();
             npc.Id = "npc_" + go.GetInstanceID();
             npc.Init(def);

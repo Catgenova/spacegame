@@ -39,6 +39,11 @@ Use the **Overview** (right panel) to select things, then **Approach / Orbit /
 Warp** from the target panel. Warp to an asteroid belt, select a rock, activate
 your miner, fill your hold, warp back, **Dock**, and sell on the Market tab.
 
+Selecting an asteroid or a pirate starts a **target lock** (EVE-style) — the
+target panel shows lock progress, and mining lasers / weapons only fire on a
+locked target within lock range (60 km). Pirates need a moment to lock you
+too, so an early warp-out beats their first volley.
+
 ### The loop
 
 - **Mine** ore in asteroid belts; richer, rarer ore lives in low-sec systems.
@@ -52,6 +57,9 @@ your miner, fill your hold, warp back, **Dock**, and sell on the Market tab.
   Mule (hauler) → Aurora (cruiser).
 - **Train skills** passively (Mining, Gunnery, Engineering, Navigation,
   Trade) — pick one in the `K` menu; it trains in real time.
+- **Run missions** from the station **Agent** tab: bounty hunts, ore
+  requisitions, and courier runs (the package really occupies your hold).
+  One active mission at a time; turn in at the agent for the reward.
 
 Dying costs you your ship and cargo; you respawn docked at Solara Prime in a
 loaner Wasp. Progress autosaves (PlayerPrefs) every 20 seconds and on every
@@ -73,8 +81,10 @@ Assets/Scripts/
   Data/       GameData (all static defs, code-defined), Rng
   Universe/   UniverseGenerator + system/celestial/asteroid data
   Economy/    Market (deterministic per-station prices)
+  Missions/   Mission generation (bounty / mining / courier) per station agent
   Player/     PlayerState (credits/skills/fitting/cargo), ShipController
-  World/      SystemView (spawns the scene), SpaceObject, NpcPirate
+  World/      SystemView (spawns the scene), SpaceObject, NpcPirate,
+              ShipVisuals (code-built hull/NPC models + starfield)
   UI/         HudUI (IMGUI prototype interface)
 ```
 

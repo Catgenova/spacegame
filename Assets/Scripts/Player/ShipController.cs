@@ -39,6 +39,7 @@ namespace SpaceGame
         public bool InWarp { get; private set; }
 
         LineRenderer _beam;
+        TrailRenderer _trail;
 
         GameManager GM => GameManager.I;
         PlayerState P => GM.Player;
@@ -53,6 +54,27 @@ namespace SpaceGame
             _beam.endWidth = 0.4f;
             _beam.material = SystemView.Mat(Color.cyan, true);
             _beam.enabled = false;
+        }
+
+        /// <summary>Rebuild the hull visual (called on init and every hull change).</summary>
+        public void RebuildVisual()
+        {
+            var old = transform.Find("Hull");
+            if (old != null) Destroy(old.gameObject);
+            ShipVisuals.BuildHull(P.HullId, transform);
+
+            if (_trail == null)
+            {
+                var trailGo = new GameObject("EngineTrail");
+                trailGo.transform.SetParent(transform, false);
+                trailGo.transform.localPosition = new Vector3(0f, 0f, -3f);
+                _trail = trailGo.AddComponent<TrailRenderer>();
+                _trail.time = 1.4f;
+                _trail.startWidth = 1.1f;
+                _trail.endWidth = 0.05f;
+                _trail.minVertexDistance = 0.5f;
+                _trail.material = SystemView.Mat(new Color(0.45f, 0.8f, 1f), true);
+            }
         }
 
         /// <summary>Rebuild the activatable module rack from the fitting (high then mid).</summary>
@@ -138,9 +160,16 @@ namespace SpaceGame
             var m = r.Def;
             if ((m.Kind == ModuleKind.Miner || m.Kind == ModuleKind.Weapon) && !ValidTarget(m))
             {
-                GM.Log(m.Kind == ModuleKind.Miner
-                    ? "Select an asteroid in range first."
-                    : "Select a hostile ship in range first.");
+                var sel = GM.Selected;
+                bool rightKind = m.Kind == ModuleKind.Miner ? sel is AsteroidBody : sel is NpcPirate;
+                if (!rightKind)
+                    GM.Log(m.Kind == ModuleKind.Miner
+                        ? "Select an asteroid first."
+                        : "Select a hostile ship first.");
+                else if (Vector3.Distance(transform.position, sel.transform.position) > m.Range)
+                    GM.Log("Target out of range for " + m.Name + ".");
+                else
+                    GM.Log("Still locking target — wait for the lock.");
                 return;
             }
             if (P.Cap < m.CapUse) { GM.Log("Capacitor too low."); return; }
@@ -154,8 +183,8 @@ namespace SpaceGame
             var sel = GM.Selected;
             if (sel == null) return false;
             float d = Vector3.Distance(transform.position, sel.transform.position);
-            if (m.Kind == ModuleKind.Miner) return sel is AsteroidBody && d <= m.Range;
-            if (m.Kind == ModuleKind.Weapon) return sel is NpcPirate && d <= m.Range;
+            if (m.Kind == ModuleKind.Miner) return sel is AsteroidBody && d <= m.Range && GM.Locked;
+            if (m.Kind == ModuleKind.Weapon) return sel is NpcPirate && d <= m.Range && GM.Locked;
             return true;
         }
 

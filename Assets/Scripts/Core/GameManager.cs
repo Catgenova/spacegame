@@ -25,6 +25,17 @@ namespace SpaceGame
         public SpaceObject Selected;
         public bool Ready { get; private set; }
 
+        // Target lock (EVE-style: select, wait for lock, then modules work).
+        public const float LockRange = 600f;
+        public bool Locked;
+        public float LockProgress;
+
+        // Agent missions.
+        public Mission ActiveMission;
+        public int MissionCounter;
+        List<Mission> _offerCache;
+        string _offerKey;
+
         public readonly List<string> MessageLog = new List<string>();
 
         float _npcTimer;
@@ -57,6 +68,7 @@ namespace SpaceGame
             LoadSystem(SystemId);
             PlaceAtStation();
             Ship.RefreshRack();
+            Ship.RebuildVisual();
             Ready = true;
         }
 
@@ -80,10 +92,42 @@ namespace SpaceGame
             _saveTimer += dt;
             if (_saveTimer > 20f) { _saveTimer = 0f; SaveSystem.Save(this); }
 
-            if (Docked) return;
+            if (Docked)
+            {
+                Locked = false;
+                LockProgress = 0f;
+                return;
+            }
 
+            UpdateLock(dt);
             UpdateNpcSpawns(dt);
             UpdateBeltRespawn(dt);
+        }
+
+        void UpdateLock(float dt)
+        {
+            bool lockable = Selected is AsteroidBody || Selected is NpcPirate;
+            if (!lockable)
+            {
+                Locked = false;
+                LockProgress = 0f;
+                return;
+            }
+            if (DistTo(Selected) > LockRange)
+            {
+                Locked = false;
+                LockProgress = 0f;
+                return;
+            }
+            if (Locked) return;
+            float lockTime = Selected is NpcPirate ? 2.2f : 1.2f;
+            LockProgress += dt / lockTime;
+            if (LockProgress >= 1f)
+            {
+                LockProgress = 1f;
+                Locked = true;
+                Log("Target locked: " + Selected.DisplayName + ".");
+            }
         }
 
         // ---------- system / travel ----------
@@ -105,7 +149,13 @@ namespace SpaceGame
             Ship.ResetMotion();
         }
 
-        public void Select(SpaceObject obj) => Selected = obj;
+        public void Select(SpaceObject obj)
+        {
+            if (Selected == obj) return;
+            Selected = obj;
+            Locked = false;
+            LockProgress = 0f;
+        }
 
         public float DistTo(SpaceObject obj)
             => Vector3.Distance(Ship.transform.position, obj.transform.position);
@@ -174,6 +224,12 @@ namespace SpaceGame
         void PlayerDeath(NpcPirate killer)
         {
             Log("Your ship was destroyed by a " + killer.Def.Name + ". Cargo lost.");
+            if (ActiveMission != null && ActiveMission.Type == "courier")
+            {
+                Log("The courier package was destroyed with your ship. Mission failed.");
+                ActiveMission = null;
+            }
+            Player.ExtraCargo = 0f;
             Player.Cargo.Clear();
             Player.SetHull("wasp");
             Player.Fitting[SlotType.High][0] = "miner1";
@@ -183,6 +239,7 @@ namespace SpaceGame
             LoadSystem(SystemId);
             PlaceAtStation();
             Ship.RefreshRack();
+            Ship.RebuildVisual();
             Log("You wake up in a fresh clone at Solara Prime, in a loaner Wasp.");
             SaveSystem.Save(this);
         }
@@ -193,6 +250,16 @@ namespace SpaceGame
             Log(npc.Def.Name + " destroyed. Bounty: " + GameData.FmtCredits(npc.Def.Bounty) + ".");
             if (Selected == npc) Selected = null;
             View.RemoveObject(npc);
+
+            var m = ActiveMission;
+            if (m != null && m.Type == "bounty" && SystemId == m.TargetSystemId
+                && m.KillsDone < m.KillsRequired)
+            {
+                m.KillsDone++;
+                Log("Mission: " + m.KillsDone + "/" + m.KillsRequired + " pirates destroyed"
+                    + (m.KillsDone >= m.KillsRequired ? " — return to the agent!" : "."));
+                SaveSystem.Save(this);
+            }
         }
 
         public void RemoveAsteroid(AsteroidBody rock)
@@ -301,6 +368,7 @@ namespace SpaceGame
                 foreach (var modId in Player.Fitting[slot])
                     if (!string.IsNullOrEmpty(modId)) Player.Hangar.Add(modId);
             Player.SetHull(shipId);
+            Ship.RebuildVisual();
             Log("Now flying a " + GameData.Ships[shipId].Name + ". Net cost "
                 + GameData.FmtCredits(cost) + " after trade-in.");
             SaveSystem.Save(this);
@@ -352,6 +420,94 @@ namespace SpaceGame
             Player.HullHp = st.MaxHull;
             Log("Ship repaired for " + GameData.FmtCredits(cost) + ".");
             SaveSystem.Save(this);
+        }
+
+        // ---------- missions ----------
+
+        public List<Mission> StationOffers()
+        {
+            string key = StationId + "#" + MissionCounter;
+            if (_offerKey != key)
+            {
+                _offerCache = Missions.GenerateOffers(Universe, StationId, SystemId, MissionCounter);
+                _offerKey = key;
+            }
+            return _offerCache;
+        }
+
+        public void AcceptMission(Mission m)
+        {
+            if (!Docked || ActiveMission != null || m == null) return;
+            if (m.Type == "courier")
+            {
+                var st = Player.ComputeStats();
+                if (st.CargoCap - Player.CargoUsed() < m.PackageM3)
+                {
+                    Log("Not enough free cargo space for the package ("
+                        + m.PackageM3 + " m3 needed).");
+                    return;
+                }
+                Player.ExtraCargo = m.PackageM3;
+            }
+            ActiveMission = m;
+            MissionCounter++;
+            Log("Mission accepted: " + m.Title + ".");
+            SaveSystem.Save(this);
+        }
+
+        /// <summary>Whether the active mission can be turned in at the current station.</summary>
+        public bool CanTurnInMission()
+        {
+            var m = ActiveMission;
+            if (m == null || !Docked) return false;
+            switch (m.Type)
+            {
+                case "bounty":
+                    return StationId == m.OriginStationId && m.KillsDone >= m.KillsRequired;
+                case "mining":
+                    return StationId == m.OriginStationId
+                        && Player.Cargo.TryGetValue(m.OreId, out float have) && have >= m.OreAmount;
+                case "courier":
+                    return StationId == m.DestStationId;
+                default:
+                    return false;
+            }
+        }
+
+        public void TurnInMission()
+        {
+            if (!CanTurnInMission()) return;
+            var m = ActiveMission;
+            if (m.Type == "mining")
+            {
+                Player.Cargo[m.OreId] -= m.OreAmount;
+                if (Player.Cargo[m.OreId] <= 0.01f) Player.Cargo.Remove(m.OreId);
+            }
+            else if (m.Type == "courier")
+            {
+                Player.ExtraCargo = 0f;
+            }
+            Player.Credits += m.Reward;
+            ActiveMission = null;
+            MissionCounter++;
+            Log("Mission complete! Reward: " + GameData.FmtCredits(m.Reward) + ".");
+            SaveSystem.Save(this);
+        }
+
+        public void AbandonMission()
+        {
+            if (ActiveMission == null) return;
+            if (ActiveMission.Type == "courier") Player.ExtraCargo = 0f;
+            Log("Mission abandoned: " + ActiveMission.Title + ".");
+            ActiveMission = null;
+            SaveSystem.Save(this);
+        }
+
+        public string StationName(string sysId, string stationId)
+        {
+            if (!Universe.Systems.ContainsKey(sysId)) return "station";
+            var c = Universe.Systems[sysId].Find(stationId);
+            return c != null ? c.Name : "station";
         }
 
         public void SetTraining(string skillId)
