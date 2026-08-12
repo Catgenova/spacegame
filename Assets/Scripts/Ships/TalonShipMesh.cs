@@ -453,18 +453,19 @@ namespace SpaceGame
                 LoftWing(b, lead, ts, trail, ts, 0.05f, 0.012f, 5, true, 1);
             }
 
-            // Chin gun slung under the chest — the single turret hardpoint.
+            // Chin gun: a stubby underslung cannon with a blunt muzzle
+            // brake, tucked well behind the bill so the beak owns the front.
             {
-                float y = hullY(12, 0.10f) + 0.04f;
-                var housing0 = new Vector3(0f, y, zAt(0.16f));
-                var housing1 = new Vector3(0f, y, zAt(0.02f));
+                float y = hullY(12, 0.12f) + 0.05f;
+                var housing0 = new Vector3(0f, y, zAt(0.26f));
+                var housing1 = new Vector3(0f, y, zAt(0.12f));
                 Tube(b, new[] { housing0, housing1 }, new[] { 0.10f, 0.088f }, 8, 1, false);
                 Tube(b, new[] { housing1 - Vector3.forward * 0.045f, housing1 + Vector3.forward * 0.045f },
                     new[] { 0.105f, 0.105f }, 8, 2, false);
-                var muzzle = housing1 + Vector3.forward * (g.GunLen * 0.6f);
-                Tube(b, new[] { housing1, muzzle }, new[] { 0.06f, 0.045f }, 8, 1, false);
-                Tube(b, new[] { muzzle, muzzle + Vector3.forward * (g.GunLen * 0.4f) },
-                    new[] { 0.032f, 0.005f }, 6, 1, true);
+                var muzzle = housing1 + Vector3.forward * (g.GunLen * 0.30f);
+                Tube(b, new[] { housing1, muzzle }, new[] { 0.060f, 0.052f }, 8, 1, false);
+                Tube(b, new[] { muzzle, muzzle + Vector3.forward * 0.12f },
+                    new[] { 0.066f, 0.060f }, 8, 1, true);
             }
 
             // Glowing drone bay hatches — the two drone hardpoints.
