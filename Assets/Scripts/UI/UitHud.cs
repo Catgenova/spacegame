@@ -1154,13 +1154,9 @@ namespace SpaceGame
         {
             var p = gm.Player;
             _stationContent.Add(Section("SHIP MANUFACTURING"));
-            var cost = HiveGenerator.MaterialCost(1);
-            string costText = "";
-            foreach (var kv in cost)
-                costText += (costText.Length > 0 ? ", " : "") + kv.Value + " " + GameData.Minerals[kv.Key].Name;
-            _stationContent.Add(WrapText("Each run consumes " + costText + " (m3, from your cargo hold) + "
-                + GameData.FmtCredits(HiveGenerator.ManufactureFee) + " assembly fee. Your current hull is "
-                + "traded in. Refine ore on the Refine tab to source minerals.", UiSkin.TextDim));
+            _stationContent.Add(WrapText("Each run consumes refined minerals from your cargo hold "
+                + "plus an assembly fee (shown per blueprint); your current hull is traded in. "
+                + "Refine ore on the Refine tab to source minerals.", UiSkin.TextDim));
 
             if (p.Blueprints.Count == 0)
             {
@@ -1172,7 +1168,7 @@ namespace SpaceGame
             foreach (var bp in new List<Blueprint>(p.Blueprints))
             {
                 var b = bp;
-                var def = HiveGenerator.Def(bp.Hash);
+                var def = HiveGenerator.Def(bp.Hash, bp.Class);
                 _stationContent.Add(Section(def.Name + "  —  " + GameData.RarityNames[bp.Rarity]
                     + "  ·  " + bp.RunsLeft + " run" + (bp.RunsLeft == 1 ? "" : "s") + " left  ·  body #" + bp.Hash));
                 _stationContent.Add(WrapText(def.Class + "  ·  " + def.Role, UiSkin.TextDim));
@@ -1182,6 +1178,11 @@ namespace SpaceGame
                     + def.Shield + " · Cargo " + def.Cargo + " m3", UiSkin.TextDim));
                 if (def.Features != null)
                     _stationContent.Add(WrapText(string.Join("  ·  ", def.Features), UiSkin.AccentWarm));
+                string bpCost = "";
+                foreach (var kv in HiveGenerator.MaterialCost(bp.Class))
+                    bpCost += (bpCost.Length > 0 ? ", " : "") + kv.Value + " " + GameData.Minerals[kv.Key].Name;
+                _stationContent.Add(WrapText("Cost per run: " + bpCost + " (m3) + "
+                    + GameData.FmtCredits(HiveGenerator.Fee(bp.Class)) + " fee.", UiSkin.TextDim));
                 string blocker = gm.ManufactureBlocker(bp);
                 var row = Row();
                 if (blocker == null)
