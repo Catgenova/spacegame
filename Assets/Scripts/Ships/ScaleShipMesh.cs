@@ -27,7 +27,6 @@ namespace SpaceGame
     {
         const int LoopPts = 24;
         const int Spans = 24;
-        static readonly int[] StripStart = { 0, 3, 6, 9, 12, 15, 18, 21 };
 
         public static GameObject Build(string hash, int cls, Transform shipRoot)
             => cls == 3 ? BuildC3(hash, shipRoot)
@@ -377,8 +376,7 @@ namespace SpaceGame
                     var ec = new Vector3(xs[e] * W, 0.0f * H + lift, zAt(0.96f));
                     Tube(b, new[] { ec, ec - Vector3.forward * 0.55f },
                         new[] { rs[e], rs[e] }, 8, 0, false);
-                    Tube(b, new[] { ec - Vector3.forward * 0.55f, ec - Vector3.forward * 0.63f },
-                        new[] { rs[e] - 0.02f, rs[e] - 0.03f }, 8, 2, true);
+                    Nozzle(b, ec - Vector3.forward * 0.63f, Vector3.back, rs[e] * 1.05f, rs[e] * 1.5f, 10, 0, 2);
                     Tube(b, new[] { ec + Vector3.forward * 0.02f, ec + Vector3.forward * 0.10f },
                         new[] { rs[e] + 0.02f, rs[e] + 0.02f }, 8, 3, false);
                 }
@@ -738,8 +736,7 @@ namespace SpaceGame
                     var ec = new Vector3(xs[e] * W, -0.05f * H + lift, zAt(0.96f));
                     Tube(b, new[] { ec, ec - Vector3.forward * 0.60f },
                         new[] { rs[e], rs[e] }, 8, 0, false);
-                    Tube(b, new[] { ec - Vector3.forward * 0.60f, ec - Vector3.forward * 0.68f },
-                        new[] { rs[e] - 0.02f, rs[e] - 0.03f }, 8, 2, true);
+                    Nozzle(b, ec - Vector3.forward * 0.68f, Vector3.back, rs[e] * 1.05f, rs[e] * 1.5f, 10, 0, 2);
                     Tube(b, new[] { ec + Vector3.forward * 0.02f, ec + Vector3.forward * 0.10f },
                         new[] { rs[e] + 0.02f, rs[e] + 0.02f }, 8, 3, false);
                 }
@@ -748,8 +745,7 @@ namespace SpaceGame
                     var ec = new Vector3((e == 0 ? -1 : 1) * 0.22f * W, 0.28f * H + lift, zAt(0.965f));
                     Tube(b, new[] { ec, ec - Vector3.forward * 0.45f },
                         new[] { 0.12f, 0.12f }, 7, 0, false);
-                    Tube(b, new[] { ec - Vector3.forward * 0.45f, ec - Vector3.forward * 0.52f },
-                        new[] { 0.105f, 0.095f }, 7, 2, true);
+                    Nozzle(b, ec - Vector3.forward * 0.52f, Vector3.back, 0.125f, 0.18f, 8, 0, 2);
                 }
                 int n = g.EngineSegs;
                 for (int i = 0; i < n; i++)
@@ -1130,8 +1126,7 @@ namespace SpaceGame
                     var ec = new Vector3(xs[e] * W, -0.05f * H + lift, zAt(0.96f));
                     Tube(b, new[] { ec, ec - Vector3.forward * 0.58f },
                         new[] { rs[e], rs[e] }, 8, 0, false);
-                    Tube(b, new[] { ec - Vector3.forward * 0.58f, ec - Vector3.forward * 0.66f },
-                        new[] { rs[e] - 0.02f, rs[e] - 0.03f }, 8, 2, true);
+                    Nozzle(b, ec - Vector3.forward * 0.66f, Vector3.back, rs[e] * 1.05f, rs[e] * 1.5f, 10, 0, 2);
                     Tube(b, new[] { ec + Vector3.forward * 0.02f, ec + Vector3.forward * 0.10f },
                         new[] { rs[e] + 0.02f, rs[e] + 0.02f }, 8, 3, false);
                 }
@@ -1140,8 +1135,7 @@ namespace SpaceGame
                     var ec = new Vector3((e == 0 ? -1 : 1) * 0.22f * W, 0.28f * H + lift, zAt(0.965f));
                     Tube(b, new[] { ec, ec - Vector3.forward * 0.44f },
                         new[] { 0.115f, 0.115f }, 7, 0, false);
-                    Tube(b, new[] { ec - Vector3.forward * 0.44f, ec - Vector3.forward * 0.51f },
-                        new[] { 0.10f, 0.09f }, 7, 2, true);
+                    Nozzle(b, ec - Vector3.forward * 0.51f, Vector3.back, 0.12f, 0.17f, 8, 0, 2);
                 }
                 int n = g.EngineSegs;
                 for (int i = 0; i < n; i++)

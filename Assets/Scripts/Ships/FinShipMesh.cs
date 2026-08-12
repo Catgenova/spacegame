@@ -17,7 +17,6 @@ namespace SpaceGame
     {
         const int LoopPts = 24;
         const int Spans = 24;
-        static readonly int[] StripStart = { 0, 3, 6, 9, 12, 15, 18, 21 };
 
         public static GameObject Build(string hash, int cls, Transform shipRoot)
             => cls == 3 ? BuildC3(hash, shipRoot)
@@ -381,13 +380,7 @@ namespace SpaceGame
                     Tube(b, new[] { path[i] + Vector3.forward * 0.04f, path[i] - Vector3.forward * 0.04f },
                         new[] { 0.36f, 0.36f }, 16, 0, false);
                 var gc = path[n] + Vector3.forward * -0.03f;
-                for (int k = 0; k < 16; k++)
-                {
-                    float a0 = k / 16f * Mathf.PI * 2f, a1 = (k + 1) / 16f * Mathf.PI * 2f;
-                    b.TriUDS(gc,
-                        gc + new Vector3(Mathf.Cos(a0) * 0.21f, Mathf.Sin(a0) * 0.21f, 0f),
-                        gc + new Vector3(Mathf.Cos(a1) * 0.21f, Mathf.Sin(a1) * 0.21f, 0f), 2);
-                }
+                Nozzle(b, gc, Vector3.back, 0.21f * 1.55f, 0.21f * 1.30f, 16, 1, 2);
             }
 
             // Glowing intake slits along the lower flanks.
@@ -649,13 +642,7 @@ namespace SpaceGame
                     Tube(b, new[] { path[i] + Vector3.forward * 0.04f, path[i] - Vector3.forward * 0.04f },
                         new[] { 0.38f, 0.38f }, 16, 0, false);
                 var gc = path[n] + Vector3.forward * -0.03f;
-                for (int k = 0; k < 16; k++)
-                {
-                    float a0 = k / 16f * Mathf.PI * 2f, a1 = (k + 1) / 16f * Mathf.PI * 2f;
-                    b.TriUDS(gc,
-                        gc + new Vector3(Mathf.Cos(a0) * 0.22f, Mathf.Sin(a0) * 0.22f, 0f),
-                        gc + new Vector3(Mathf.Cos(a1) * 0.22f, Mathf.Sin(a1) * 0.22f, 0f), 2);
-                }
+                Nozzle(b, gc, Vector3.back, 0.22f * 1.55f, 0.22f * 1.30f, 16, 1, 2);
             }
 
             // Glowing gill slits behind the canopy.
@@ -996,13 +983,7 @@ namespace SpaceGame
                     Tube(b, new[] { path[i] + Vector3.forward * 0.03f, path[i] - Vector3.forward * 0.03f },
                         new[] { 0.30f, 0.30f }, 14, 0, false);
                 var gc = path[n] + Vector3.forward * -0.03f;
-                for (int k = 0; k < 14; k++)
-                {
-                    float a0 = k / 14f * Mathf.PI * 2f, a1 = (k + 1) / 14f * Mathf.PI * 2f;
-                    b.TriUDS(gc,
-                        gc + new Vector3(Mathf.Cos(a0) * 0.17f, Mathf.Sin(a0) * 0.17f, 0f),
-                        gc + new Vector3(Mathf.Cos(a1) * 0.17f, Mathf.Sin(a1) * 0.17f, 0f), 2);
-                }
+                Nozzle(b, gc, Vector3.back, 0.17f * 1.55f, 0.17f * 1.30f, 14, 1, 2);
             }
 
             // Four lance guns: two chin, two wing-root.

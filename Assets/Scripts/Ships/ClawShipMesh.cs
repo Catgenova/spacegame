@@ -17,7 +17,6 @@ namespace SpaceGame
     {
         const int LoopPts = 24;
         const int Spans = 24;
-        static readonly int[] StripStart = { 0, 3, 6, 9, 12, 15, 18, 21 };
 
         public static GameObject Build(string hash, int cls, Transform shipRoot)
             => cls == 3 ? BuildC3(hash, shipRoot)
@@ -313,13 +312,7 @@ namespace SpaceGame
                     Tube(b, new[] { path[i] + Vector3.forward * 0.04f, path[i] - Vector3.forward * 0.04f },
                         new[] { 0.44f, 0.44f }, 16, 0, false);
                 var gc = path[n] + Vector3.forward * -0.03f;
-                for (int k = 0; k < 16; k++)
-                {
-                    float a0 = k / 16f * Mathf.PI * 2f, a1 = (k + 1) / 16f * Mathf.PI * 2f;
-                    b.TriUDS(gc,
-                        gc + new Vector3(Mathf.Cos(a0) * 0.26f, Mathf.Sin(a0) * 0.26f, 0f),
-                        gc + new Vector3(Mathf.Cos(a1) * 0.26f, Mathf.Sin(a1) * 0.26f, 0f), 2);
-                }
+                Nozzle(b, gc, Vector3.back, 0.26f * 1.55f, 0.26f * 1.30f, 16, 1, 2);
                 for (int side = -1; side <= 1; side += 2)
                 {
                     var oc = new Vector3(side * W * 0.55f, -0.12f * H, -0.5f * L + 0.30f);
@@ -332,13 +325,7 @@ namespace SpaceGame
                     }
                     Tube(b, p2, r2, 10, 1, false);
                     var gc2 = p2[2] + Vector3.forward * -0.02f;
-                    for (int k = 0; k < 10; k++)
-                    {
-                        float a0 = k / 10f * Mathf.PI * 2f, a1 = (k + 1) / 10f * Mathf.PI * 2f;
-                        b.TriUDS(gc2,
-                            gc2 + new Vector3(Mathf.Cos(a0) * 0.10f, Mathf.Sin(a0) * 0.10f, 0f),
-                            gc2 + new Vector3(Mathf.Cos(a1) * 0.10f, Mathf.Sin(a1) * 0.10f, 0f), 2);
-                    }
+                    Nozzle(b, gc2, Vector3.back, 0.10f * 1.55f, 0.10f * 1.30f, 10, 1, 2);
                 }
             }
 
@@ -661,13 +648,7 @@ namespace SpaceGame
                         Tube(b, new[] { path[i] + Vector3.forward * 0.03f, path[i] - Vector3.forward * 0.03f },
                             new[] { rBase + 0.02f, rBase + 0.02f }, 12, 0, false);
                     var gc = path[n] + Vector3.forward * -0.03f;
-                    for (int k = 0; k < 12; k++)
-                    {
-                        float a0 = k / 12f * Mathf.PI * 2f, a1 = (k + 1) / 12f * Mathf.PI * 2f;
-                        b.TriUDS(gc,
-                            gc + new Vector3(Mathf.Cos(a0) * rBase * 0.6f, Mathf.Sin(a0) * rBase * 0.6f, 0f),
-                            gc + new Vector3(Mathf.Cos(a1) * rBase * 0.6f, Mathf.Sin(a1) * rBase * 0.6f, 0f), 2);
-                    }
+                    Nozzle(b, gc, Vector3.back, rBase * 0.6f * 1.55f, rBase * 0.6f * 1.30f, 12, 1, 2);
                 }
             }
 
@@ -1017,13 +998,7 @@ namespace SpaceGame
                         Tube(b, new[] { path[i] + Vector3.forward * 0.03f, path[i] - Vector3.forward * 0.03f },
                             new[] { rBase + 0.02f, rBase + 0.02f }, 12, 0, false);
                     var gc = path[n] + Vector3.forward * -0.03f;
-                    for (int k = 0; k < 12; k++)
-                    {
-                        float a0 = k / 12f * Mathf.PI * 2f, a1 = (k + 1) / 12f * Mathf.PI * 2f;
-                        b.TriUDS(gc,
-                            gc + new Vector3(Mathf.Cos(a0) * rBase * 0.6f, Mathf.Sin(a0) * rBase * 0.6f, 0f),
-                            gc + new Vector3(Mathf.Cos(a1) * rBase * 0.6f, Mathf.Sin(a1) * rBase * 0.6f, 0f), 2);
-                    }
+                    Nozzle(b, gc, Vector3.back, rBase * 0.6f * 1.55f, rBase * 0.6f * 1.30f, 12, 1, 2);
                 }
             }
 

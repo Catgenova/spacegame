@@ -527,7 +527,7 @@ namespace SpaceGame
                 var ec = new Vector3(side * W * 0.38f, 0.06f * H + liftE, zAt(0.86f));
                 Box(b, ec, new Vector3(0.26f, 0.20f, 0.55f), 1);
                 Box(b, ec + new Vector3(0f, 0.05f, 0.30f), new Vector3(0.18f, 0.12f, 0.20f), 0);
-                Box(b, ec + new Vector3(0f, 0f, -0.58f), new Vector3(0.18f, 0.14f, 0.06f), 2);
+                Nozzle(b, ec + new Vector3(0f, 0f, -0.61f), Vector3.back, 0.20f, 0.28f, 10, 1, 2);
                 int n = g.EngineSegs;
                 for (int i = 0; i < n; i++)
                     Tube(b, new[] { ec + new Vector3(0f, -0.14f, 0.30f - i * 0.28f), ec + new Vector3(0f, -0.14f, 0.18f - i * 0.28f) },
@@ -909,7 +909,7 @@ namespace SpaceGame
                 var ec = new Vector3(side * W * 0.42f, 0.06f * H + liftE, zAt(0.87f));
                 Box(b, ec, new Vector3(0.30f, 0.24f, 0.62f), 1);
                 Box(b, ec + new Vector3(0f, 0.06f, 0.34f), new Vector3(0.20f, 0.14f, 0.22f), 0);
-                Box(b, ec + new Vector3(0f, 0f, -0.66f), new Vector3(0.20f, 0.16f, 0.07f), 2);
+                Nozzle(b, ec + new Vector3(0f, 0f, -0.69f), Vector3.back, 0.22f, 0.31f, 10, 1, 2);
                 int n = g.EngineSegs;
                 for (int i = 0; i < n; i++)
                     Tube(b, new[] { ec + new Vector3(0f, -0.17f, 0.34f - i * 0.30f), ec + new Vector3(0f, -0.17f, 0.20f - i * 0.30f) },
@@ -919,7 +919,7 @@ namespace SpaceGame
                 float liftE = CrSample(cts, clf, 0.90f) * H;
                 var ec = new Vector3(0f, -H * 0.34f + liftE, zAt(0.90f));
                 Box(b, ec, new Vector3(0.22f, 0.18f, 0.50f), 1);
-                Box(b, ec + new Vector3(0f, 0f, -0.54f), new Vector3(0.15f, 0.12f, 0.06f), 2);
+                Nozzle(b, ec + new Vector3(0f, 0f, -0.57f), Vector3.back, 0.165f, 0.23f, 10, 1, 2);
                 for (int i = 0; i < 2; i++)
                     Tube(b, new[] { ec + new Vector3(0f, -0.13f, 0.24f - i * 0.30f), ec + new Vector3(0f, -0.13f, 0.10f - i * 0.30f) },
                         new[] { 0.12f, 0.12f }, 8, i % 2 == 0 ? 0 : 1, false);
@@ -1299,7 +1299,7 @@ namespace SpaceGame
                 var ec = new Vector3(side * W * 0.40f, 0.06f * H + liftE, zAt(0.87f));
                 Box(b, ec, new Vector3(0.28f, 0.22f, 0.58f), 1);
                 Box(b, ec + new Vector3(0f, 0.06f, 0.32f), new Vector3(0.19f, 0.13f, 0.21f), 0);
-                Box(b, ec + new Vector3(0f, 0f, -0.62f), new Vector3(0.19f, 0.15f, 0.07f), 2);
+                Nozzle(b, ec + new Vector3(0f, 0f, -0.65f), Vector3.back, 0.21f, 0.29f, 10, 1, 2);
                 int n = g.EngineSegs;
                 for (int i = 0; i < n; i++)
                     Tube(b, new[] { ec + new Vector3(0f, -0.16f, 0.32f - i * 0.28f), ec + new Vector3(0f, -0.16f, 0.19f - i * 0.28f) },
@@ -1309,7 +1309,7 @@ namespace SpaceGame
                 float liftE = CrSample(cts, clf, 0.90f) * H;
                 var ec = new Vector3(0f, -H * 0.32f + liftE, zAt(0.90f));
                 Box(b, ec, new Vector3(0.20f, 0.17f, 0.46f), 1);
-                Box(b, ec + new Vector3(0f, 0f, -0.50f), new Vector3(0.14f, 0.11f, 0.06f), 2);
+                Nozzle(b, ec + new Vector3(0f, 0f, -0.53f), Vector3.back, 0.155f, 0.22f, 10, 1, 2);
                 for (int i = 0; i < 2; i++)
                     Tube(b, new[] { ec + new Vector3(0f, -0.12f, 0.22f - i * 0.28f), ec + new Vector3(0f, -0.12f, 0.09f - i * 0.28f) },
                         new[] { 0.11f, 0.11f }, 8, i % 2 == 0 ? 0 : 1, false);

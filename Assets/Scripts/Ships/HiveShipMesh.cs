@@ -33,7 +33,6 @@ namespace SpaceGame
         const int HalfPts = 13;          // p0 ridge .. p12 keel, per side
         const int LoopPts = 24;          // 13 + 11 mirrored
         const int Spans = 24;            // paintable quads per ring pair
-        static readonly int[] StripStart = { 0, 3, 6, 9, 12, 15, 18, 21 };
 
         // Half-profiles (x, y) normalized; creases at p0, p3, p6, p9, p12.
         // p3 = deck edge, p6 = chine (max width), p9 = keel edge.
@@ -234,13 +233,7 @@ namespace SpaceGame
                     Tube(b, new[] { path[i] + Vector3.forward * 0.03f, path[i] - Vector3.forward * 0.03f },
                         new[] { 0.285f, 0.285f }, 16, 0, false);
                 var gc = path[segsN] + Vector3.forward * -0.02f;
-                for (int k = 0; k < 16; k++)
-                {
-                    float a0 = k / 16f * Mathf.PI * 2f, a1 = (k + 1) / 16f * Mathf.PI * 2f;
-                    b.TriUDS(gc,
-                        gc + new Vector3(Mathf.Cos(a0) * 0.17f, Mathf.Sin(a0) * 0.17f, 0f),
-                        gc + new Vector3(Mathf.Cos(a1) * 0.17f, Mathf.Sin(a1) * 0.17f, 0f), 2);
-                }
+                Nozzle(b, gc, Vector3.back, 0.17f * 1.55f, 0.17f * 1.30f, 16, 1, 2);
                 var p2 = new Vector3[4];
                 var r2 = new float[4];
                 for (int i = 0; i < 4; i++)
@@ -724,13 +717,7 @@ namespace SpaceGame
                     Tube(b, new[] { path[i] + Vector3.forward * 0.04f, path[i] - Vector3.forward * 0.04f },
                         new[] { 0.44f, 0.44f }, 16, 0, false);
                 var gc = path[n] + Vector3.forward * -0.03f;
-                for (int k = 0; k < 16; k++)
-                {
-                    float a0 = k / 16f * Mathf.PI * 2f, a1 = (k + 1) / 16f * Mathf.PI * 2f;
-                    b.TriUDS(gc,
-                        gc + new Vector3(Mathf.Cos(a0) * 0.26f, Mathf.Sin(a0) * 0.26f, 0f),
-                        gc + new Vector3(Mathf.Cos(a1) * 0.26f, Mathf.Sin(a1) * 0.26f, 0f), 2);
-                }
+                Nozzle(b, gc, Vector3.back, 0.26f * 1.55f, 0.26f * 1.30f, 16, 1, 2);
             }
 
             // Twin ventral strakes.
@@ -1132,13 +1119,7 @@ namespace SpaceGame
                     Tube(b, new[] { path[i] + Vector3.forward * 0.04f, path[i] - Vector3.forward * 0.04f },
                         new[] { 0.50f, 0.50f }, 16, 0, false);
                 var gc = path[n] + Vector3.forward * -0.03f;
-                for (int k = 0; k < 16; k++)
-                {
-                    float a0 = k / 16f * Mathf.PI * 2f, a1 = (k + 1) / 16f * Mathf.PI * 2f;
-                    b.TriUDS(gc,
-                        gc + new Vector3(Mathf.Cos(a0) * 0.30f, Mathf.Sin(a0) * 0.30f, 0f),
-                        gc + new Vector3(Mathf.Cos(a1) * 0.30f, Mathf.Sin(a1) * 0.30f, 0f), 2);
-                }
+                Nozzle(b, gc, Vector3.back, 0.30f * 1.55f, 0.30f * 1.30f, 16, 1, 2);
 
                 var ac = new Vector3(side * W * 0.28f, 0.42f * H, -0.5f * L + 0.25f);
                 var path2 = new Vector3[4];
@@ -1152,13 +1133,7 @@ namespace SpaceGame
                 Tube(b, new[] { path2[1] + Vector3.forward * 0.03f, path2[1] - Vector3.forward * 0.03f },
                     new[] { 0.23f, 0.23f }, 12, 0, false);
                 var gc2 = path2[3] + Vector3.forward * -0.02f;
-                for (int k = 0; k < 12; k++)
-                {
-                    float a0 = k / 12f * Mathf.PI * 2f, a1 = (k + 1) / 12f * Mathf.PI * 2f;
-                    b.TriUDS(gc2,
-                        gc2 + new Vector3(Mathf.Cos(a0) * 0.13f, Mathf.Sin(a0) * 0.13f, 0f),
-                        gc2 + new Vector3(Mathf.Cos(a1) * 0.13f, Mathf.Sin(a1) * 0.13f, 0f), 2);
-                }
+                Nozzle(b, gc2, Vector3.back, 0.13f * 1.55f, 0.13f * 1.30f, 12, 1, 2);
             }
 
             // Belly web-emitter ring (teal).

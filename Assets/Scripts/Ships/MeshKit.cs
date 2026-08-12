@@ -41,6 +41,12 @@ namespace SpaceGame
             {
                 TriUDS(a, d, c, mat); TriUDS(a, c, b, mat);
             }
+
+            public void QuadU(Vector3 a, Vector3 b, Vector3 c, Vector3 d, int mat)
+            {
+                int ia = Add(a), ib = Add(b), ic = Add(c), id = Add(d);
+                Face(ia, id, ic, mat); Face(ia, ic, ib, mat);
+            }
         }
 
         public static float CrSample(float[] ts, float[] vs, float t)
@@ -301,6 +307,54 @@ namespace SpaceGame
             var refUp = Mathf.Abs(dir.y) > 0.93f ? Vector3.forward : Vector3.up;
             right = Vector3.Cross(refUp, dir).normalized;
             up = Vector3.Cross(dir, right).normalized;
+        }
+
+        /// <summary>Recessed engine nozzle. `exit` is the center of the
+        /// exhaust plane and `dir` points out of the exhaust, away from the
+        /// hull. Builds a flared outer bell, an annular exit rim, an inner
+        /// cavity cone recessed toward the hull, a glow disc at the cavity
+        /// floor, and four radial heat fins. Bell/rim/cavity are single-sided
+        /// (winding verified against the loft convention).</summary>
+        public static void Nozzle(Builder b, Vector3 exit, Vector3 dir, float r,
+            float len, int sides, int matBody, int matGlow)
+        {
+            dir = dir.normalized;
+            Basis(dir, out var right, out var up);
+            System.Func<int, float, float, Vector3> rp = (k, rad, back) =>
+            {
+                float a = k / (float)sides * Mathf.PI * 2f;
+                return exit - dir * back + right * (Mathf.Cos(a) * rad) + up * (Mathf.Sin(a) * rad);
+            };
+            // outer bell: hull collar -> waist -> flared exit rim
+            float[] rads = { 0.80f * r, 0.86f * r, 1.00f * r };
+            float[] deps = { len, 0.42f * len, 0f };
+            for (int i = 0; i < 2; i++)
+                for (int k = 0; k < sides; k++)
+                {
+                    int k2 = (k + 1) % sides;
+                    b.QuadU(rp(k, rads[i + 1], deps[i + 1]), rp(k2, rads[i + 1], deps[i + 1]),
+                        rp(k2, rads[i], deps[i]), rp(k, rads[i], deps[i]), matBody);
+                }
+            float rIn = 0.74f * r;
+            float rThroat = 0.40f * r, dThroat = 0.55f * len;
+            for (int k = 0; k < sides; k++)
+            {
+                int k2 = (k + 1) % sides;
+                b.QuadU(rp(k, rIn, 0f), rp(k2, rIn, 0f), rp(k2, r, 0f), rp(k, r, 0f), matBody);
+                b.QuadU(rp(k, rThroat, dThroat), rp(k2, rThroat, dThroat),
+                    rp(k2, rIn, 0f), rp(k, rIn, 0f), matBody);
+            }
+            var gc = exit - dir * dThroat;
+            for (int k = 0; k < sides; k++)
+                b.TriU(gc, rp(k, rThroat, dThroat), rp((k + 1) % sides, rThroat, dThroat), matGlow);
+            for (int f = 0; f < 4; f++)
+            {
+                float a = (f + 0.5f) / 4f * Mathf.PI * 2f;
+                var rad = right * Mathf.Cos(a) + up * Mathf.Sin(a);
+                b.TriUDS(exit - dir * (0.92f * len) + rad * (0.82f * r),
+                    exit - dir * (0.02f * len) + rad * (1.00f * r),
+                    exit - dir * (0.45f * len) + rad * (1.16f * r), matBody);
+            }
         }
 
         public static void Tube(Builder b, Vector3[] path, float[] radii, int sides, int mat, bool capEnd)
