@@ -63,6 +63,93 @@ namespace SpaceGame
             return x * x * (3f - 2f * x);
         }
 
+        /// <summary>Uniform Catmull-Rom between p1 and p2 at u.</summary>
+        public static float CrPoint(float p0, float p1, float p2, float p3, float u)
+        {
+            float u2 = u * u, u3 = u2 * u;
+            return 0.5f * (2f * p1 + (-p0 + p2) * u + (2f * p0 - 5f * p1 + 4f * p2 - p3) * u2
+                + (-p0 + 3f * p1 - 3f * p2 + p3) * u3);
+        }
+
+        /// <summary>Sample a 13-row half-profile at a fractional row index —
+        /// Catmull-Rom smoothed, passing exactly through the rows.</summary>
+        public static Vector2 ProfCR(float[,] prof, float k)
+        {
+            int i1 = Mathf.Clamp((int)Mathf.Floor(k), 0, 12);
+            int i0 = Mathf.Max(0, i1 - 1);
+            int i2 = Mathf.Min(12, i1 + 1);
+            int i3 = Mathf.Min(12, i1 + 2);
+            float u = k - i1;
+            return new Vector2(
+                CrPoint(prof[i0, 0], prof[i1, 0], prof[i2, 0], prof[i3, 0], u),
+                CrPoint(prof[i0, 1], prof[i1, 1], prof[i2, 1], prof[i3, 1], u));
+        }
+
+        /// <summary>
+        /// High-resolution hull loft: 48 loop points (16 strips of 3 spans),
+        /// sampled from a fractional half-profile (k in 0..12) so the old
+        /// 24-point silhouettes come out Catmull-Rom smoothed. Paint fields
+        /// keep their original 8-strip meaning — the callback receives the
+        /// OLD (strip, span) cell plus the ring index for micro lookups.
+        /// Returns stripVerts[16][rings][4] for cap fans and detail anchors.
+        /// </summary>
+        public static int[][][] HullLoft48(Builder b, int rings,
+            System.Func<float, float, Vector2> halfPtF,
+            System.Func<float, float> scAt, System.Func<float, float> liftAt,
+            System.Func<float, float> zAt,
+            System.Func<float, float> xwAt, System.Func<float, float> ywAt,
+            float W, float H,
+            System.Func<int, int, float, int, int> paint)
+        {
+            var sv = new int[16][][];
+            for (int s = 0; s < 16; s++) sv[s] = new int[rings][];
+            for (int j = 0; j < rings; j++)
+            {
+                float t = j / (float)(rings - 1);
+                float sc = scAt(t);
+                float lift = liftAt(t);
+                float z = zAt(t);
+                float xw = xwAt(t);
+                float yw = ywAt(t);
+                for (int s = 0; s < 16; s++)
+                {
+                    sv[s][j] = new int[4];
+                    for (int p = 0; p < 4; p++)
+                    {
+                        int li = (s * 3 + p) % 48;
+                        float k = li <= 24 ? li * 0.5f : (48 - li) * 0.5f;
+                        var pt = halfPtF(k, t);
+                        float x = li <= 24 ? pt.x : -pt.x;
+                        sv[s][j][p] = b.Add(new Vector3(x * W * sc * xw, pt.y * H * sc * yw + lift, z));
+                    }
+                }
+            }
+            for (int i = 0; i < rings - 1; i++)
+            {
+                float tm = (i + 0.5f) / (rings - 1);
+                for (int s = 0; s < 16; s++)
+                    for (int p = 0; p < 3; p++)
+                    {
+                        int go = ((s * 3 + p) % 48) / 2;
+                        int mat = paint(go / 3, go % 3, tm, i);
+                        b.FaceQ(sv[s][i][p], sv[s][i + 1][p],
+                            sv[s][i + 1][p + 1], sv[s][i][p + 1], mat);
+                    }
+            }
+            return sv;
+        }
+
+        /// <summary>Cap fan closing one end of a HullLoft48 ring.</summary>
+        public static void CapFan(Builder b, Vector3 center, int[][][] sv, int ring, bool front, int mat)
+        {
+            for (int s = 0; s < 16; s++)
+                for (int p = 0; p < 3; p++)
+                {
+                    if (front) b.TriU(center, b.V[sv[s][ring][p + 1]], b.V[sv[s][ring][p]], mat);
+                    else b.TriU(center, b.V[sv[s][ring][p]], b.V[sv[s][ring][p + 1]], mat);
+                }
+        }
+
         public static readonly float[] WingCf = { 0.00f, 0.10f, 0.34f, 0.62f, 0.86f, 1.00f };
 
         public static readonly float[] WingTf = { 0.22f, 0.85f, 1.00f, 0.80f, 0.45f, 0.16f };

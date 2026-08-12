@@ -108,6 +108,14 @@ namespace SpaceGame
             return new Vector2(-p.x, p.y);
         }
 
+        static Vector2 HalfPtUF(float k, float t)
+        {
+            float wMid = Smooth01(t / 0.34f);
+            float wStern = Smooth01((t - 0.60f) / 0.40f);
+            var v = Vector2.Lerp(ProfCR(NoseU, k), ProfCR(MidU, k), wMid);
+            return Vector2.Lerp(v, ProfCR(SternU, k), wStern);
+        }
+
         // Industrial patchwork: orange shell, bone saddle over the cockpit
         // spine, gunmetal machinery girdle and belly, banded accents.
         static int PaintMatU(GenomeU1 g, int s, int p, float tm, bool[] panelCell, bool microHit)
@@ -166,7 +174,7 @@ namespace SpaceGame
             var g = RollU1(hash);
             var b = new Builder();
             float L = g.L, W = g.W, H = g.H;
-            const int rings = 44;
+            const int rings = 88;
 
             var panelRng = Rng.Stream("clawpanels:" + hash);
             var panelCell = new bool[30];
@@ -192,49 +200,17 @@ namespace SpaceGame
             float[] csc = { 0.30f, 0.58f, 0.85f, 1.00f, 0.98f, 0.84f, 0.60f, 0.40f };
             float[] clf = { 0.00f, 0.01f, 0.02f, 0.03f, 0.03f, 0.02f, 0.01f, 0.00f };
 
-            var stripVerts = new int[8][][];
-            var ringT = new float[rings];
-            for (int s = 0; s < 8; s++) stripVerts[s] = new int[rings][];
-            for (int i = 0; i < rings; i++)
-            {
-                float t = i / (float)(rings - 1);
-                ringT[i] = t;
-                float sc = CrSample(cts, csc, t);
-                sc *= 1f + g.SurfAmp * 0.012f * Mathf.Sin((t * 6f + g.SurfPhase) * Mathf.PI * 2f);
-                float lift = CrSample(cts, clf, t) * H;
-                float z = (0.5f - t) * L;
-                for (int s = 0; s < 8; s++)
-                {
-                    stripVerts[s][i] = new int[4];
-                    for (int p = 0; p < 4; p++)
-                    {
-                        int li = (StripStart[s] + p) % LoopPts;
-                        var pt = LoopPtU(li, t);
-                        stripVerts[s][i][p] = b.Add(new Vector3(pt.x * W * sc, pt.y * H * sc + lift, z));
-                    }
-                }
-            }
-            for (int i = 0; i < rings - 1; i++)
-            {
-                float tm = (ringT[i] + ringT[i + 1]) * 0.5f;
-                for (int s = 0; s < 8; s++)
-                    for (int p = 0; p < 3; p++)
-                    {
-                        int mat = PaintMatU(g, s, p, tm, panelCell, micro[i, s * 3 + p]);
-                        b.FaceQ(stripVerts[s][i][p], stripVerts[s][i + 1][p],
-                            stripVerts[s][i + 1][p + 1], stripVerts[s][i][p + 1], mat);
-                    }
-            }
+            var stripVerts = HullLoft48(b, rings, HalfPtUF,
+                t => CrSample(cts, csc, t)
+                    * (1f + g.SurfAmp * 0.012f * Mathf.Sin((t * 6f + g.SurfPhase) * Mathf.PI * 2f)),
+                t => CrSample(cts, clf, t) * H, t => (0.5f - t) * L, t => 1f, t => 1f, W, H,
+                (so, po, tm, i) => PaintMatU(g, so, po, tm, panelCell, micro[i, so * 3 + po]));
 
             // Blunt gunmetal nose ring and stern cap.
             var noseTip = new Vector3(0f, 0f, 0.5f * L + g.Nose);
-            for (int s = 0; s < 8; s++)
-                for (int p = 0; p < 3; p++)
-                    b.TriU(noseTip, b.V[stripVerts[s][0][p + 1]], b.V[stripVerts[s][0][p]], 1);
+            CapFan(b, noseTip, stripVerts, 0, true, 1);
             var sternC = new Vector3(0f, 0f, -0.5f * L - 0.05f);
-            for (int s = 0; s < 8; s++)
-                for (int p = 0; p < 3; p++)
-                    b.TriU(sternC, b.V[stripVerts[s][rings - 1][p]], b.V[stripVerts[s][rings - 1][p + 1]], 1);
+            CapFan(b, sternC, stripVerts, rings - 1, false, 1);
 
             // Small glass cockpit high on the front shell.
             {
@@ -480,6 +456,14 @@ namespace SpaceGame
             return new Vector2(-p.x, p.y);
         }
 
+        static Vector2 HalfPtLF(float k, float t)
+        {
+            float wMid = Smooth01(t / 0.30f);
+            float wStern = Smooth01((t - 0.62f) / 0.38f);
+            var v = Vector2.Lerp(ProfCR(NoseL, k), ProfCR(MidL, k), wMid);
+            return Vector2.Lerp(v, ProfCR(SternL, k), wStern);
+        }
+
         // Same industrial patchwork family as the Urchin, with a bone cabin
         // face up front.
         static int PaintMatL(GenomeL2 g, int s, int p, float tm, bool[] panelCell, bool microHit)
@@ -534,7 +518,7 @@ namespace SpaceGame
             var g = RollL2(hash);
             var b = new Builder();
             float L = g.L, W = g.W, H = g.H;
-            const int rings = 48;
+            const int rings = 96;
 
             var panelRng = Rng.Stream("claw2panels:" + hash);
             var panelCell = new bool[30];
@@ -549,49 +533,17 @@ namespace SpaceGame
             float[] csc = { 0.42f, 0.62f, 0.82f, 0.96f, 1.00f, 0.94f, 0.76f, 0.55f };
             float[] clf = { 0.00f, 0.01f, 0.02f, 0.03f, 0.03f, 0.02f, 0.01f, 0.00f };
 
-            var stripVerts = new int[8][][];
-            var ringT = new float[rings];
-            for (int s = 0; s < 8; s++) stripVerts[s] = new int[rings][];
-            for (int i = 0; i < rings; i++)
-            {
-                float t = i / (float)(rings - 1);
-                ringT[i] = t;
-                float sc = CrSample(cts, csc, t);
-                sc *= 1f + g.SurfAmp * 0.012f * Mathf.Sin((t * 6f + g.SurfPhase) * Mathf.PI * 2f);
-                float lift = CrSample(cts, clf, t) * H;
-                float z = (0.5f - t) * L;
-                for (int s = 0; s < 8; s++)
-                {
-                    stripVerts[s][i] = new int[4];
-                    for (int p = 0; p < 4; p++)
-                    {
-                        int li = (StripStart[s] + p) % LoopPts;
-                        var pt = LoopPtL(li, t);
-                        stripVerts[s][i][p] = b.Add(new Vector3(pt.x * W * sc, pt.y * H * sc + lift, z));
-                    }
-                }
-            }
-            for (int i = 0; i < rings - 1; i++)
-            {
-                float tm = (ringT[i] + ringT[i + 1]) * 0.5f;
-                for (int s = 0; s < 8; s++)
-                    for (int p = 0; p < 3; p++)
-                    {
-                        int mat = PaintMatL(g, s, p, tm, panelCell, micro[i, s * 3 + p]);
-                        b.FaceQ(stripVerts[s][i][p], stripVerts[s][i + 1][p],
-                            stripVerts[s][i + 1][p + 1], stripVerts[s][i][p + 1], mat);
-                    }
-            }
+            var stripVerts = HullLoft48(b, rings, HalfPtLF,
+                t => CrSample(cts, csc, t)
+                    * (1f + g.SurfAmp * 0.012f * Mathf.Sin((t * 6f + g.SurfPhase) * Mathf.PI * 2f)),
+                t => CrSample(cts, clf, t) * H, t => (0.5f - t) * L, t => 1f, t => 1f, W, H,
+                (so, po, tm, i) => PaintMatL(g, so, po, tm, panelCell, micro[i, so * 3 + po]));
 
             // Blunt bone cabin cap and gunmetal stern cap.
             var noseTip = new Vector3(0f, 0f, 0.5f * L + g.Nose);
-            for (int s = 0; s < 8; s++)
-                for (int p = 0; p < 3; p++)
-                    b.TriU(noseTip, b.V[stripVerts[s][0][p + 1]], b.V[stripVerts[s][0][p]], 3);
+            CapFan(b, noseTip, stripVerts, 0, true, 3);
             var sternC = new Vector3(0f, 0f, -0.5f * L - 0.05f);
-            for (int s = 0; s < 8; s++)
-                for (int p = 0; p < 3; p++)
-                    b.TriU(sternC, b.V[stripVerts[s][rings - 1][p]], b.V[stripVerts[s][rings - 1][p + 1]], 1);
+            CapFan(b, sternC, stripVerts, rings - 1, false, 1);
 
             // Framed cockpit band across the cabin face.
             {
@@ -838,6 +790,14 @@ namespace SpaceGame
             return new Vector2(-p.x, p.y);
         }
 
+        static Vector2 HalfPtHF(float k, float t)
+        {
+            float wMid = Smooth01(t / 0.30f);
+            float wStern = Smooth01((t - 0.60f) / 0.40f);
+            var v = Vector2.Lerp(ProfCR(NoseH, k), ProfCR(MidH, k), wMid);
+            return Vector2.Lerp(v, ProfCR(SternH, k), wStern);
+        }
+
         // Large armored plate patchwork over the dome; the belly is all
         // gunmetal machinery.
         static int PaintMatH(GenomeH3 g, int s, int p, float tm, bool[] panelCell, bool microHit)
@@ -890,7 +850,7 @@ namespace SpaceGame
             var g = RollH3(hash);
             var b = new Builder();
             float L = g.L, W = g.W, H = g.H;
-            const int rings = 48;
+            const int rings = 96;
 
             var panelRng = Rng.Stream("claw3panels:" + hash);
             var panelCell = new bool[30];
@@ -905,49 +865,17 @@ namespace SpaceGame
             float[] csc = { 0.36f, 0.60f, 0.82f, 0.96f, 1.00f, 0.94f, 0.76f, 0.55f };
             float[] clf = { 0.00f, 0.01f, 0.02f, 0.03f, 0.03f, 0.02f, 0.01f, 0.00f };
 
-            var stripVerts = new int[8][][];
-            var ringT = new float[rings];
-            for (int s = 0; s < 8; s++) stripVerts[s] = new int[rings][];
-            for (int i = 0; i < rings; i++)
-            {
-                float t = i / (float)(rings - 1);
-                ringT[i] = t;
-                float sc = CrSample(cts, csc, t);
-                sc *= 1f + g.SurfAmp * 0.012f * Mathf.Sin((t * 6f + g.SurfPhase) * Mathf.PI * 2f);
-                float lift = CrSample(cts, clf, t) * H;
-                float z = (0.5f - t) * L;
-                for (int s = 0; s < 8; s++)
-                {
-                    stripVerts[s][i] = new int[4];
-                    for (int p = 0; p < 4; p++)
-                    {
-                        int li = (StripStart[s] + p) % LoopPts;
-                        var pt = LoopPtH(li, t);
-                        stripVerts[s][i][p] = b.Add(new Vector3(pt.x * W * sc, pt.y * H * sc + lift, z));
-                    }
-                }
-            }
-            for (int i = 0; i < rings - 1; i++)
-            {
-                float tm = (ringT[i] + ringT[i + 1]) * 0.5f;
-                for (int s = 0; s < 8; s++)
-                    for (int p = 0; p < 3; p++)
-                    {
-                        int mat = PaintMatH(g, s, p, tm, panelCell, micro[i, s * 3 + p]);
-                        b.FaceQ(stripVerts[s][i][p], stripVerts[s][i + 1][p],
-                            stripVerts[s][i + 1][p + 1], stripVerts[s][i][p + 1], mat);
-                    }
-            }
+            var stripVerts = HullLoft48(b, rings, HalfPtHF,
+                t => CrSample(cts, csc, t)
+                    * (1f + g.SurfAmp * 0.012f * Mathf.Sin((t * 6f + g.SurfPhase) * Mathf.PI * 2f)),
+                t => CrSample(cts, clf, t) * H, t => (0.5f - t) * L, t => 1f, t => 1f, W, H,
+                (so, po, tm, i) => PaintMatH(g, so, po, tm, panelCell, micro[i, so * 3 + po]));
 
             // Gunmetal prow wedge and stern cap.
             var noseTip = new Vector3(0f, -0.02f * H, 0.5f * L + g.Nose);
-            for (int s = 0; s < 8; s++)
-                for (int p = 0; p < 3; p++)
-                    b.TriU(noseTip, b.V[stripVerts[s][0][p + 1]], b.V[stripVerts[s][0][p]], 1);
+            CapFan(b, noseTip, stripVerts, 0, true, 1);
             var sternC = new Vector3(0f, 0f, -0.5f * L - 0.05f);
-            for (int s = 0; s < 8; s++)
-                for (int p = 0; p < 3; p++)
-                    b.TriU(sternC, b.V[stripVerts[s][rings - 1][p]], b.V[stripVerts[s][rings - 1][p + 1]], 1);
+            CapFan(b, sternC, stripVerts, rings - 1, false, 1);
 
             // Low crew cabin canopy on the front slope of the dome.
             {

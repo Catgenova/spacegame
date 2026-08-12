@@ -25,7 +25,6 @@ namespace SpaceGame
     {
         const int LoopPts = 24;
         const int Spans = 24;
-        static readonly int[] StripStart = { 0, 3, 6, 9, 12, 15, 18, 21 };
 
         public static GameObject Build(string hash, int cls, Transform shipRoot)
             => cls == 3 ? BuildC3(hash, shipRoot)
@@ -118,6 +117,88 @@ namespace SpaceGame
             return new Vector2(-p.x, p.y);
         }
 
+        static Vector2 HalfPtTF(float k, float t)
+        {
+            float wMid = Smooth01(t / 0.36f);
+            float wStern = Smooth01((t - 0.58f) / 0.42f);
+            var n = ProfCR(NoseT, k);
+            var m = ProfCR(MidT, k);
+            var st = ProfCR(SternT, k);
+            var v = Vector2.Lerp(n, m, wMid);
+            return Vector2.Lerp(v, st, wStern);
+        }
+
+        /// <summary>48-pt continuous beak-into-body loft shared by all
+        /// Talon classes: bill rings narrow and droop off the face, then
+        /// the same 16 strips run down the body. Beak faces are mat 1.</summary>
+        static int[][][] TalonLoft(Builder b, int beakRings, int rings,
+            float W, float H, float zBF, float beakLen,
+            float beakBase, float scLo, float scHi, float xnLo,
+            float droopPow, float droopAmt, float yBase,
+            System.Func<float, float> scAt, System.Func<float, float> liftAt,
+            System.Func<float, float> zAt,
+            System.Func<int, int, float, int, int> paint)
+        {
+            int total = beakRings + rings;
+            var sv = new int[16][][];
+            for (int s = 0; s < 16; s++) sv[s] = new int[total][];
+            for (int i = 0; i < beakRings; i++)
+            {
+                float ub = i / (float)beakRings;
+                float sc = beakBase * Mathf.Lerp(scLo, scHi, Smooth01(ub));
+                float xNarrow = Mathf.Lerp(xnLo, 0.98f, ub);
+                float yOff = yBase - Mathf.Pow(1f - ub, droopPow) * droopAmt;
+                float z = zBF + beakLen * (1f - ub);
+                for (int s = 0; s < 16; s++)
+                {
+                    sv[s][i] = new int[4];
+                    for (int p = 0; p < 4; p++)
+                    {
+                        int li = (s * 3 + p) % 48;
+                        float k = li <= 24 ? li * 0.5f : (48 - li) * 0.5f;
+                        var pt = HalfPtTF(k, 0f);
+                        float x = li <= 24 ? pt.x : -pt.x;
+                        sv[s][i][p] = b.Add(new Vector3(x * W * sc * xNarrow, pt.y * H * sc + yOff, z));
+                    }
+                }
+            }
+            for (int j = 0; j < rings; j++)
+            {
+                float t = j / (float)(rings - 1);
+                float sc = scAt(t);
+                float lift = liftAt(t);
+                float z = zAt(t);
+                int i = beakRings + j;
+                for (int s = 0; s < 16; s++)
+                {
+                    sv[s][i] = new int[4];
+                    for (int p = 0; p < 4; p++)
+                    {
+                        int li = (s * 3 + p) % 48;
+                        float k = li <= 24 ? li * 0.5f : (48 - li) * 0.5f;
+                        var pt = HalfPtTF(k, t);
+                        float x = li <= 24 ? pt.x : -pt.x;
+                        sv[s][i][p] = b.Add(new Vector3(x * W * sc, pt.y * H * sc + lift, z));
+                    }
+                }
+            }
+            for (int i = 0; i < total - 1; i++)
+            {
+                bool beakZone = i < beakRings;
+                float tm = beakZone ? 0f : (i - beakRings + 0.5f) / (rings - 1);
+                for (int s = 0; s < 16; s++)
+                    for (int p = 0; p < 3; p++)
+                    {
+                        int go = ((s * 3 + p) % 48) / 2;
+                        int mat = beakZone ? 1
+                            : paint(go / 3, go % 3, tm, Mathf.Min(rings - 2, i - beakRings));
+                        b.FaceQ(sv[s][i][p], sv[s][i + 1][p],
+                            sv[s][i + 1][p + 1], sv[s][i][p + 1], mat);
+                    }
+            }
+            return sv;
+        }
+
         // Raptor plumage: silver-white base, dark evergreen beak, mantle
         // stripe, and feather-mark chevrons; pale breast and belly.
         static int PaintMatT(GenomeT1 g, int s, int p, float tm, bool[] markCell, bool microHit)
@@ -201,7 +282,7 @@ namespace SpaceGame
             var g = RollT1(hash);
             var b = new Builder();
             float L = g.L, W = g.W, H = g.H;
-            const int rings = 48;
+            const int rings = 96;
 
             var panelRng = Rng.Stream("talonpanels:" + hash);
             var markCell = new bool[30];
@@ -232,75 +313,23 @@ namespace SpaceGame
             // The beak is part of the hull surface: forward of the face the
             // same strip loop keeps going, narrowing and drooping into a
             // blunt dark bill. No seams, no bolted-on tube.
-            const int beakRings = 7;
-            int total = beakRings + rings;
-            var stripVerts = new int[8][][];
-            var ringT = new float[rings];
-            for (int s = 0; s < 8; s++) stripVerts[s] = new int[total][];
-
-            for (int i = 0; i < beakRings; i++)
-            {
-                float ub = i / (float)beakRings;             // 0 = tip
-                float sc = 0.40f * Mathf.Lerp(0.28f, 0.96f, Smooth01(ub));
-                float xNarrow = Mathf.Lerp(0.55f, 0.98f, ub);
-                float yOff = CrSample(cts, clf, 0f) * H - Mathf.Pow(1f - ub, 1.6f) * 0.22f * H;
-                float z = zBF + g.Beak * (1f - ub);
-                for (int s = 0; s < 8; s++)
+            const int beakRings = 14;
+            var stripVerts = TalonLoft(b, beakRings, rings, W, H, zBF, g.Beak,
+                0.40f, 0.28f, 0.96f, 0.55f, 1.6f, 0.22f * H, CrSample(cts, clf, 0f) * H,
+                t =>
                 {
-                    stripVerts[s][i] = new int[4];
-                    for (int p = 0; p < 4; p++)
-                    {
-                        int li = (StripStart[s] + p) % LoopPts;
-                        var pt = LoopPtT(li, 0f);
-                        stripVerts[s][i][p] = b.Add(new Vector3(
-                            pt.x * W * sc * xNarrow, pt.y * H * sc + yOff, z));
-                    }
-                }
-            }
-            for (int j = 0; j < rings; j++)
-            {
-                float t = j / (float)(rings - 1);
-                ringT[j] = t;
-                float sc = CrSample(cts, csc, t);
-                sc *= 1f + g.SurfAmp * 0.012f * Mathf.Sin((t * 6f + g.SurfPhase) * Mathf.PI * 2f);
-                float lift = CrSample(cts, clf, t) * H;
-                float z = zAt(t);
-                int i = beakRings + j;
-                for (int s = 0; s < 8; s++)
-                {
-                    stripVerts[s][i] = new int[4];
-                    for (int p = 0; p < 4; p++)
-                    {
-                        int li = (StripStart[s] + p) % LoopPts;
-                        var pt = LoopPtT(li, t);
-                        stripVerts[s][i][p] = b.Add(new Vector3(pt.x * W * sc, pt.y * H * sc + lift, z));
-                    }
-                }
-            }
-            for (int i = 0; i < total - 1; i++)
-            {
-                bool beakZone = i < beakRings;
-                float tm = beakZone ? 0f
-                    : (ringT[i - beakRings] + ringT[Mathf.Min(rings - 1, i - beakRings + 1)]) * 0.5f;
-                for (int s = 0; s < 8; s++)
-                    for (int p = 0; p < 3; p++)
-                    {
-                        int mat = beakZone ? 1 : PaintMatT(g, s, p, tm, markCell, micro[Mathf.Min(rings - 2, i - beakRings), s * 3 + p]);
-                        b.FaceQ(stripVerts[s][i][p], stripVerts[s][i + 1][p],
-                            stripVerts[s][i + 1][p + 1], stripVerts[s][i][p + 1], mat);
-                    }
-            }
+                    float sc2 = CrSample(cts, csc, t);
+                    return sc2 * (1f + g.SurfAmp * 0.012f * Mathf.Sin((t * 6f + g.SurfPhase) * Mathf.PI * 2f));
+                },
+                t => CrSample(cts, clf, t) * H, zAt,
+                (so, po, tm, i) => PaintMatT(g, so, po, tm, markCell, micro[i, so * 3 + po]));
 
             // Blunt bill tip and tail cap.
             float yTip = CrSample(cts, clf, 0f) * H - 0.22f * H;
             var billTip = new Vector3(0f, yTip - 0.01f, zBF + g.Beak + 0.06f);
-            for (int s = 0; s < 8; s++)
-                for (int p = 0; p < 3; p++)
-                    b.TriU(billTip, b.V[stripVerts[s][0][p + 1]], b.V[stripVerts[s][0][p]], 1);
+            CapFan(b, billTip, stripVerts, 0, true, 1);
             var sternC = new Vector3(0f, CrSample(cts, clf, 1f) * H, -0.5f * L - 0.05f);
-            for (int s = 0; s < 8; s++)
-                for (int p = 0; p < 3; p++)
-                    b.TriU(sternC, b.V[stripVerts[s][total - 1][p]], b.V[stripVerts[s][total - 1][p + 1]], 1);
+            CapFan(b, sternC, stripVerts, stripVerts[0].Length - 1, false, 1);
 
             // ---- eyes + brow wedges on the face flanks ----
             for (int side = -1; side <= 1; side += 2)
@@ -625,7 +654,7 @@ namespace SpaceGame
             var g = RollT2(hash);
             var b = new Builder();
             float L = g.L, W = g.W, H = g.H;
-            const int rings = 52;
+            const int rings = 104;
 
             var panelRng = Rng.Stream("talon2panels:" + hash);
             var markCell = new bool[30];
@@ -659,75 +688,23 @@ namespace SpaceGame
             };
 
             // ---- continuous loft with a hooked bill ----
-            const int beakRings = 8;
-            int total = beakRings + rings;
-            var stripVerts = new int[8][][];
-            var ringT = new float[rings];
-            for (int s = 0; s < 8; s++) stripVerts[s] = new int[total][];
-
-            for (int i = 0; i < beakRings; i++)
-            {
-                float ub = i / (float)beakRings;
-                float sc = 0.42f * Mathf.Lerp(0.30f, 0.97f, Smooth01(ub));
-                float xNarrow = Mathf.Lerp(0.50f, 0.98f, ub);
-                float yOff = CrSample(cts, clf, 0f) * H - Mathf.Pow(1f - ub, 1.35f) * g.Hook * H;
-                float z = zBF + g.Beak * (1f - ub);
-                for (int s = 0; s < 8; s++)
+            const int beakRings = 16;
+            var stripVerts = TalonLoft(b, beakRings, rings, W, H, zBF, g.Beak,
+                0.42f, 0.30f, 0.97f, 0.50f, 1.35f, g.Hook * H, CrSample(cts, clf, 0f) * H,
+                t =>
                 {
-                    stripVerts[s][i] = new int[4];
-                    for (int p = 0; p < 4; p++)
-                    {
-                        int li = (StripStart[s] + p) % LoopPts;
-                        var pt = LoopPtT(li, 0f);
-                        stripVerts[s][i][p] = b.Add(new Vector3(
-                            pt.x * W * sc * xNarrow, pt.y * H * sc + yOff, z));
-                    }
-                }
-            }
-            for (int j = 0; j < rings; j++)
-            {
-                float t = j / (float)(rings - 1);
-                ringT[j] = t;
-                float sc = CrSample(cts, csc, t);
-                sc *= 1f + g.SurfAmp * 0.012f * Mathf.Sin((t * 6f + g.SurfPhase) * Mathf.PI * 2f);
-                float lift = CrSample(cts, clf, t) * H;
-                float z = zAt(t);
-                int i = beakRings + j;
-                for (int s = 0; s < 8; s++)
-                {
-                    stripVerts[s][i] = new int[4];
-                    for (int p = 0; p < 4; p++)
-                    {
-                        int li = (StripStart[s] + p) % LoopPts;
-                        var pt = LoopPtT(li, t);
-                        stripVerts[s][i][p] = b.Add(new Vector3(pt.x * W * sc, pt.y * H * sc + lift, z));
-                    }
-                }
-            }
-            for (int i = 0; i < total - 1; i++)
-            {
-                bool beakZone = i < beakRings;
-                float tm = beakZone ? 0f
-                    : (ringT[i - beakRings] + ringT[Mathf.Min(rings - 1, i - beakRings + 1)]) * 0.5f;
-                for (int s = 0; s < 8; s++)
-                    for (int p = 0; p < 3; p++)
-                    {
-                        int mat = beakZone ? 1 : PaintMatT2(g, s, p, tm, markCell, micro[Mathf.Min(rings - 2, i - beakRings), s * 3 + p]);
-                        b.FaceQ(stripVerts[s][i][p], stripVerts[s][i + 1][p],
-                            stripVerts[s][i + 1][p + 1], stripVerts[s][i][p + 1], mat);
-                    }
-            }
+                    float sc2 = CrSample(cts, csc, t);
+                    return sc2 * (1f + g.SurfAmp * 0.012f * Mathf.Sin((t * 6f + g.SurfPhase) * Mathf.PI * 2f));
+                },
+                t => CrSample(cts, clf, t) * H, zAt,
+                (so, po, tm, i) => PaintMatT2(g, so, po, tm, markCell, micro[i, so * 3 + po]));
 
             // Hooked bill tip dropping below the last ring, and a tail cap.
             float yTip = CrSample(cts, clf, 0f) * H - g.Hook * H;
             var billTip = new Vector3(0f, yTip - 0.16f, zBF + g.Beak + 0.04f);
-            for (int s = 0; s < 8; s++)
-                for (int p = 0; p < 3; p++)
-                    b.TriU(billTip, b.V[stripVerts[s][0][p + 1]], b.V[stripVerts[s][0][p]], 1);
+            CapFan(b, billTip, stripVerts, 0, true, 1);
             var sternC = new Vector3(0f, CrSample(cts, clf, 1f) * H, -0.5f * L - 0.06f);
-            for (int s = 0; s < 8; s++)
-                for (int p = 0; p < 3; p++)
-                    b.TriU(sternC, b.V[stripVerts[s][total - 1][p]], b.V[stripVerts[s][total - 1][p + 1]], 1);
+            CapFan(b, sternC, stripVerts, stripVerts[0].Length - 1, false, 1);
 
             // ---- eyes + heavy brow wedges ----
             for (int side = -1; side <= 1; side += 2)
@@ -1076,7 +1053,7 @@ namespace SpaceGame
             var g = RollT3(hash);
             var b = new Builder();
             float L = g.L, W = g.W, H = g.H;
-            const int rings = 52;
+            const int rings = 104;
 
             var panelRng = Rng.Stream("talon3panels:" + hash);
             var markCell = new bool[30];
@@ -1103,75 +1080,23 @@ namespace SpaceGame
             };
 
             // ---- continuous loft with a short hooked owl bill ----
-            const int beakRings = 7;
-            int total = beakRings + rings;
-            var stripVerts = new int[8][][];
-            var ringT = new float[rings];
-            for (int s = 0; s < 8; s++) stripVerts[s] = new int[total][];
-
-            for (int i = 0; i < beakRings; i++)
-            {
-                float ub = i / (float)beakRings;
-                float sc = 0.50f * Mathf.Lerp(0.30f, 0.97f, Smooth01(ub));
-                float xNarrow = Mathf.Lerp(0.55f, 0.98f, ub);
-                float yOff = CrSample(cts, clf, 0f) * H - Mathf.Pow(1f - ub, 1.35f) * g.Hook * H;
-                float z = zBF + g.Beak * (1f - ub);
-                for (int s = 0; s < 8; s++)
+            const int beakRings = 14;
+            var stripVerts = TalonLoft(b, beakRings, rings, W, H, zBF, g.Beak,
+                0.50f, 0.30f, 0.97f, 0.55f, 1.35f, g.Hook * H, CrSample(cts, clf, 0f) * H,
+                t =>
                 {
-                    stripVerts[s][i] = new int[4];
-                    for (int p = 0; p < 4; p++)
-                    {
-                        int li = (StripStart[s] + p) % LoopPts;
-                        var pt = LoopPtT(li, 0f);
-                        stripVerts[s][i][p] = b.Add(new Vector3(
-                            pt.x * W * sc * xNarrow, pt.y * H * sc + yOff, z));
-                    }
-                }
-            }
-            for (int j = 0; j < rings; j++)
-            {
-                float t = j / (float)(rings - 1);
-                ringT[j] = t;
-                float sc = CrSample(cts, csc, t);
-                sc *= 1f + g.SurfAmp * 0.012f * Mathf.Sin((t * 6f + g.SurfPhase) * Mathf.PI * 2f);
-                float lift = CrSample(cts, clf, t) * H;
-                float z = zAt(t);
-                int i = beakRings + j;
-                for (int s = 0; s < 8; s++)
-                {
-                    stripVerts[s][i] = new int[4];
-                    for (int p = 0; p < 4; p++)
-                    {
-                        int li = (StripStart[s] + p) % LoopPts;
-                        var pt = LoopPtT(li, t);
-                        stripVerts[s][i][p] = b.Add(new Vector3(pt.x * W * sc, pt.y * H * sc + lift, z));
-                    }
-                }
-            }
-            for (int i = 0; i < total - 1; i++)
-            {
-                bool beakZone = i < beakRings;
-                float tm = beakZone ? 0f
-                    : (ringT[i - beakRings] + ringT[Mathf.Min(rings - 1, i - beakRings + 1)]) * 0.5f;
-                for (int s = 0; s < 8; s++)
-                    for (int p = 0; p < 3; p++)
-                    {
-                        int mat = beakZone ? 1 : PaintMatT3(g, s, p, tm, markCell, micro[Mathf.Min(rings - 2, i - beakRings), s * 3 + p]);
-                        b.FaceQ(stripVerts[s][i][p], stripVerts[s][i + 1][p],
-                            stripVerts[s][i + 1][p + 1], stripVerts[s][i][p + 1], mat);
-                    }
-            }
+                    float sc2 = CrSample(cts, csc, t);
+                    return sc2 * (1f + g.SurfAmp * 0.012f * Mathf.Sin((t * 6f + g.SurfPhase) * Mathf.PI * 2f));
+                },
+                t => CrSample(cts, clf, t) * H, zAt,
+                (so, po, tm, i) => PaintMatT3(g, so, po, tm, markCell, micro[i, so * 3 + po]));
 
             // Sharp hooked bill point and tail cap.
             float yTip = CrSample(cts, clf, 0f) * H - g.Hook * H;
             var billTip = new Vector3(0f, yTip - 0.14f, zBF + g.Beak + 0.16f);
-            for (int s = 0; s < 8; s++)
-                for (int p = 0; p < 3; p++)
-                    b.TriU(billTip, b.V[stripVerts[s][0][p + 1]], b.V[stripVerts[s][0][p]], 1);
+            CapFan(b, billTip, stripVerts, 0, true, 1);
             var sternC = new Vector3(0f, CrSample(cts, clf, 1f) * H, -0.5f * L - 0.06f);
-            for (int s = 0; s < 8; s++)
-                for (int p = 0; p < 3; p++)
-                    b.TriU(sternC, b.V[stripVerts[s][total - 1][p]], b.V[stripVerts[s][total - 1][p + 1]], 1);
+            CapFan(b, sternC, stripVerts, stripVerts[0].Length - 1, false, 1);
 
             // ---- huge glowing owl eyes ringed by facial-disc petals ----
             for (int side = -1; side <= 1; side += 2)

@@ -121,6 +121,17 @@ namespace SpaceGame
             return new Vector2(-p.x, p.y);
         }
 
+        static Vector2 HalfPtSF(float k, float t)
+        {
+            float wMid = Smooth01(t / 0.40f);
+            float wStern = Smooth01((t - 0.62f) / 0.38f);
+            var n = ProfCR(NoseS, k);
+            var m = ProfCR(MidS, k);
+            var st = ProfCR(SternS, k);
+            var v = Vector2.Lerp(n, m, wMid);
+            return Vector2.Lerp(v, st, wStern);
+        }
+
         // Serpent hide: charcoal base, dark-red scale fields alternating
         // like laid shingles on the flanks, red saddle patches on the
         // spine, bronze micro-patches, and bronze prow or stern banding.
@@ -169,7 +180,7 @@ namespace SpaceGame
             var g = RollS1(hash);
             var b = new Builder();
             float L = g.L, W = g.W, H = g.H;
-            const int rings = 56;
+            const int rings = 104;
 
             var panelRng = Rng.Stream("scalepanels:" + hash);
             var markCell = new bool[30];
@@ -199,51 +210,18 @@ namespace SpaceGame
                 return new Vector3(pt.x * W * sc2, pt.y * H * sc2 + lift2, zAt(t));
             };
 
-            // ---- main hull loft ----
-            var stripVerts = new int[8][][];
-            var ringT = new float[rings];
-            for (int s = 0; s < 8; s++) stripVerts[s] = new int[rings][];
-
-            for (int j = 0; j < rings; j++)
-            {
-                float t = j / (float)(rings - 1);
-                ringT[j] = t;
-                float sc = CrSample(cts, csc, t);
-                sc *= 1f + g.SurfAmp * 0.012f * Mathf.Sin((t * 7f + g.SurfPhase) * Mathf.PI * 2f);
-                float lift = CrSample(cts, clf, t) * H;
-                float z = zAt(t);
-                for (int s = 0; s < 8; s++)
-                {
-                    stripVerts[s][j] = new int[4];
-                    for (int p = 0; p < 4; p++)
-                    {
-                        int li = (StripStart[s] + p) % LoopPts;
-                        var pt = LoopPtS(li, t);
-                        stripVerts[s][j][p] = b.Add(new Vector3(pt.x * W * sc, pt.y * H * sc + lift, z));
-                    }
-                }
-            }
-            for (int i = 0; i < rings - 1; i++)
-            {
-                float tm = (ringT[i] + ringT[i + 1]) * 0.5f;
-                for (int s = 0; s < 8; s++)
-                    for (int p = 0; p < 3; p++)
-                    {
-                        int mat = PaintMatS(g, s, p, tm, markCell, micro[i, s * 3 + p]);
-                        b.FaceQ(stripVerts[s][i][p], stripVerts[s][i + 1][p],
-                            stripVerts[s][i + 1][p + 1], stripVerts[s][i][p + 1], mat);
-                    }
-            }
+            // ---- main hull loft (48-pt smoothed) ----
+            var stripVerts = HullLoft48(b, rings, HalfPtSF,
+                t => CrSample(cts, csc, t)
+                    * (1f + g.SurfAmp * 0.012f * Mathf.Sin((t * 7f + g.SurfPhase) * Mathf.PI * 2f)),
+                t => CrSample(cts, clf, t) * H, zAt, t => 1f, t => 1f, W, H,
+                (so, po, tm, i) => PaintMatS(g, so, po, tm, markCell, micro[i, so * 3 + po]));
 
             // Armored prow point and stern cap.
             var prow = new Vector3(0f, CrSample(cts, clf, 0f) * H - 0.02f, 0.52f * L + g.Nose);
-            for (int s = 0; s < 8; s++)
-                for (int p = 0; p < 3; p++)
-                    b.TriU(prow, b.V[stripVerts[s][0][p + 1]], b.V[stripVerts[s][0][p]], 0);
+            CapFan(b, prow, stripVerts, 0, true, 0);
             var sternC = new Vector3(0f, CrSample(cts, clf, 1f) * H, -0.52f * L - 0.06f);
-            for (int s = 0; s < 8; s++)
-                for (int p = 0; p < 3; p++)
-                    b.TriU(sternC, b.V[stripVerts[s][rings - 1][p]], b.V[stripVerts[s][rings - 1][p + 1]], 0);
+            CapFan(b, sternC, stripVerts, rings - 1, false, 0);
 
             // ---- scale shingles: nine overlapping rows down each flank ----
             for (int side = -1; side <= 1; side += 2)
@@ -532,7 +510,7 @@ namespace SpaceGame
             var g = RollS2(hash);
             var b = new Builder();
             float L = g.L, W = g.W, H = g.H;
-            const int rings = 56;
+            const int rings = 104;
 
             var panelRng = Rng.Stream("scale2panels:" + hash);
             var markCell = new bool[30];
@@ -565,54 +543,18 @@ namespace SpaceGame
                 return new Vector3(pt.x * W * sc2 * xwAt(t), pt.y * H * sc2 * yhAt(t) + lift2, zAt(t));
             };
 
-            // ---- main hull loft with the flattened snout ----
-            var stripVerts = new int[8][][];
-            var ringT = new float[rings];
-            for (int s = 0; s < 8; s++) stripVerts[s] = new int[rings][];
-
-            for (int j = 0; j < rings; j++)
-            {
-                float t = j / (float)(rings - 1);
-                ringT[j] = t;
-                float sc = CrSample(cts, csc, t);
-                sc *= 1f + g.SurfAmp * 0.012f * Mathf.Sin((t * 7f + g.SurfPhase) * Mathf.PI * 2f);
-                float lift = CrSample(cts, clf, t) * H;
-                float xw = xwAt(t);
-                float yh = yhAt(t);
-                float z = zAt(t);
-                for (int s = 0; s < 8; s++)
-                {
-                    stripVerts[s][j] = new int[4];
-                    for (int p = 0; p < 4; p++)
-                    {
-                        int li = (StripStart[s] + p) % LoopPts;
-                        var pt = LoopPtS(li, t);
-                        stripVerts[s][j][p] = b.Add(new Vector3(
-                            pt.x * W * sc * xw, pt.y * H * sc * yh + lift, z));
-                    }
-                }
-            }
-            for (int i = 0; i < rings - 1; i++)
-            {
-                float tm = (ringT[i] + ringT[i + 1]) * 0.5f;
-                for (int s = 0; s < 8; s++)
-                    for (int p = 0; p < 3; p++)
-                    {
-                        int mat = PaintMatS2(g, s, p, tm, markCell, micro[i, s * 3 + p]);
-                        b.FaceQ(stripVerts[s][i][p], stripVerts[s][i + 1][p],
-                            stripVerts[s][i + 1][p + 1], stripVerts[s][i][p + 1], mat);
-                    }
-            }
+            // ---- main hull loft with the flattened snout (48-pt smoothed) ----
+            var stripVerts = HullLoft48(b, rings, HalfPtSF,
+                t => CrSample(cts, csc, t)
+                    * (1f + g.SurfAmp * 0.012f * Mathf.Sin((t * 7f + g.SurfPhase) * Mathf.PI * 2f)),
+                t => CrSample(cts, clf, t) * H, zAt, xwAt, yhAt, W, H,
+                (so, po, tm, i) => PaintMatS2(g, so, po, tm, markCell, micro[i, so * 3 + po]));
 
             // Blunt jaw cap and stern cap.
             var prow = new Vector3(0f, CrSample(cts, clf, 0f) * H - 0.04f, 0.52f * L + g.Nose);
-            for (int s = 0; s < 8; s++)
-                for (int p = 0; p < 3; p++)
-                    b.TriU(prow, b.V[stripVerts[s][0][p + 1]], b.V[stripVerts[s][0][p]], 0);
+            CapFan(b, prow, stripVerts, 0, true, 0);
             var sternC = new Vector3(0f, CrSample(cts, clf, 1f) * H, -0.52f * L - 0.06f);
-            for (int s = 0; s < 8; s++)
-                for (int p = 0; p < 3; p++)
-                    b.TriU(sternC, b.V[stripVerts[s][rings - 1][p]], b.V[stripVerts[s][rings - 1][p + 1]], 0);
+            CapFan(b, sternC, stripVerts, rings - 1, false, 0);
 
             // ---- bronze teeth over a glowing red mouth seam ----
             for (int side = -1; side <= 1; side += 2)
@@ -944,7 +886,7 @@ namespace SpaceGame
             var g = RollS3(hash);
             var b = new Builder();
             float L = g.L, W = g.W, H = g.H;
-            const int rings = 56;
+            const int rings = 104;
 
             var panelRng = Rng.Stream("scale3panels:" + hash);
             var markCell = new bool[30];
@@ -981,54 +923,18 @@ namespace SpaceGame
                 return new Vector3(pt.x * W * sc2 * xwAt(t), pt.y * H * sc2 * yhAt(t) + lift2, zAt(t));
             };
 
-            // ---- main hull loft with the flared hood ----
-            var stripVerts = new int[8][][];
-            var ringT = new float[rings];
-            for (int s = 0; s < 8; s++) stripVerts[s] = new int[rings][];
-
-            for (int j = 0; j < rings; j++)
-            {
-                float t = j / (float)(rings - 1);
-                ringT[j] = t;
-                float sc = CrSample(cts, csc, t);
-                sc *= 1f + g.SurfAmp * 0.012f * Mathf.Sin((t * 7f + g.SurfPhase) * Mathf.PI * 2f);
-                float lift = CrSample(cts, clf, t) * H;
-                float xw = xwAt(t);
-                float yh = yhAt(t);
-                float z = zAt(t);
-                for (int s = 0; s < 8; s++)
-                {
-                    stripVerts[s][j] = new int[4];
-                    for (int p = 0; p < 4; p++)
-                    {
-                        int li = (StripStart[s] + p) % LoopPts;
-                        var pt = LoopPtS(li, t);
-                        stripVerts[s][j][p] = b.Add(new Vector3(
-                            pt.x * W * sc * xw, pt.y * H * sc * yh + lift, z));
-                    }
-                }
-            }
-            for (int i = 0; i < rings - 1; i++)
-            {
-                float tm = (ringT[i] + ringT[i + 1]) * 0.5f;
-                for (int s = 0; s < 8; s++)
-                    for (int p = 0; p < 3; p++)
-                    {
-                        int mat = PaintMatS3(g, s, p, tm, markCell, micro[i, s * 3 + p]);
-                        b.FaceQ(stripVerts[s][i][p], stripVerts[s][i + 1][p],
-                            stripVerts[s][i + 1][p + 1], stripVerts[s][i][p + 1], mat);
-                    }
-            }
+            // ---- main hull loft with the flared hood (48-pt smoothed) ----
+            var stripVerts = HullLoft48(b, rings, HalfPtSF,
+                t => CrSample(cts, csc, t)
+                    * (1f + g.SurfAmp * 0.012f * Mathf.Sin((t * 7f + g.SurfPhase) * Mathf.PI * 2f)),
+                t => CrSample(cts, clf, t) * H, zAt, xwAt, yhAt, W, H,
+                (so, po, tm, i) => PaintMatS3(g, so, po, tm, markCell, micro[i, so * 3 + po]));
 
             // Snake snout point and stern cap.
             var prow = new Vector3(0f, CrSample(cts, clf, 0f) * H - 0.05f, 0.52f * L + g.Nose);
-            for (int s = 0; s < 8; s++)
-                for (int p = 0; p < 3; p++)
-                    b.TriU(prow, b.V[stripVerts[s][0][p + 1]], b.V[stripVerts[s][0][p]], 1);
+            CapFan(b, prow, stripVerts, 0, true, 1);
             var sternC = new Vector3(0f, CrSample(cts, clf, 1f) * H, -0.52f * L - 0.06f);
-            for (int s = 0; s < 8; s++)
-                for (int p = 0; p < 3; p++)
-                    b.TriU(sternC, b.V[stripVerts[s][rings - 1][p]], b.V[stripVerts[s][rings - 1][p + 1]], 0);
+            CapFan(b, sternC, stripVerts, rings - 1, false, 0);
 
             // ---- fanged mouth under the snout ----
             for (int side = -1; side <= 1; side += 2)
