@@ -242,6 +242,8 @@ namespace SpaceGame
                         d += raise + new Vector3(d.x * 0.025f, -0.04f, 0f);
                         int mat = (r2 + li) % 2 == 0 ? 1 : 0;
                         b.QuadUDS(a, b2, c, d, mat);
+                        // thickness rim under the raised leading edge
+                        b.QuadUDS(a, b2, surf(liB, t0), surf(liA, t0), 1);
                         var apex = (c + d) * 0.5f + new Vector3(0f, -0.02f, -0.10f);
                         b.TriUDS(c, d, apex, (r2 + li) % 3 == 0 ? 3 : 1);
                     }
@@ -985,6 +987,8 @@ namespace SpaceGame
                         d += raise + new Vector3(d.x * 0.025f, -0.04f, 0f);
                         int mat = (r2 + li) % 2 == 0 ? 1 : 0;
                         b.QuadUDS(a, b2, c, d, mat);
+                        // thickness rim under the raised leading edge
+                        b.QuadUDS(a, b2, surf(liB, t0), surf(liA, t0), 1);
                         var apex = (c + d) * 0.5f + new Vector3(0f, -0.02f, -0.09f);
                         b.TriUDS(c, d, apex, (r2 + li) % 3 == 0 ? 3 : 1);
                     }

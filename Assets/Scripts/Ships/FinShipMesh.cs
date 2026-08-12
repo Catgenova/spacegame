@@ -363,6 +363,22 @@ namespace SpaceGame
                     new[] { 0.035f, 0.005f }, 6, 1, true);
             }
 
+            // ---- five inset gill slits raked behind the head ----
+            for (int side = -1; side <= 1; side += 2)
+            {
+                for (int i = 0; i < 5; i++)
+                {
+                    float tG = 0.15f + i * 0.035f;
+                    float scG = CrSample(cts, csc, tG);
+                    float liftG = CrSample(cts, clf, tG) * H;
+                    var p = LoopPtS(side > 0 ? 5 : 19, tG);
+                    var pos = new Vector3(p.x * W * scG, p.y * H * scG + liftG, (0.5f - tG) * L);
+                    BevelBox(b, pos, new Vector3(0.035f, 0.16f, 0.030f), 0.012f, 3);
+                    BevelBox(b, pos + new Vector3(side * 0.012f, 0f, 0f),
+                        new Vector3(0.028f, 0.11f, 0.016f), 0.008f, 2);
+                }
+            }
+
             // Twin engine drums with white collars and blue wake discs.
             for (int side = -1; side <= 1; side += 2)
             {

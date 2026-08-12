@@ -25,6 +25,20 @@ namespace SpaceGame
     /// </summary>
     public static class PackShipMesh
     {
+        /// <summary>Freight dressing for a flank container: two vertical
+        /// door seams and four corner castings on the outboard face.</summary>
+        static void ContainerDetail(MeshKit.Builder b, Vector3 c, Vector3 half, int side)
+        {
+            float fx = side * (half.x + 0.004f);
+            for (int i = -1; i <= 1; i += 2)
+                MeshKit.BevelBox(b, c + new Vector3(fx, 0f, i * half.z * 0.30f),
+                    new Vector3(0.010f, half.y * 0.86f, 0.014f), 0.004f, 3);
+            for (int iy = -1; iy <= 1; iy += 2)
+                for (int iz = -1; iz <= 1; iz += 2)
+                    MeshKit.BevelBox(b, c + new Vector3(side * half.x, iy * (half.y - 0.035f), iz * (half.z - 0.035f)),
+                        new Vector3(0.024f, 0.034f, 0.034f), 0.01f, 3);
+        }
+
         const int LoopPts = 24;
         const int Spans = 24;
 
@@ -264,6 +278,7 @@ namespace SpaceGame
                     float t = 0.34f + i * 0.19f;
                     var c = surf(side > 0 ? 4 : 20, t) + new Vector3(side * 0.10f, 0f, 0f);
                     BevelBox(b, c, new Vector3(0.14f, 0.19f, 0.42f), i % 2 == 0 ? 1 : 0);
+                    ContainerDetail(b, c, new Vector3(0.14f, 0.19f, 0.42f), side);
                     BevelBox(b, c + new Vector3(side * 0.145f, -0.05f, 0f), new Vector3(0.012f, 0.05f, 0.32f), 2);
                 }
             }
@@ -526,6 +541,7 @@ namespace SpaceGame
                     float t = 0.36f + i * 0.19f;
                     var c = surf(side > 0 ? 4 : 20, t) + new Vector3(side * 0.16f, 0.02f, 0f);
                     BevelBox(b, c, new Vector3(0.20f, H * 0.26f, 0.55f), i % 2 == 0 ? 1 : 0);
+                    ContainerDetail(b, c, new Vector3(0.20f, H * 0.26f, 0.55f), side);
                     if (i == 0)
                         BevelBox(b, c + new Vector3(0f, 0.02f, 0.57f), new Vector3(0.13f, 0.12f, 0.02f), 3);
                     BevelBox(b, c + new Vector3(side * 0.21f, -0.06f, 0f), new Vector3(0.012f, 0.05f, 0.40f), 2);
