@@ -8,16 +8,18 @@ namespace SpaceGame
     /// 10-digit body hashes, avian where Hive is wasp. Talons fight at
     /// arm's length — drones do the killing while the hull keeps station.
     /// Class 1 "Kestrel": 2 drone hardpoints, 1 turret, 2 mids, 2 lows.
+    /// Class 2 "Berkut": 3 drone hardpoints, 1 turret, 3 mids, 3 lows.
     /// Streams: talondef / talonbody / talonpanels.
     /// </summary>
     public static class TalonGenerator
     {
         public const string TypeId = "talon";
-        public const int MaxClass = 1;
+        public const int MaxClass = 2;
 
         class TalonClass
         {
             public string Label, Doctrine;
+            public string[] Names;
             public int DroneSlots, TurretSlots, MidSlots, LowSlots;
             public float ShieldMin, ShieldMax, ArmorMin, ArmorMax, HullMin, HullMax;
             public float SpeedMin, SpeedMax, TurnMin, TurnMax;
@@ -45,6 +47,24 @@ namespace SpaceGame
                 Materials = new Dictionary<string, float>
                 {
                     ["tritanium"] = 1000f, ["pyerite"] = 560f, ["mexallon"] = 220f, ["isogen"] = 95f,
+                },
+            },
+            [2] = new TalonClass
+            {
+                Label = "Talon-class Berkut (C2)",
+                Doctrine = "Strike cruiser: three flights of talons and a hooked beak for the wounded.",
+                Names = new[] { "Berkut", "Aquila", "Harpy", "Bateleur", "Wedgetail", "Martial", "Steppe", "Imperial" },
+                DroneSlots = 3, TurretSlots = 1, MidSlots = 3, LowSlots = 3,
+                ShieldMin = 340, ShieldMax = 420, ArmorMin = 240, ArmorMax = 300,
+                HullMin = 250, HullMax = 310,
+                SpeedMin = 2.7f, SpeedMax = 3.3f, TurnMin = 65, TurnMax = 85,
+                CapMin = 280, CapMax = 350, RegenMin = 15, RegenMax = 19,
+                CargoMin = 240, CargoMax = 330,
+                PriceMin = 520000, PriceMax = 640000,
+                Fee = 130000,
+                Materials = new Dictionary<string, float>
+                {
+                    ["tritanium"] = 2000f, ["pyerite"] = 1150f, ["mexallon"] = 460f, ["isogen"] = 200f,
                 },
             },
         };
@@ -81,6 +101,20 @@ namespace SpaceGame
 
         // ---------- blueprints ----------
 
+        /// <summary>Higher classes drop from more dangerous wrecks.</summary>
+        static int RollClass(string npcId)
+        {
+            float c2;
+            switch (npcId)
+            {
+                case "convoyhauler": c2 = 0.30f; break;
+                case "overlord": c2 = 0.22f; break;
+                case "marauder": c2 = 0.09f; break;
+                default: c2 = 0.03f; break;
+            }
+            return Random.value < c2 ? 2 : 1;
+        }
+
         public static Blueprint RollBlueprint(string npcId)
         {
             float r = Random.value;
@@ -89,7 +123,7 @@ namespace SpaceGame
             {
                 Hash = HiveGenerator.NewHash(),
                 TypeId = TypeId,
-                Class = 1,
+                Class = RollClass(npcId),
                 Rarity = rarity,
                 RunsLeft = GameData.RarityRuns[rarity],
             };
@@ -108,10 +142,11 @@ namespace SpaceGame
             var rng = Rng.Stream(DefKey(cls, hash));
             System.Func<float, float, float> R = (lo, hi) => lo + (float)rng.NextDouble() * (hi - lo);
 
+            var pool = c.Names ?? NamePool;
             var def = new ShipDef
             {
                 Id = IdFromHash(hash, cls),
-                Name = NamePool[rng.Next(NamePool.Length)] + "-" + hash.Substring(0, 4),
+                Name = pool[rng.Next(pool.Length)] + "-" + hash.Substring(0, 4),
                 Class = c.Label,
                 Desc = "One-off cruiser hull, body " + hash + ". " + c.Doctrine,
                 Role = c.Doctrine,

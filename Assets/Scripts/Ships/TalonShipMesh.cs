@@ -10,8 +10,11 @@ namespace SpaceGame
     /// layered feather-blade wings (three primaries over two coverts per
     /// side), a fanned tail, twin boxy engine nacelles with teal exhaust,
     /// glowing drone bay hatches on the flanks, and one chin gun.
+    /// C2 "Berkut" is the eagle strike cruiser: heavier hull under rows of
+    /// overlapping plumage shingles, a hooked bill, folded stacked wings,
+    /// three drone bays per flank, and a third ventral engine.
     /// Submeshes: 0 silver-white, 1 dark evergreen, 2 teal glow, 3 glass.
-    /// Streams: talonbody / talonpanels.
+    /// Streams: talonbody / talonpanels (C1), talon2body / talon2panels (C2).
     /// </summary>
     public static class TalonShipMesh
     {
@@ -20,7 +23,7 @@ namespace SpaceGame
         static readonly int[] StripStart = { 0, 3, 6, 9, 12, 15, 18, 21 };
 
         public static GameObject Build(string hash, int cls, Transform shipRoot)
-            => BuildC1(hash, shipRoot); // single class so far
+            => cls == 2 ? BuildC2(hash, shipRoot) : BuildC1(hash, shipRoot);
 
         class GenomeT1
         {
@@ -499,6 +502,449 @@ namespace SpaceGame
             var go = new GameObject("Hull");
             go.transform.SetParent(shipRoot, false);
             var mesh = new Mesh { name = "talon1_" + hash };
+            mesh.SetVertices(b.V);
+            mesh.subMeshCount = 4;
+            for (int m = 0; m < 4; m++) mesh.SetTriangles(b.Sub[m], m);
+            mesh.RecalculateNormals();
+            mesh.RecalculateBounds();
+            go.AddComponent<MeshFilter>().mesh = mesh;
+            var mr = go.AddComponent<MeshRenderer>();
+            mr.materials = new[]
+            {
+                Metal(g.White, 0.88f, 0.82f),
+                Metal(g.Green, 0.90f, 0.75f),
+                SystemView.Mat(new Color(0.35f, 0.95f, 0.85f), true),
+                Metal(new Color(0.04f, 0.07f, 0.08f), 0.9f, 0.95f),
+            };
+            return go;
+        }
+
+        // ==================== Class 2 "Berkut" ====================
+
+        class GenomeT2
+        {
+            public float L, W, H, Beak, Hook, CanopyStart, CanopyLen;
+            public float GunLen;
+            public float FeatherSpan, FeatherSweep, FeatherRake;
+            public float TailSpan, TailSweep;
+            public int EngineSegs;
+            public float Hue, Sat, Val, WhiteVal, MarkOdds, SurfAmp, SurfPhase;
+            public int BandMode, BandCount;
+            public float BandPhase;
+            public Color Green, White;
+        }
+
+        static GenomeT2 RollT2(string hash)
+        {
+            var rng = Rng.Stream("talon2body:" + hash);
+            System.Func<float, float, float> R = (lo, hi) => lo + (float)rng.NextDouble() * (hi - lo);
+            var g = new GenomeT2();
+            g.L = R(10.4f, 11.2f);
+            g.W = R(1.45f, 1.65f);
+            g.H = R(1.05f, 1.20f);
+            g.Beak = R(1.3f, 1.7f);
+            g.Hook = R(0.26f, 0.40f);
+            g.CanopyStart = R(0.13f, 0.17f);
+            g.CanopyLen = R(0.18f, 0.24f);
+            g.GunLen = R(2.0f, 2.4f);
+            g.FeatherSpan = R(3.2f, 3.9f);
+            g.FeatherSweep = R(2.6f, 3.3f);
+            g.FeatherRake = R(0.08f, 0.20f);
+            g.TailSpan = R(2.0f, 2.6f);
+            g.TailSweep = R(1.8f, 2.4f);
+            g.EngineSegs = 3 + rng.Next(2);
+            g.Hue = R(0.36f, 0.46f);
+            g.Sat = R(0.50f, 0.70f);
+            g.Val = R(0.20f, 0.32f);
+            g.WhiteVal = R(0.85f, 0.93f);
+            g.MarkOdds = R(0.45f, 0.70f);
+            g.SurfAmp = R(0f, 0.5f);
+            g.SurfPhase = R(0f, 1f);
+            g.BandMode = rng.Next(3);
+            g.BandCount = 2 + rng.Next(3);
+            g.BandPhase = R(0f, 1f);
+            g.Green = Color.HSVToRGB(g.Hue, g.Sat, g.Val);
+            g.White = new Color(g.WhiteVal, g.WhiteVal + 0.01f, g.WhiteVal + 0.02f);
+            return g;
+        }
+
+        // Eagle plumage: white head and belly, a dark slate saddle across
+        // the back and shoulders broken by pale feather patches, scattered
+        // flank chevrons, and tail bars or a dark neck collar.
+        static int PaintMatT2(GenomeT2 g, int s, int p, float tm, bool[] markCell, bool microHit)
+        {
+            bool deck = s == 0 || s == 7;
+            bool upper = s == 1 || s == 6;
+            bool lower = s == 2 || s == 5;
+            bool belly = s == 3 || s == 4;
+            int side = s <= 3 ? 0 : 1;
+
+            // White eagle head — the dark bill is painted by the beak zone.
+            if (tm < 0.16f) return 0;
+
+            // Dark saddle over back and shoulders, pale patches punched out.
+            if ((deck || upper) && tm > 0.20f && tm < 0.78f)
+            {
+                float ft = tm - 0.20f - p * 0.015f;
+                int cell = Mathf.Min(4, (int)(ft / 0.116f));
+                int band = deck ? 0 : 1;
+                return markCell[(side * 15 + band * 5 + cell) % 30] ? 1 : 0;
+            }
+
+            // Scattered chevrons along the lower flanks.
+            if (lower && tm > 0.30f && tm < 0.75f)
+            {
+                int cell = Mathf.Min(4, (int)((tm - 0.30f) / 0.09f));
+                if (markCell[(side * 15 + 10 + cell) % 30]) return 1;
+            }
+
+            // Band families: dark tail bars or a collar on the white neck.
+            if (g.BandMode == 1 && tm > 0.80f && tm < 0.96f)
+            {
+                float u = (tm - 0.80f) / 0.16f;
+                if ((int)(u * g.BandCount * 2 + g.BandPhase * 2f) % 2 == 0) return 1;
+            }
+            else if (g.BandMode == 2 && !belly && tm > 0.17f && tm < 0.28f)
+            {
+                float u = (tm - 0.17f) / 0.11f;
+                if ((int)(u * g.BandCount * 2.5f + g.BandPhase * 2f) % 2 == 0) return 1;
+            }
+
+            if (microHit && !belly && tm > 0.18f && tm < 0.94f) return 1;
+            return 0;
+        }
+
+        static GameObject BuildC2(string hash, Transform shipRoot)
+        {
+            var g = RollT2(hash);
+            var b = new Builder();
+            float L = g.L, W = g.W, H = g.H;
+            const int rings = 52;
+
+            var panelRng = Rng.Stream("talon2panels:" + hash);
+            var markCell = new bool[30];
+            for (int i = 0; i < 30; i++) markCell[i] = panelRng.NextDouble() < g.MarkOdds;
+            var micro = new bool[rings - 1, Spans];
+            for (int i = 0; i < rings - 1; i++)
+                for (int j = 0; j < Spans; j++)
+                    micro[i, j] = panelRng.NextDouble() < 0.03;
+
+            float zBF = 0.38f * L;
+            float Lb = zBF + 0.5f * L;
+
+            // Eagle back-line: deeper chest and a higher shoulder hump than
+            // the Kestrel, falling away to a heavy dropped tail.
+            float[] cts = { 0.00f, 0.08f, 0.25f, 0.40f, 0.55f, 0.72f, 0.88f, 1.00f };
+            float[] csc = { 0.42f, 0.75f, 1.00f, 0.96f, 0.84f, 0.66f, 0.48f, 0.34f };
+            float[] clf = { 0.12f, 0.18f, 0.20f, 0.14f, 0.06f, -0.02f, -0.08f, -0.14f };
+
+            System.Func<float, float> zAt = t => zBF - t * Lb;
+            System.Func<int, float, float> hullY = (k, t) =>
+            {
+                float sc2 = CrSample(cts, csc, t);
+                return HalfPtT(k, t).y * H * sc2 + CrSample(cts, clf, t) * H;
+            };
+            System.Func<int, float, Vector3> surf = (li, t) =>
+            {
+                float sc2 = CrSample(cts, csc, t);
+                float lift2 = CrSample(cts, clf, t) * H;
+                var pt = LoopPtT(((li % LoopPts) + LoopPts) % LoopPts, t);
+                return new Vector3(pt.x * W * sc2, pt.y * H * sc2 + lift2, zAt(t));
+            };
+
+            // ---- continuous loft with a hooked bill ----
+            const int beakRings = 8;
+            int total = beakRings + rings;
+            var stripVerts = new int[8][][];
+            var ringT = new float[rings];
+            for (int s = 0; s < 8; s++) stripVerts[s] = new int[total][];
+
+            for (int i = 0; i < beakRings; i++)
+            {
+                float ub = i / (float)beakRings;
+                float sc = 0.42f * Mathf.Lerp(0.30f, 0.97f, Smooth01(ub));
+                float xNarrow = Mathf.Lerp(0.50f, 0.98f, ub);
+                float yOff = CrSample(cts, clf, 0f) * H - Mathf.Pow(1f - ub, 1.35f) * g.Hook * H;
+                float z = zBF + g.Beak * (1f - ub);
+                for (int s = 0; s < 8; s++)
+                {
+                    stripVerts[s][i] = new int[4];
+                    for (int p = 0; p < 4; p++)
+                    {
+                        int li = (StripStart[s] + p) % LoopPts;
+                        var pt = LoopPtT(li, 0f);
+                        stripVerts[s][i][p] = b.Add(new Vector3(
+                            pt.x * W * sc * xNarrow, pt.y * H * sc + yOff, z));
+                    }
+                }
+            }
+            for (int j = 0; j < rings; j++)
+            {
+                float t = j / (float)(rings - 1);
+                ringT[j] = t;
+                float sc = CrSample(cts, csc, t);
+                sc *= 1f + g.SurfAmp * 0.012f * Mathf.Sin((t * 6f + g.SurfPhase) * Mathf.PI * 2f);
+                float lift = CrSample(cts, clf, t) * H;
+                float z = zAt(t);
+                int i = beakRings + j;
+                for (int s = 0; s < 8; s++)
+                {
+                    stripVerts[s][i] = new int[4];
+                    for (int p = 0; p < 4; p++)
+                    {
+                        int li = (StripStart[s] + p) % LoopPts;
+                        var pt = LoopPtT(li, t);
+                        stripVerts[s][i][p] = b.Add(new Vector3(pt.x * W * sc, pt.y * H * sc + lift, z));
+                    }
+                }
+            }
+            for (int i = 0; i < total - 1; i++)
+            {
+                bool beakZone = i < beakRings;
+                float tm = beakZone ? 0f
+                    : (ringT[i - beakRings] + ringT[Mathf.Min(rings - 1, i - beakRings + 1)]) * 0.5f;
+                for (int s = 0; s < 8; s++)
+                    for (int p = 0; p < 3; p++)
+                    {
+                        int mat = beakZone ? 1 : PaintMatT2(g, s, p, tm, markCell, micro[Mathf.Min(rings - 2, i - beakRings), s * 3 + p]);
+                        b.FaceQ(stripVerts[s][i][p], stripVerts[s][i + 1][p],
+                            stripVerts[s][i + 1][p + 1], stripVerts[s][i][p + 1], mat);
+                    }
+            }
+
+            // Hooked bill tip dropping below the last ring, and a tail cap.
+            float yTip = CrSample(cts, clf, 0f) * H - g.Hook * H;
+            var billTip = new Vector3(0f, yTip - 0.16f, zBF + g.Beak + 0.04f);
+            for (int s = 0; s < 8; s++)
+                for (int p = 0; p < 3; p++)
+                    b.TriU(billTip, b.V[stripVerts[s][0][p + 1]], b.V[stripVerts[s][0][p]], 1);
+            var sternC = new Vector3(0f, CrSample(cts, clf, 1f) * H, -0.5f * L - 0.06f);
+            for (int s = 0; s < 8; s++)
+                for (int p = 0; p < 3; p++)
+                    b.TriU(sternC, b.V[stripVerts[s][total - 1][p]], b.V[stripVerts[s][total - 1][p + 1]], 1);
+
+            // ---- eyes + heavy brow wedges ----
+            for (int side = -1; side <= 1; side += 2)
+            {
+                float tE = 0.045f;
+                float scE = CrSample(cts, csc, tE);
+                float liftE = CrSample(cts, clf, tE) * H;
+                var eye = new Vector3(side * W * scE * 0.72f, liftE + H * scE * 0.30f, zAt(tE));
+                Ball(b, eye, 0.13f, 3, 3, 6);
+                var a = new Vector3(side * 0.09f, hullY(0, 0.015f) + 0.02f, zAt(0.015f));
+                var b2 = new Vector3(eye.x + side * 0.12f, eye.y + 0.17f, eye.z + 0.16f);
+                var c = new Vector3(eye.x + side * 0.07f, eye.y + 0.19f, eye.z - 0.18f);
+                var d = new Vector3(side * 0.09f, hullY(0, 0.085f) + 0.03f, zAt(0.085f));
+                b.QuadUDS(a, b2, c, d, 1);
+            }
+
+            // ---- canopy on the crown ----
+            {
+                float tCan = g.CanopyStart;
+                float zC = zAt(tCan);
+                float halfLen = g.CanopyLen * L * 0.50f;
+                System.Func<float, float> deckAt = z =>
+                {
+                    float t = Mathf.Clamp01((zBF - z) / Lb);
+                    float sc = CrSample(cts, csc, t);
+                    return HalfPtT(0, t).y * H * sc + CrSample(cts, clf, t) * H;
+                };
+                Canopy(b, zC + halfLen, zC - halfLen, 0.28f, 0.17f, deckAt, 3, 1, 1);
+            }
+
+            // ---- nape crest: four swept spikes ----
+            for (int i = 0; i < 4; i++)
+            {
+                float xoff = (i - 1.5f) * 0.08f;
+                float len = (i == 1 || i == 2) ? 0.95f : 0.65f;
+                float tN = g.CanopyStart + g.CanopyLen + 0.06f;
+                var basePt = new Vector3(xoff, hullY(0, tN) - 0.01f, zAt(tN));
+                var dir = new Vector3((i - 1.5f) * 0.08f, 0.42f, -0.90f).normalized;
+                Tube(b, new[] { basePt, basePt + dir * (len * 0.5f), basePt + dir * len },
+                    new[] { 0.055f, 0.035f, 0.005f }, 5, 1, true);
+            }
+
+            // ---- faceted collar where the white head meets the saddle ----
+            {
+                float t0 = 0.17f;
+                float scC = CrSample(cts, csc, t0) * 1.05f;
+                float liftC = CrSample(cts, clf, t0) * H;
+                float z = zAt(t0);
+                for (int k = 0; k < 8; k++)
+                {
+                    int li0 = (k * 3) % LoopPts;
+                    int li1 = (k * 3 + 3) % LoopPts;
+                    var p0 = LoopPtT(li0, t0);
+                    var p1 = LoopPtT(li1, t0);
+                    var a = new Vector3(p0.x * W * scC, p0.y * H * scC + liftC, z + 0.11f);
+                    var b2 = new Vector3(p1.x * W * scC, p1.y * H * scC + liftC, z + 0.11f);
+                    var c = new Vector3(p1.x * W * scC, p1.y * H * scC + liftC, z - 0.11f);
+                    var d = new Vector3(p0.x * W * scC, p0.y * H * scC + liftC, z - 0.11f);
+                    b.QuadUDS(a, b2, c, d, k % 2 == 0 ? 1 : 0);
+                }
+            }
+
+            // ---- plumage shingles: four overlapping rows over the back ----
+            for (int side = -1; side <= 1; side += 2)
+            {
+                for (int r2 = 0; r2 < 4; r2++)
+                {
+                    float t0 = 0.22f + r2 * 0.12f;
+                    float t1 = t0 + 0.07f;
+                    for (int li = 1; li <= 3; li++)
+                    {
+                        int liA = side > 0 ? li : LoopPts - li;
+                        int liB = side > 0 ? li + 1 : LoopPts - li - 1;
+                        var a = surf(liA, t0); var b2 = surf(liB, t0);
+                        var c = surf(liB, t1); var d = surf(liA, t1);
+                        var raise = new Vector3(0f, 0.035f, 0f);
+                        a += raise + new Vector3(a.x * 0.03f, 0f, 0f);
+                        b2 += raise + new Vector3(b2.x * 0.03f, 0f, 0f);
+                        c += raise + new Vector3(c.x * 0.03f, -0.05f, 0f);
+                        d += raise + new Vector3(d.x * 0.03f, -0.05f, 0f);
+                        int mat = markCell[(r2 * 6 + li + (side > 0 ? 0 : 3)) % 30] ? 1 : 0;
+                        b.QuadUDS(a, b2, c, d, mat);
+                        var apex = (c + d) * 0.5f + new Vector3(0f, -0.03f, -0.14f);
+                        b.TriUDS(c, d, apex, 1);
+                    }
+                }
+            }
+
+            // ---- breast keel under the deep chest ----
+            {
+                var kA = new Vector3(0f, hullY(12, 0.12f) + 0.02f, zAt(0.12f));
+                var kB = new Vector3(0f, hullY(12, 0.28f) - 0.38f, zAt(0.28f));
+                var kC = new Vector3(0f, hullY(12, 0.46f) + 0.02f, zAt(0.46f));
+                var xoff = new Vector3(0.04f, 0f, 0f);
+                b.TriUDS(kA + xoff, kB + xoff, kC + xoff, 0);
+                b.TriUDS(kA - xoff, kB - xoff, kC - xoff, 0);
+                b.QuadUDS(kA + xoff, kA - xoff, kB - xoff, kB + xoff, 1);
+                b.QuadUDS(kB + xoff, kB - xoff, kC - xoff, kC + xoff, 1);
+            }
+
+            // ---- dorsal ridge plates down the falling spine ----
+            for (int r2 = 0; r2 < 5; r2++)
+            {
+                float t0 = 0.36f + r2 * 0.09f;
+                float z = zAt(t0);
+                float y0 = hullY(0, t0);
+                var a = new Vector3(0f, y0 + 0.01f, z + 0.11f);
+                var apex = new Vector3(0f, y0 + 0.16f, z - 0.02f);
+                var c = new Vector3(0f, y0 + 0.01f, z - 0.15f);
+                b.TriUDS(a, apex, c, r2 % 2 == 0 ? 1 : 0);
+            }
+
+            // ---- folded wing stacks: four primaries over three coverts ----
+            for (int side = -1; side <= 1; side += 2)
+            {
+                float s = side;
+                for (int f = 0; f < 4; f++)
+                {
+                    float t0 = 0.20f + f * 0.075f;
+                    float span = g.FeatherSpan * (1f - f * 0.13f);
+                    float sweep = g.FeatherSweep * (1f + f * 0.05f);
+                    float liftW = CrSample(cts, clf, t0) * H;
+                    var rootF2 = new Vector3(s * W * 0.44f, H * (0.32f - f * 0.05f) + liftW, zAt(t0));
+                    var rootB2 = rootF2 + new Vector3(-s * 0.03f, -0.02f, -0.60f);
+                    var tipF2 = rootF2 + new Vector3(s * span, span * g.FeatherRake, -sweep);
+                    var tipB2 = rootB2 + new Vector3(s * span * 0.94f, span * g.FeatherRake * 0.9f, -sweep * 1.06f);
+                    Feather(b, rootF2, rootB2, tipF2, tipB2, side < 0);
+                }
+                for (int f = 0; f < 3; f++)
+                {
+                    float t0 = 0.36f + f * 0.08f;
+                    float span = g.FeatherSpan * (0.58f - f * 0.11f);
+                    float sweep = g.FeatherSweep * (0.72f - f * 0.08f);
+                    float liftW = CrSample(cts, clf, t0) * H;
+                    var rootF2 = new Vector3(s * W * 0.52f, -H * 0.02f + liftW, zAt(t0));
+                    var rootB2 = rootF2 + new Vector3(-s * 0.03f, -0.02f, -0.45f);
+                    var tipF2 = rootF2 + new Vector3(s * span, -span * 0.06f, -sweep);
+                    var tipB2 = rootB2 + new Vector3(s * span * 0.94f, -span * 0.06f, -sweep * 1.06f);
+                    Feather(b, rootF2, rootB2, tipF2, tipB2, side < 0);
+                }
+            }
+
+            // ---- fanned tail: three feathers per side + center vane ----
+            for (int side = -1; side <= 1; side += 2)
+            {
+                float s = side;
+                for (int f = 0; f < 3; f++)
+                {
+                    float spread = 0.30f + f * 0.35f;
+                    float liftT = CrSample(cts, clf, 0.86f) * H;
+                    var rootF2 = new Vector3(s * W * 0.16f, liftT + 0.05f * H, zAt(0.86f));
+                    var rootB2 = rootF2 + new Vector3(0f, -0.02f, -0.44f);
+                    var tipF2 = rootF2 + new Vector3(s * g.TailSpan * spread, 0.10f, -g.TailSweep);
+                    var tipB2 = rootB2 + new Vector3(s * g.TailSpan * spread * 0.94f, 0.08f, -g.TailSweep * 1.08f);
+                    Feather(b, rootF2, rootB2, tipF2, tipB2, side < 0);
+                }
+            }
+            {
+                float y0 = hullY(0, 0.84f);
+                var rootF2 = new Vector3(0f, y0 - 0.02f, zAt(0.84f));
+                var rootB2 = new Vector3(0f, y0 - 0.02f, zAt(0.94f));
+                var tipF2 = new Vector3(0f, y0 + 0.65f, zAt(0.84f) - g.TailSweep * 0.60f);
+                var tipB2 = new Vector3(0f, y0 + 0.56f, zAt(0.94f) - g.TailSweep * 0.68f);
+                var lead = new[] { rootF2, tipF2 };
+                var trail = new[] { rootB2, tipB2 };
+                var ts = new[] { 0f, 1f };
+                LoftWing(b, lead, ts, trail, ts, 0.055f, 0.012f, 5, true, 1);
+            }
+
+            // ---- chin gun: stubby underslung cannon, tucked behind the bill ----
+            {
+                float y = hullY(12, 0.12f) + 0.06f;
+                var housing0 = new Vector3(0f, y, zAt(0.28f));
+                var housing1 = new Vector3(0f, y, zAt(0.13f));
+                Tube(b, new[] { housing0, housing1 }, new[] { 0.12f, 0.105f }, 8, 1, false);
+                Tube(b, new[] { housing1 - Vector3.forward * 0.05f, housing1 + Vector3.forward * 0.05f },
+                    new[] { 0.125f, 0.125f }, 8, 2, false);
+                var muzzle = housing1 + Vector3.forward * (g.GunLen * 0.30f);
+                Tube(b, new[] { housing1, muzzle }, new[] { 0.070f, 0.060f }, 8, 1, false);
+                Tube(b, new[] { muzzle, muzzle + Vector3.forward * 0.14f },
+                    new[] { 0.078f, 0.070f }, 8, 1, true);
+            }
+
+            // ---- three glowing drone bays per flank ----
+            for (int side = -1; side <= 1; side += 2)
+            {
+                for (int bay = 0; bay < 3; bay++)
+                {
+                    float t = 0.40f + bay * 0.11f;
+                    float sc = CrSample(cts, csc, t);
+                    float liftD = CrSample(cts, clf, t) * H;
+                    var c = new Vector3(side * W * sc * 0.86f, 0.02f * H + liftD, zAt(t));
+                    Box(b, c, new Vector3(0.07f, 0.16f, 0.24f), 1);
+                    Box(b, c + new Vector3(side * 0.05f, 0f, 0f), new Vector3(0.03f, 0.12f, 0.19f), 2);
+                }
+            }
+
+            // ---- twin nacelles plus a third ventral engine ----
+            for (int side = -1; side <= 1; side += 2)
+            {
+                float liftE = CrSample(cts, clf, 0.87f) * H;
+                var ec = new Vector3(side * W * 0.42f, 0.06f * H + liftE, zAt(0.87f));
+                Box(b, ec, new Vector3(0.30f, 0.24f, 0.62f), 1);
+                Box(b, ec + new Vector3(0f, 0.06f, 0.34f), new Vector3(0.20f, 0.14f, 0.22f), 0);
+                Box(b, ec + new Vector3(0f, 0f, -0.66f), new Vector3(0.20f, 0.16f, 0.07f), 2);
+                int n = g.EngineSegs;
+                for (int i = 0; i < n; i++)
+                    Tube(b, new[] { ec + new Vector3(0f, -0.17f, 0.34f - i * 0.30f), ec + new Vector3(0f, -0.17f, 0.20f - i * 0.30f) },
+                        new[] { 0.14f, 0.14f }, 8, i % 2 == 0 ? 0 : 1, false);
+            }
+            {
+                float liftE = CrSample(cts, clf, 0.90f) * H;
+                var ec = new Vector3(0f, -H * 0.34f + liftE, zAt(0.90f));
+                Box(b, ec, new Vector3(0.22f, 0.18f, 0.50f), 1);
+                Box(b, ec + new Vector3(0f, 0f, -0.54f), new Vector3(0.15f, 0.12f, 0.06f), 2);
+                for (int i = 0; i < 2; i++)
+                    Tube(b, new[] { ec + new Vector3(0f, -0.13f, 0.24f - i * 0.30f), ec + new Vector3(0f, -0.13f, 0.10f - i * 0.30f) },
+                        new[] { 0.12f, 0.12f }, 8, i % 2 == 0 ? 0 : 1, false);
+            }
+
+            var go = new GameObject("Hull");
+            go.transform.SetParent(shipRoot, false);
+            var mesh = new Mesh { name = "talon2_" + hash };
             mesh.SetVertices(b.V);
             mesh.subMeshCount = 4;
             for (int m = 0; m < 4; m++) mesh.SetTriangles(b.Sub[m], m);
