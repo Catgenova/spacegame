@@ -55,19 +55,12 @@ namespace SpaceGame
             gm.Init(view, ship);
 
             // UI: UI Toolkit HUD is primary; IMGUI is the automatic fallback
-            // and stays one F10 away (UiSwitcher).
-            EnsureEventSystem();
+            // and stays one F10 away (UiSwitcher). No uGUI EventSystem needed:
+            // UI Toolkit runtime panels use their own built-in input when no
+            // EventSystem is present (and the uGUI package may not exist in
+            // this code-only project at all).
             gameGo.AddComponent<UiSwitcher>();
             if (!UitHud.TryCreate()) gameGo.AddComponent<HudUI>();
-        }
-
-        /// <summary>UI Toolkit runtime input is routed through the EventSystem.</summary>
-        static void EnsureEventSystem()
-        {
-            if (UnityEngine.EventSystems.EventSystem.current != null) return;
-            var esGo = new GameObject("EventSystem");
-            esGo.AddComponent<UnityEngine.EventSystems.EventSystem>();
-            esGo.AddComponent<UnityEngine.EventSystems.StandaloneInputModule>();
         }
     }
 }
