@@ -15,6 +15,7 @@ namespace SpaceGame
 
         Transform _root;
         static Shader _shader;
+        static int _idSeq;
 
         public static Material Mat(Color c, bool emissive = false)
         {
@@ -137,7 +138,7 @@ namespace SpaceGame
             var col = go.AddComponent<SphereCollider>();
             col.radius = 4f * s;
             var wreck = go.AddComponent<Wreck>();
-            wreck.Id = "wreck_" + go.GetInstanceID();
+            wreck.Id = "wreck_" + _idSeq++;
             wreck.DisplayName = def.Name + " Wreck";
             wreck.Kind = ObjKind.Wreck;
             if (loot != null) wreck.Loot.AddRange(loot);
@@ -156,7 +157,7 @@ namespace SpaceGame
             var col = go.AddComponent<SphereCollider>();
             col.radius = def.Id == "overlord" ? 8f : 5f;
             var npc = go.AddComponent<NpcPirate>();
-            npc.Id = "npc_" + go.GetInstanceID();
+            npc.Id = "npc_" + _idSeq++;
             npc.Init(def);
             Objects.Add(npc);
             Npcs.Add(npc);
