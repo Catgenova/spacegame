@@ -8,16 +8,18 @@ namespace SpaceGame
     /// 10-digit body hashes, reptilian where Talon is avian. Slow, heavily
     /// armored serpents of the line — four batteries behind ablative hide.
     /// Class 1 "Python": 4 turrets, 3 mids, 3 lows.
+    /// Class 2 "Caiman": 5 turrets, 3 mids, 4 lows — the armored jaw.
     /// Streams: scaledef / scalebody / scalepanels.
     /// </summary>
     public static class ScaleGenerator
     {
         public const string TypeId = "scale";
-        public const int MaxClass = 1;
+        public const int MaxClass = 2;
 
         class ScaleClass
         {
             public string Label, Doctrine;
+            public string[] Names;
             public int TurretSlots, MidSlots, LowSlots;
             public float ShieldMin, ShieldMax, ArmorMin, ArmorMax, HullMin, HullMax;
             public float SpeedMin, SpeedMax, TurnMin, TurnMax;
@@ -45,6 +47,24 @@ namespace SpaceGame
                 Materials = new Dictionary<string, float>
                 {
                     ["tritanium"] = 6000f, ["pyerite"] = 3500f, ["mexallon"] = 1500f, ["isogen"] = 700f,
+                },
+            },
+            [2] = new ScaleClass
+            {
+                Label = "Scale-class Caiman (C2)",
+                Doctrine = "Armored jaw: five batteries on a hide that shrugs off broadsides.",
+                Names = new[] { "Caiman", "Gharial", "Mugger", "Saltie", "Sobek", "Sarcos", "Deino", "Nilus" },
+                TurretSlots = 5, MidSlots = 3, LowSlots = 4,
+                ShieldMin = 850, ShieldMax = 1000, ArmorMin = 700, ArmorMax = 850,
+                HullMin = 750, HullMax = 900,
+                SpeedMin = 1.6f, SpeedMax = 2.1f, TurnMin = 32, TurnMax = 45,
+                CapMin = 620, CapMax = 740, RegenMin = 23, RegenMax = 28,
+                CargoMin = 550, CargoMax = 720,
+                PriceMin = 3200000, PriceMax = 3900000,
+                Fee = 800000,
+                Materials = new Dictionary<string, float>
+                {
+                    ["tritanium"] = 11000f, ["pyerite"] = 6500f, ["mexallon"] = 2800f, ["isogen"] = 1300f,
                 },
             },
         };
@@ -81,6 +101,20 @@ namespace SpaceGame
 
         // ---------- blueprints ----------
 
+        /// <summary>Higher classes drop from more dangerous wrecks.</summary>
+        static int RollClass(string npcId)
+        {
+            float c2;
+            switch (npcId)
+            {
+                case "convoyhauler": c2 = 0.25f; break;
+                case "overlord": c2 = 0.18f; break;
+                case "marauder": c2 = 0.07f; break;
+                default: c2 = 0.02f; break;
+            }
+            return Random.value < c2 ? 2 : 1;
+        }
+
         public static Blueprint RollBlueprint(string npcId)
         {
             float r = Random.value;
@@ -89,7 +123,7 @@ namespace SpaceGame
             {
                 Hash = HiveGenerator.NewHash(),
                 TypeId = TypeId,
-                Class = 1,
+                Class = RollClass(npcId),
                 Rarity = rarity,
                 RunsLeft = GameData.RarityRuns[rarity],
             };
@@ -108,10 +142,11 @@ namespace SpaceGame
             var rng = Rng.Stream(DefKey(cls, hash));
             System.Func<float, float, float> R = (lo, hi) => lo + (float)rng.NextDouble() * (hi - lo);
 
+            var pool = c.Names ?? NamePool;
             var def = new ShipDef
             {
                 Id = IdFromHash(hash, cls),
-                Name = NamePool[rng.Next(NamePool.Length)] + "-" + hash.Substring(0, 4),
+                Name = pool[rng.Next(pool.Length)] + "-" + hash.Substring(0, 4),
                 Class = c.Label,
                 Desc = "One-off battleship hull, body " + hash + ". " + c.Doctrine,
                 Role = c.Doctrine,
