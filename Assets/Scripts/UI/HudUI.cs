@@ -52,6 +52,8 @@ namespace SpaceGame
                     GM.Ship.ToggleModule(i);
 
             if (Input.GetKeyDown(KeyCode.K)) _showSkills = !_showSkills;
+            if (Input.GetKeyDown(KeyCode.M))
+                GM.Log("The galaxy map needs the UI Toolkit HUD — press F10 to switch.");
             if (Input.GetKeyDown(KeyCode.Escape)) _showSkills = false;
         }
 

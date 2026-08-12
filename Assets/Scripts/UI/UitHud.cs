@@ -46,6 +46,11 @@ namespace SpaceGame
         ScrollView _stationContent, _skillsContent;
         int _stationTab;
         bool _skillsVisible;
+        bool _mapVisible;
+        VisualElement _mapOverlay, _mapWin;
+        readonly Dictionary<string, VisualElement> _mapNodes = new Dictionary<string, VisualElement>();
+        VisualElement _routeWrap;
+        Label _routeLabel;
         bool _wasDocked = true;
         int _lastMsgCount = -1;
         float _refreshT;
@@ -146,7 +151,7 @@ namespace SpaceGame
 
         static Button Btn(string t, System.Action onClick)
         {
-            var b = new Button(onClick) { text = t };
+            var b = new Button(() => { Sfx.Click(); onClick(); }) { text = t };
             var baseBg = new Color(0.08f, 0.14f, 0.23f);
             b.style.backgroundColor = baseBg;
             b.style.color = UiSkin.TextMain;
@@ -270,6 +275,7 @@ namespace SpaceGame
 
             BuildTopBar();
             BuildMissionTracker();
+            BuildRouteIndicator();
             BuildHudPanel();
             BuildTargetPanel();
             BuildModRack();
@@ -278,7 +284,46 @@ namespace SpaceGame
             BuildWarpBanner();
             BuildSkillsWindow();
             BuildStationWindow();
+            BuildMapWindow();
             BuildHelpHint();
+        }
+
+        void BuildRouteIndicator()
+        {
+            _routeWrap = new VisualElement();
+            _routeWrap.pickingMode = PickingMode.Ignore;
+            Abs(_routeWrap);
+            _routeWrap.style.left = 0;
+            _routeWrap.style.right = 0;
+            _routeWrap.style.top = 76;
+            _routeWrap.style.flexDirection = FlexDirection.Row;
+            _routeWrap.style.justifyContent = Justify.Center;
+            var inner = Panel();
+            inner.style.position = Position.Relative;
+            inner.style.flexDirection = FlexDirection.Row;
+            inner.style.alignItems = Align.Center;
+            _routeLabel = Text("", 10, UiSkin.Accent);
+            inner.Add(_routeLabel);
+            inner.Add(Btn("Warp to gate", WarpToRouteGate));
+            _routeWrap.Add(inner);
+            _routeWrap.style.display = DisplayStyle.None;
+            _root.Add(_routeWrap);
+        }
+
+        void WarpToRouteGate()
+        {
+            var gm = GM;
+            string next = gm.NextRouteHop();
+            if (next == null || gm.Docked) return;
+            foreach (var o in gm.View.Objects)
+            {
+                if (o is CelestialBody cb && cb.Kind == ObjKind.Gate && cb.Data.GateTo == next)
+                {
+                    gm.Select(cb);
+                    gm.WarpToSelected();
+                    return;
+                }
+            }
         }
 
         void BuildTopBar()
@@ -490,9 +535,150 @@ namespace SpaceGame
             _root.Add(_stationOverlay);
         }
 
+        // Hand-laid node positions (normalized within the map area).
+        static readonly string[] MapSystems = { "solara", "verdant", "krios", "nadir", "abyss" };
+        static readonly Vector2[] MapPos =
+        {
+            new Vector2(0.08f, 0.50f), new Vector2(0.33f, 0.32f), new Vector2(0.56f, 0.62f),
+            new Vector2(0.64f, 0.18f), new Vector2(0.90f, 0.30f),
+        };
+
+        static Vector2 NodePx(string sysId, float w, float h)
+        {
+            for (int i = 0; i < MapSystems.Length; i++)
+                if (MapSystems[i] == sysId)
+                    return new Vector2(40f + MapPos[i].x * (w - 80f), 30f + MapPos[i].y * (h - 80f));
+            return new Vector2(w / 2f, h / 2f);
+        }
+
+        static Color SecColor(float sec)
+            => new Color(1f - sec * 0.65f, 0.35f + sec * 0.55f, 0.3f);
+
+        void BuildMapWindow()
+        {
+            _mapOverlay = new VisualElement();
+            _mapOverlay.pickingMode = PickingMode.Ignore;
+            Abs(_mapOverlay);
+            _mapOverlay.style.left = 0;
+            _mapOverlay.style.right = 0;
+            _mapOverlay.style.top = 0;
+            _mapOverlay.style.bottom = 0;
+            _mapOverlay.style.alignItems = Align.Center;
+            _mapOverlay.style.justifyContent = Justify.Center;
+            _mapOverlay.style.display = DisplayStyle.None;
+
+            var win = Panel();
+            _mapWin = win;
+            win.style.position = Position.Relative;
+            win.style.width = 660;
+            win.style.height = 440;
+
+            var head = Row(Text("GALAXY MAP", 13, UiSkin.Accent, true));
+            head.style.justifyContent = Justify.SpaceBetween;
+            head.Add(Btn("×", () => { _mapVisible = false; SyncWindows(); }));
+            win.Add(head);
+            win.Add(WrapText("Click a system to set (or clear) your route. The route bar in "
+                + "space warps you gate to gate.", UiSkin.TextDim));
+
+            const float mapW = 620f, mapH = 330f;
+            var area = new VisualElement();
+            area.style.position = Position.Relative;
+            area.style.width = mapW;
+            area.style.height = mapH;
+
+            // Starlanes as dotted trails between systems.
+            foreach (var pair in UniverseGenerator.GatePairs)
+            {
+                var a = NodePx(pair[0], mapW, mapH);
+                var b = NodePx(pair[1], mapW, mapH);
+                for (int i = 1; i < 13; i++)
+                {
+                    float t = i / 13f;
+                    var dot = new VisualElement();
+                    dot.pickingMode = PickingMode.Ignore;
+                    Abs(dot);
+                    dot.style.left = a.x + (b.x - a.x) * t - 1.5f;
+                    dot.style.top = a.y + (b.y - a.y) * t - 1.5f;
+                    dot.style.width = 3;
+                    dot.style.height = 3;
+                    dot.style.backgroundColor = new Color(0.3f, 0.4f, 0.55f, 0.8f);
+                    area.Add(dot);
+                }
+            }
+
+            _mapNodes.Clear();
+            foreach (var sysId in MapSystems)
+            {
+                var sys = GM != null && GM.Universe != null ? GM.Universe.Systems[sysId] : null;
+                var p = NodePx(sysId, mapW, mapH);
+                string id = sysId;
+
+                var node = new VisualElement();
+                Abs(node);
+                node.style.left = p.x - 20f;
+                node.style.top = p.y - 20f;
+                node.style.width = 40;
+                node.style.height = 40;
+                node.style.backgroundColor = new Color(0.05f, 0.09f, 0.15f);
+                node.style.borderTopLeftRadius = 20;
+                node.style.borderTopRightRadius = 20;
+                node.style.borderBottomLeftRadius = 20;
+                node.style.borderBottomRightRadius = 20;
+                node.style.borderLeftWidth = 2;
+                node.style.borderRightWidth = 2;
+                node.style.borderTopWidth = 2;
+                node.style.borderBottomWidth = 2;
+                node.style.alignItems = Align.Center;
+                node.style.justifyContent = Justify.Center;
+                node.RegisterCallback<PointerDownEvent>(_ =>
+                {
+                    Sfx.Click();
+                    GM.SetDestination(id);
+                    RefreshMap();
+                });
+                var secLabel = Text(sys != null ? sys.Sec.ToString("0.0") : "?", 10,
+                    sys != null ? SecColor(sys.Sec) : Color.white, true);
+                node.Add(secLabel);
+                area.Add(node);
+                _mapNodes[sysId] = node;
+
+                var name = Text(sys != null ? sys.Name : sysId, 11, UiSkin.TextMain, true);
+                Abs(name);
+                name.style.left = p.x - 50f;
+                name.style.top = p.y + 24f;
+                name.style.width = 100;
+                name.style.unityTextAlign = TextAnchor.MiddleCenter;
+                area.Add(name);
+            }
+
+            win.Add(area);
+            _mapOverlay.Add(win);
+            _root.Add(_mapOverlay);
+        }
+
+        void RefreshMap()
+        {
+            var gm = GM;
+            var route = gm.RouteDest != null
+                ? Missions.RoutePath(gm.SystemId, gm.RouteDest)
+                : new List<string>();
+            foreach (var kv in _mapNodes)
+            {
+                Color c;
+                if (kv.Key == gm.SystemId) c = Color.white;
+                else if (kv.Key == gm.RouteDest) c = UiSkin.AccentWarm;
+                else if (route.Contains(kv.Key)) c = new Color(UiSkin.AccentWarm.r, UiSkin.AccentWarm.g, UiSkin.AccentWarm.b, 0.55f);
+                else c = SecColor(gm.Universe.Systems[kv.Key].Sec);
+                kv.Value.style.borderLeftColor = c;
+                kv.Value.style.borderRightColor = c;
+                kv.Value.style.borderTopColor = c;
+                kv.Value.style.borderBottomColor = c;
+            }
+        }
+
         void BuildHelpHint()
         {
-            var hint = Text("W/S throttle · A/D turn · X stop · click select · 1-8 modules · K skills · F10 legacy UI", 9, new Color(0.28f, 0.34f, 0.42f));
+            var hint = Text("W/S throttle · A/D turn · X stop · click select · 1-8 modules · K skills · M map · F9 mute · F10 legacy UI", 9, new Color(0.28f, 0.34f, 0.42f));
             Abs(hint);
             hint.style.left = 12;
             hint.style.top = 30;
@@ -534,6 +720,17 @@ namespace SpaceGame
             {
                 _missionTitle.text = "MISSION: " + m.Title;
                 _missionProgress.text = Missions.ProgressText(gm, m);
+            }
+
+            // Route bar: next hop + jumps remaining.
+            string nextHop = gm.NextRouteHop();
+            _routeWrap.style.display = nextHop != null && !docked ? DisplayStyle.Flex : DisplayStyle.None;
+            if (nextHop != null)
+            {
+                int left = gm.RouteJumpsLeft();
+                _routeLabel.text = "ROUTE: " + left + " jump" + (left == 1 ? "" : "s") + " to "
+                    + gm.Universe.Systems[gm.RouteDest].Name
+                    + "  ·  next gate: " + gm.Universe.Systems[nextHop].Name + "  ";
             }
 
             if (!docked)
@@ -583,13 +780,16 @@ namespace SpaceGame
                 if (Input.GetKeyDown(KeyCode.Alpha1 + i))
                     gm.Ship.ToggleModule(i);
             if (Input.GetKeyDown(KeyCode.K)) { _skillsVisible = !_skillsVisible; SyncWindows(); if (_skillsVisible) RefreshSkills(gm); }
-            if (Input.GetKeyDown(KeyCode.Escape)) { _skillsVisible = false; SyncWindows(); }
+            if (Input.GetKeyDown(KeyCode.M)) { _mapVisible = !_mapVisible; SyncWindows(); if (_mapVisible) RefreshMap(); }
+            if (Input.GetKeyDown(KeyCode.Escape)) { _skillsVisible = false; _mapVisible = false; SyncWindows(); }
         }
 
         void SyncWindows()
         {
             _skillsWin.style.display = _skillsVisible ? DisplayStyle.Flex : DisplayStyle.None;
             if (!_skillsVisible) _hovered.Remove(_skillsWin);
+            _mapOverlay.style.display = _mapVisible ? DisplayStyle.Flex : DisplayStyle.None;
+            if (!_mapVisible && _mapWin != null) _hovered.Remove(_mapWin);
         }
 
         void SyncStatus(GameManager gm)

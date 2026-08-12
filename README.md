@@ -34,6 +34,8 @@ frigate, a mining laser, and a blaster.
 | Scroll | Zoom camera |
 | `1`–`8` | Toggle fitted modules |
 | `K` | Skill training window |
+| `M` | Galaxy map (click a system to set a route) |
+| `F9` | Mute audio |
 | `F10` | Toggle UI Toolkit / legacy IMGUI HUD |
 
 Use the **Overview** (right panel) to select things, then **Approach / Orbit /
@@ -70,6 +72,13 @@ too, so an early warp-out beats their first volley.
   arc that ends in a convoy hunt.
 - **More contracts** — salvage recovery jobs, RUSH couriers with hard
   deadlines and 1.8× pay, and low-sec agents pay up to +50% on everything.
+- **Navigate** with the galaxy map (`M`): click a system to plot a route;
+  a route bar in space names the next gate and warps you to it one click
+  at a time until you arrive.
+- **Hear it** — every sound is synthesized in code (no audio files):
+  engine hum pitched to your speed, blaster crack vs railgun thud
+  (glancing hits sound weaker), mining chunks, shield zaps vs armor
+  thumps, warp swell, lock chime, dock clunks, and payout arpeggios.
 - **Fit** your ship at stations: weapons, miners, shield boosters,
   afterburners, cargo/armor/cap passives.
 - **Upgrade** hulls: Wasp → Prospector (miner) / Talon (fighter) →

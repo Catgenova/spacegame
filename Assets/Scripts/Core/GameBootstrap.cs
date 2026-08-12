@@ -60,6 +60,7 @@ namespace SpaceGame
             // EventSystem is present (and the uGUI package may not exist in
             // this code-only project at all).
             gameGo.AddComponent<UiSwitcher>();
+            gameGo.AddComponent<AudioDirector>();
             if (!UitHud.TryCreate()) gameGo.AddComponent<HudUI>();
         }
     }

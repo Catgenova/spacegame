@@ -33,6 +33,9 @@ namespace SpaceGame
         // Agent missions.
         public Mission ActiveMission;
         public int MissionCounter;
+
+        // Galaxy-map route: destination system id, or null.
+        public string RouteDest;
         List<Mission> _offerCache;
         string _offerKey;
 
@@ -87,8 +90,11 @@ namespace SpaceGame
             // Passive skill training, always on.
             int gained = Player.AddSkillXp(Player.ActiveSkill, GameData.SkillXpRate * dt);
             if (gained > 0)
+            {
+                Sfx.LevelUp();
                 Log(GameData.Skills[Player.ActiveSkill].Name + " trained to level "
                     + Player.Skills[Player.ActiveSkill].Level + ".");
+            }
 
             _saveTimer += dt;
             if (_saveTimer > 20f) { _saveTimer = 0f; SaveSystem.Save(this); }
@@ -141,9 +147,37 @@ namespace SpaceGame
             {
                 LockProgress = 1f;
                 Locked = true;
+                Sfx.Locked();
                 Log("Target locked: " + Selected.DisplayName + ".");
             }
         }
+
+        // ---------- route planning (galaxy map) ----------
+
+        public void SetDestination(string sysId)
+        {
+            if (sysId == null || sysId == SystemId || sysId == RouteDest)
+            {
+                if (RouteDest != null) Log("Route cleared.");
+                RouteDest = null;
+                return;
+            }
+            RouteDest = sysId;
+            int jumps = Missions.JumpCount(SystemId, sysId);
+            Log("Route set: " + jumps + " jump" + (jumps == 1 ? "" : "s") + " to "
+                + Universe.Systems[sysId].Name + ".");
+        }
+
+        /// <summary>Next system on the route, or null when no route is active.</summary>
+        public string NextRouteHop()
+        {
+            if (RouteDest == null || RouteDest == SystemId) return null;
+            var path = Missions.RoutePath(SystemId, RouteDest);
+            return path.Count > 0 ? path[0] : null;
+        }
+
+        public int RouteJumpsLeft()
+            => RouteDest == null ? 0 : Missions.RoutePath(SystemId, RouteDest).Count;
 
         // ---------- system / travel ----------
 
@@ -194,6 +228,7 @@ namespace SpaceGame
             Docked = true;
             StationId = st.Id;
             Ship.ResetMotion();
+            Sfx.Dock();
             Log("Docked at " + st.DisplayName + ".");
             if (Player.CargoModules.Count > 0)
             {
@@ -210,6 +245,7 @@ namespace SpaceGame
             Docked = false;
             PlaceAtStation();
             Ship.RefreshRack();
+            Sfx.Undock();
             Log("Undocked from " + Station.Name + ". Fly safe.");
         }
 
@@ -228,7 +264,13 @@ namespace SpaceGame
             var back = System.Celestials.Find(c => c.Kind == ObjKind.Gate && c.GateTo == fromId);
             Ship.transform.position = (back != null ? back.Pos : Vector3.zero) + new Vector3(150f, 20f, 100f);
             Ship.ResetMotion();
+            Sfx.JumpGate();
             Log("Jumped to " + System.Name + " (" + System.Sec.ToString("0.0") + " sec).");
+            if (RouteDest == SystemId)
+            {
+                RouteDest = null;
+                Log("Route destination reached.");
+            }
             SaveSystem.Save(this);
         }
 
@@ -236,10 +278,12 @@ namespace SpaceGame
 
         public void DamagePlayer(float dmg, NpcPirate from)
         {
+            bool onShield = Player.Shield > dmg * 0.5f;
             float d = dmg;
             if (Player.Shield > 0f) { float a = Mathf.Min(Player.Shield, d); Player.Shield -= a; d -= a; }
             if (d > 0f && Player.Armor > 0f) { float a = Mathf.Min(Player.Armor, d); Player.Armor -= a; d -= a; }
             if (d > 0f) Player.HullHp -= d;
+            Sfx.PlayerHit(onShield);
             if (Player.HullHp <= 0f) PlayerDeath(from);
         }
 
@@ -270,6 +314,8 @@ namespace SpaceGame
         public void NpcKilled(NpcPirate npc)
         {
             Player.Credits += npc.Def.Bounty;
+            Sfx.Explosion(npc.Def.Id == "overlord" || npc.Def.Id == "convoyhauler" ? 2f
+                : npc.Def.Id == "marauder" ? 1.4f : 1f);
             Log(npc.Def.Name + " destroyed. Bounty: " + GameData.FmtCredits(npc.Def.Bounty) + ".");
             if (Selected == npc) Selected = null;
 
@@ -655,6 +701,7 @@ namespace SpaceGame
 
             long reward = (long)(m.Reward * (1f + GameData.StandingRewardBonus(Player.Standing)));
             Player.Credits += reward;
+            Sfx.Payout();
             ActiveMission = null;
             MissionCounter++;
             Log("Mission complete! Reward: " + GameData.FmtCredits(reward)

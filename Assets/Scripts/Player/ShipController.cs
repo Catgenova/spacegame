@@ -141,6 +141,7 @@ namespace SpaceGame
             InWarp = true;
             _cmd = CmdMode.None;
             DeactivateAll();
+            Sfx.WarpEnter();
             GM.Log("Warp drive active — " + label + ".");
             return true;
         }
@@ -170,9 +171,10 @@ namespace SpaceGame
                     GM.Log("Target out of range for " + m.Name + ".");
                 else
                     GM.Log("Still locking target — wait for the lock.");
+                Sfx.Deny();
                 return;
             }
-            if (P.Cap < m.CapUse) { GM.Log("Capacitor too low."); return; }
+            if (P.Cap < m.CapUse) { GM.Log("Capacitor too low."); Sfx.Deny(); return; }
             r.Active = true;
             r.T = 0f;
             if (m.Kind != ModuleKind.Afterburner) P.Cap -= m.CapUse; // first cycle paid up front
@@ -234,6 +236,7 @@ namespace SpaceGame
             if (p >= 1f)
             {
                 InWarp = false;
+                Sfx.WarpExit();
                 GM.Log("Warp drive disengaged.");
             }
         }
@@ -370,6 +373,7 @@ namespace SpaceGame
             float mined = Mathf.Min(m.Yield * bonus, rock.Data.Amount, space);
             P.Cargo.TryGetValue(rock.Data.Ore, out float have);
             P.Cargo[rock.Data.Ore] = have + mined;
+            Sfx.MinerChunk();
             rock.Data.Amount -= mined;
             if (rock.Data.Amount <= 0.01f)
             {
@@ -395,7 +399,8 @@ namespace SpaceGame
             float angVel = Combat.AngularVelocity(
                 npc.transform.position - transform.position, npc.Vel - Vel);
             float dmg = m.Dmg * (1f + 0.05f * P.SkillLevel("gunnery"));
-            dmg = Combat.RollDamage(dmg, m.Tracking, angVel, out _);
+            dmg = Combat.RollDamage(dmg, m.Tracking, angVel, out bool hit);
+            Sfx.WeaponFire(m, hit);
             if (npc.TakeDamage(dmg))
             {
                 r.Active = false;

@@ -254,7 +254,19 @@ namespace SpaceGame
         /// <summary>Gate-graph BFS distance between systems.</summary>
         public static int JumpCount(string from, string to)
         {
+            var path = RoutePath(from, to);
             if (from == to) return 0;
+            return path.Count > 0 ? path.Count : 99;
+        }
+
+        /// <summary>
+        /// Shortest gate route from `from` (exclusive) to `to` (inclusive).
+        /// Empty when already there or unreachable.
+        /// </summary>
+        public static List<string> RoutePath(string from, string to)
+        {
+            var result = new List<string>();
+            if (from == to) return result;
             var adj = new Dictionary<string, List<string>>();
             foreach (var pair in UniverseGenerator.GatePairs)
             {
@@ -263,22 +275,26 @@ namespace SpaceGame
                 adj[pair[0]].Add(pair[1]);
                 adj[pair[1]].Add(pair[0]);
             }
-            var dist = new Dictionary<string, int> { [from] = 0 };
+            var prev = new Dictionary<string, string> { [from] = null };
             var queue = new Queue<string>();
             queue.Enqueue(from);
-            while (queue.Count > 0)
+            bool found = false;
+            while (queue.Count > 0 && !found)
             {
                 var cur = queue.Dequeue();
-                if (cur == to) return dist[cur];
                 if (!adj.ContainsKey(cur)) continue;
                 foreach (var next in adj[cur])
-                    if (!dist.ContainsKey(next))
-                    {
-                        dist[next] = dist[cur] + 1;
-                        queue.Enqueue(next);
-                    }
+                {
+                    if (prev.ContainsKey(next)) continue;
+                    prev[next] = cur;
+                    if (next == to) { found = true; break; }
+                    queue.Enqueue(next);
+                }
             }
-            return 99;
+            if (!found) return result;
+            for (var cur = to; cur != from; cur = prev[cur])
+                result.Insert(0, cur);
+            return result;
         }
     }
 }
