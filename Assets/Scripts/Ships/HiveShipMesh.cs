@@ -309,6 +309,7 @@ namespace SpaceGame
                     var d1 = new Vector3(side * (0.90f + g.Splay + g.LegA[li]), -0.40f, -0.30f).normalized;
                     float len1 = 0.60f * g.LegScale;
                     var j1 = mount + d1 * len1;
+                    Fairing(b, mount - d1 * 0.02f, d1, 0.105f, 0.19f, 0.09f, 8, 1);
                     Tube(b, new[] { mount, j1 }, new[] { 0.09f, 0.075f }, 8, 1, false);
                     Ball(b, j1, 0.115f, 1, 4, 8);
                     var d2 = new Vector3(side * (0.48f + g.Splay), -0.60f, 0.40f + g.LegA[li]).normalized;
@@ -739,7 +740,7 @@ namespace SpaceGame
                 float lift = CrSample(cts, clf, t) * H;
                 float deckY = HalfPt2(0, t).y * H * sc + lift;
                 var c = new Vector3(0f, deckY + 0.04f, (0.5f - t) * L);
-                Box(b, c, new Vector3(0.09f, 0.04f, 0.16f), i % 2 == 0 ? 0 : 1);
+                BevelBox(b, c, new Vector3(0.09f, 0.04f, 0.16f), i % 2 == 0 ? 0 : 1);
             }
 
             // Belly web-emitter ring (teal).
@@ -1088,6 +1089,7 @@ namespace SpaceGame
                     var d1 = new Vector3(side * (0.95f + g.Splay + g.LegA[li]), -0.35f, -0.25f).normalized;
                     float len1 = 0.75f * g.LegScale;
                     var j1 = mount + d1 * len1;
+                    Fairing(b, mount - d1 * 0.02f, d1, 0.125f, 0.22f, 0.10f, 8, 0);
                     Tube(b, new[] { mount, j1 }, new[] { 0.11f, 0.09f }, 8, 0, false);
                     Ball(b, j1, 0.13f, 1, 4, 8);
                     var d2 = new Vector3(side * (0.50f + g.Splay), -0.62f, 0.35f + g.LegA[li]).normalized;
@@ -1180,7 +1182,7 @@ namespace SpaceGame
                 float lift = CrSample(cts, clf, t) * H;
                 float deckY = HalfPt3(0, t).y * H * sc + lift;
                 var c = new Vector3(0f, deckY + 0.04f, (0.5f - t) * L);
-                Box(b, c, new Vector3(0.10f, 0.045f, 0.18f), i % 2 == 0 ? 1 : 0);
+                BevelBox(b, c, new Vector3(0.10f, 0.045f, 0.18f), i % 2 == 0 ? 1 : 0);
             }
 
             var go = new GameObject("Hull");

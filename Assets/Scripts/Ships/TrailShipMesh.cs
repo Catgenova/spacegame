@@ -278,7 +278,7 @@ namespace SpaceGame
                     float sc = CrSample(cts, csc, t);
                     float lift = CrSample(cts, clf, t) * H;
                     var c = new Vector3(side * W * sc * 0.97f, 0.02f * H + lift, zAt(t));
-                    Box(b, c, new Vector3(0.022f, 0.035f, 0.08f), 2);
+                    BevelBox(b, c, new Vector3(0.022f, 0.035f, 0.08f), 2);
                 }
             }
 
@@ -327,8 +327,8 @@ namespace SpaceGame
             {
                 float y0 = hullY(0, 0.90f);
                 var c = new Vector3(0f, y0 + 0.06f, zAt(0.90f));
-                Box(b, c, new Vector3(0.20f, 0.16f, 0.22f), 1);
-                Box(b, c + new Vector3(0f, 0f, -0.24f), new Vector3(0.13f, 0.11f, 0.02f), 3);
+                BevelBox(b, c, new Vector3(0.20f, 0.16f, 0.22f), 1);
+                BevelBox(b, c + new Vector3(0f, 0f, -0.24f), new Vector3(0.13f, 0.11f, 0.02f), 3);
                 Ball(b, c + new Vector3(0f, 0f, -0.26f), 0.075f, 2, 2, 6);
                 var mast = c + new Vector3(0f, 0.17f, 0.06f);
                 Tube(b, new[] { mast, mast + new Vector3(0f, 0.30f, -0.06f) },
@@ -588,8 +588,8 @@ namespace SpaceGame
             {
                 float y0 = hullY(0, 0.90f);
                 var c = new Vector3(0f, y0 + 0.07f, zAt(0.90f));
-                Box(b, c, new Vector3(0.22f, 0.17f, 0.24f), 1);
-                Box(b, c + new Vector3(0f, 0f, -0.26f), new Vector3(0.14f, 0.12f, 0.02f), 3);
+                BevelBox(b, c, new Vector3(0.22f, 0.17f, 0.24f), 1);
+                BevelBox(b, c + new Vector3(0f, 0f, -0.26f), new Vector3(0.14f, 0.12f, 0.02f), 3);
                 Ball(b, c + new Vector3(0f, 0f, -0.28f), 0.08f, 2, 2, 6);
             }
 
@@ -808,9 +808,9 @@ namespace SpaceGame
             float yBow = CrSample(cts, clf, 0f) * H;
             var bowC = new Vector3(0f, yBow - 0.03f, 0.50f * L + 0.02f);
             CapFan(b, bowC, stripVerts, 0, true, 1);
-            Box(b, bowC + Vector3.forward * (g.Nose * 0.5f),
+            BevelBox(b, bowC + Vector3.forward * (g.Nose * 0.5f),
                 new Vector3(W * 0.22f, H * 0.16f, g.Nose * 0.5f), 3);
-            Box(b, bowC + Vector3.forward * (g.Nose + 0.02f),
+            BevelBox(b, bowC + Vector3.forward * (g.Nose + 0.02f),
                 new Vector3(W * 0.13f, H * 0.09f, 0.02f), 2);
             var sternC = new Vector3(0f, CrSample(cts, clf, 1f) * H, -0.50f * L - 0.05f);
             CapFan(b, sternC, stripVerts, rings - 1, false, 1);
@@ -895,8 +895,8 @@ namespace SpaceGame
             {
                 float y0 = hullY(0, 0.90f);
                 var c = new Vector3(0f, y0 + 0.08f, zAt(0.90f));
-                Box(b, c, new Vector3(0.24f, 0.18f, 0.26f), 1);
-                Box(b, c + new Vector3(0f, 0f, -0.28f), new Vector3(0.15f, 0.13f, 0.02f), 3);
+                BevelBox(b, c, new Vector3(0.24f, 0.18f, 0.26f), 1);
+                BevelBox(b, c + new Vector3(0f, 0f, -0.28f), new Vector3(0.15f, 0.13f, 0.02f), 3);
                 Ball(b, c + new Vector3(0f, 0f, -0.30f), 0.085f, 2, 2, 6);
             }
 

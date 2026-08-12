@@ -274,7 +274,8 @@ namespace SpaceGame
                 float z = zAt(t0);
                 float y0 = hullY(1, t0);
                 var mount = new Vector3(side * 0.30f, y0 + 0.05f, z);
-                Box(b, mount, new Vector3(0.12f, 0.07f, 0.17f), 0);
+                Fairing(b, mount + new Vector3(0f, -0.09f, 0f), Vector3.up, 0.21f, 0.28f, 0.05f, 10, 0);
+                BevelBox(b, mount, new Vector3(0.12f, 0.07f, 0.17f), 0);
                 var gunBase = mount + new Vector3(0f, 0.10f, 0.10f);
                 var muzzle = gunBase + new Vector3(0f, 0.02f, g.GunLen);
                 Tube(b, new[] { gunBase, muzzle }, new[] { 0.065f, 0.055f }, 8, 0, false);
@@ -288,12 +289,12 @@ namespace SpaceGame
                 float zc = zAt(t0 + g.BridgeLen * 0.5f);
                 float y0 = hullY(0, t0 + g.BridgeLen * 0.5f);
                 float halfLen = g.BridgeLen * L * 0.52f;
-                Box(b, new Vector3(0f, y0 + 0.13f, zc), new Vector3(0.36f, 0.14f, halfLen), 0);
-                Box(b, new Vector3(0f, y0 + 0.31f, zc - 0.10f), new Vector3(0.24f, 0.09f, halfLen * 0.62f), 1);
-                Box(b, new Vector3(0f, y0 + 0.30f, zc - 0.10f + halfLen * 0.62f + 0.02f),
+                BevelBox(b, new Vector3(0f, y0 + 0.13f, zc), new Vector3(0.36f, 0.14f, halfLen), 0);
+                BevelBox(b, new Vector3(0f, y0 + 0.31f, zc - 0.10f), new Vector3(0.24f, 0.09f, halfLen * 0.62f), 1);
+                BevelBox(b, new Vector3(0f, y0 + 0.30f, zc - 0.10f + halfLen * 0.62f + 0.02f),
                     new Vector3(0.16f, 0.035f, 0.02f), 2);
                 for (int side = -1; side <= 1; side += 2)
-                    Box(b, new Vector3(side * 0.37f, y0 + 0.13f, zc),
+                    BevelBox(b, new Vector3(side * 0.37f, y0 + 0.13f, zc),
                         new Vector3(0.012f, 0.030f, halfLen * 0.7f), 2);
                 var mast = new Vector3(0f, y0 + 0.40f, zc - halfLen * 0.4f);
                 Tube(b, new[] { mast, mast + new Vector3(0f, 0.45f, -0.10f) },
@@ -309,7 +310,7 @@ namespace SpaceGame
                     float sc = CrSample(cts, csc, t);
                     float lift = CrSample(cts, clf, t) * H;
                     var c = new Vector3(side * W * sc * 0.99f, -0.05f * H + lift, zAt(t));
-                    Box(b, c, new Vector3(0.025f, 0.035f, 0.10f), 2);
+                    BevelBox(b, c, new Vector3(0.025f, 0.035f, 0.10f), 2);
                 }
             }
 
@@ -362,7 +363,7 @@ namespace SpaceGame
                     float lift = CrSample(cts, clf, 0.90f) * H;
                     var c = new Vector3(side * (W * 0.58f + i * 0.10f),
                         0.08f * H + lift - i * 0.02f, zAt(0.90f) - i * 0.06f);
-                    Box(b, c, new Vector3(0.08f, 0.18f - i * 0.04f, 0.50f - i * 0.10f), i % 2 == 0 ? 1 : 0);
+                    BevelBox(b, c, new Vector3(0.08f, 0.18f - i * 0.04f, 0.50f - i * 0.10f), i % 2 == 0 ? 1 : 0);
                 }
             }
 
@@ -571,7 +572,7 @@ namespace SpaceGame
                 {
                     float t = 0.035f + seg * 0.05f;
                     var jaw = surf(side > 0 ? 5 : 19, t);
-                    Box(b, jaw + new Vector3(-Mathf.Sign(side) * 0.02f, -0.10f, 0f),
+                    BevelBox(b, jaw + new Vector3(-Mathf.Sign(side) * 0.02f, -0.10f, 0f),
                         new Vector3(0.025f, 0.032f, 0.20f), 2);
                 }
             }
@@ -582,7 +583,7 @@ namespace SpaceGame
                 float tE = 0.17f;
                 var eye = surf(side > 0 ? 2 : 22, tE) + new Vector3(0f, 0.05f, 0f);
                 Ball(b, eye, 0.09f, 2, 3, 6);
-                Box(b, eye + new Vector3(0f, 0.07f, 0.05f), new Vector3(0.09f, 0.025f, 0.14f), 0);
+                BevelBox(b, eye + new Vector3(0f, 0.07f, 0.05f), new Vector3(0.09f, 0.025f, 0.14f), 0);
             }
 
             // ---- double row of dorsal scute fins ----
@@ -621,8 +622,8 @@ namespace SpaceGame
                 float sc = CrSample(cts, csc, t0);
                 float lift = CrSample(cts, clf, t0) * H;
                 var pc = new Vector3(side * W * sc * 0.92f, 0.10f * H + lift, zAt(t0));
-                Box(b, pc, new Vector3(0.17f, 0.15f, 0.32f), 0);
-                Box(b, pc + new Vector3(0f, 0f, 0.34f), new Vector3(0.12f, 0.10f, 0.025f), 2);
+                BevelBox(b, pc, new Vector3(0.17f, 0.15f, 0.32f), 0);
+                BevelBox(b, pc + new Vector3(0f, 0f, 0.34f), new Vector3(0.12f, 0.10f, 0.025f), 2);
                 for (int bar = -1; bar <= 1; bar += 2)
                 {
                     var gb = pc + new Vector3(side * 0.04f, bar * 0.06f, 0.30f);
@@ -637,7 +638,8 @@ namespace SpaceGame
                 float z = zAt(t0);
                 float y0 = hullY(1, t0);
                 var mount = new Vector3((m2 == 0 ? 1 : -1) * 0.26f, y0 + 0.05f, z);
-                Box(b, mount, new Vector3(0.12f, 0.07f, 0.17f), 0);
+                Fairing(b, mount + new Vector3(0f, -0.09f, 0f), Vector3.up, 0.21f, 0.28f, 0.05f, 10, 0);
+                BevelBox(b, mount, new Vector3(0.12f, 0.07f, 0.17f), 0);
                 var gb = mount + new Vector3(0f, 0.10f, 0.10f);
                 var mz = gb + new Vector3(0f, 0.02f, g.GunLen);
                 Tube(b, new[] { gb, mz }, new[] { 0.060f, 0.052f }, 8, 0, false);
@@ -656,8 +658,8 @@ namespace SpaceGame
                 float t0 = 0.30f;
                 float zc = zAt(t0);
                 float y0 = hullY(0, t0);
-                Box(b, new Vector3(0f, y0 + 0.10f, zc), new Vector3(0.30f, 0.10f, 0.55f), 0);
-                Box(b, new Vector3(0f, y0 + 0.11f, zc + 0.57f), new Vector3(0.16f, 0.030f, 0.02f), 2);
+                BevelBox(b, new Vector3(0f, y0 + 0.10f, zc), new Vector3(0.30f, 0.10f, 0.55f), 0);
+                BevelBox(b, new Vector3(0f, y0 + 0.11f, zc + 0.57f), new Vector3(0.16f, 0.030f, 0.02f), 2);
                 var mast = new Vector3(0f, y0 + 0.18f, zc - 0.35f);
                 Tube(b, new[] { mast, mast + new Vector3(0f, 0.40f, -0.08f) },
                     new[] { 0.026f, 0.005f }, 5, 3, true);
@@ -672,7 +674,7 @@ namespace SpaceGame
                     float sc = CrSample(cts, csc, t);
                     float lift = CrSample(cts, clf, t) * H;
                     var c = new Vector3(side * W * sc * xwAt(t) * 0.99f, -0.05f * H + lift, zAt(t));
-                    Box(b, c, new Vector3(0.025f, 0.035f, 0.10f), 2);
+                    BevelBox(b, c, new Vector3(0.025f, 0.035f, 0.10f), 2);
                 }
             }
 
@@ -721,7 +723,7 @@ namespace SpaceGame
                     float t = 0.79f + seg * 0.07f;
                     float sc = CrSample(cts, csc, t);
                     float lift = CrSample(cts, clf, t) * H;
-                    Box(b, new Vector3(side * W * sc * 0.97f, 0.05f * H + lift, zAt(t)),
+                    BevelBox(b, new Vector3(side * W * sc * 0.97f, 0.05f * H + lift, zAt(t)),
                         new Vector3(0.02f, 0.22f, 0.03f), 2);
                 }
             }
@@ -949,7 +951,7 @@ namespace SpaceGame
                 {
                     float t = 0.02f + seg * 0.04f;
                     var jaw = surf(side > 0 ? 5 : 19, t);
-                    Box(b, jaw + new Vector3(-Mathf.Sign(side) * 0.02f, -0.09f, 0f),
+                    BevelBox(b, jaw + new Vector3(-Mathf.Sign(side) * 0.02f, -0.09f, 0f),
                         new Vector3(0.022f, 0.030f, 0.16f), 2);
                 }
             }
@@ -960,7 +962,7 @@ namespace SpaceGame
                 float tE = 0.055f;
                 var eye = surf(side > 0 ? 3 : 21, tE) + new Vector3(0f, 0.03f, 0f);
                 Ball(b, eye, 0.10f, 2, 3, 6);
-                Box(b, eye + new Vector3(0f, 0.08f, 0.04f), new Vector3(0.10f, 0.025f, 0.14f), 1);
+                BevelBox(b, eye + new Vector3(0f, 0.08f, 0.04f), new Vector3(0.10f, 0.025f, 0.14f), 1);
             }
 
             // ---- mosaic scale shingles following the hood flare ----
@@ -994,11 +996,11 @@ namespace SpaceGame
                 float t0 = 0.36f;
                 float zc = zAt(t0);
                 float y0 = hullY(0, t0);
-                Box(b, new Vector3(0f, y0 + g.TowerH * 0.45f, zc), new Vector3(0.32f, g.TowerH * 0.45f, 0.52f), 0);
-                Box(b, new Vector3(0f, y0 + g.TowerH * 0.9f + g.TowerH * 0.26f, zc - 0.12f),
+                BevelBox(b, new Vector3(0f, y0 + g.TowerH * 0.45f, zc), new Vector3(0.32f, g.TowerH * 0.45f, 0.52f), 0);
+                BevelBox(b, new Vector3(0f, y0 + g.TowerH * 0.9f + g.TowerH * 0.26f, zc - 0.12f),
                     new Vector3(0.20f, g.TowerH * 0.28f, 0.34f), 1);
-                Box(b, new Vector3(0f, y0 + g.TowerH * 0.55f, zc + 0.54f), new Vector3(0.18f, 0.032f, 0.02f), 2);
-                Box(b, new Vector3(0f, y0 + g.TowerH * 1.15f, zc - 0.12f + 0.36f), new Vector3(0.12f, 0.028f, 0.02f), 2);
+                BevelBox(b, new Vector3(0f, y0 + g.TowerH * 0.55f, zc + 0.54f), new Vector3(0.18f, 0.032f, 0.02f), 2);
+                BevelBox(b, new Vector3(0f, y0 + g.TowerH * 1.15f, zc - 0.12f + 0.36f), new Vector3(0.12f, 0.028f, 0.02f), 2);
                 for (int m2 = 0; m2 < 2; m2++)
                 {
                     var mast = new Vector3((m2 == 0 ? -1 : 1) * 0.12f, y0 + g.TowerH * 1.4f, zc - 0.30f);
@@ -1014,8 +1016,8 @@ namespace SpaceGame
                 float sc = CrSample(cts, csc, t0);
                 float lift = CrSample(cts, clf, t0) * H;
                 var pc = new Vector3(side * W * sc * xwAt(t0) * 0.90f, 0.08f * H + lift, zAt(t0));
-                Box(b, pc, new Vector3(0.16f, 0.14f, 0.30f), 0);
-                Box(b, pc + new Vector3(0f, 0f, 0.32f), new Vector3(0.11f, 0.09f, 0.025f), 2);
+                BevelBox(b, pc, new Vector3(0.16f, 0.14f, 0.30f), 0);
+                BevelBox(b, pc + new Vector3(0f, 0f, 0.32f), new Vector3(0.11f, 0.09f, 0.025f), 2);
                 for (int bar = -1; bar <= 1; bar += 2)
                 {
                     var gb = pc + new Vector3(side * 0.04f, bar * 0.055f, 0.28f);
@@ -1030,7 +1032,8 @@ namespace SpaceGame
                 float z = zAt(t0);
                 float y0 = hullY(1, t0);
                 var mount = new Vector3((m2 == 0 ? 1 : -1) * 0.28f, y0 + 0.05f, z);
-                Box(b, mount, new Vector3(0.12f, 0.07f, 0.17f), 0);
+                Fairing(b, mount + new Vector3(0f, -0.09f, 0f), Vector3.up, 0.21f, 0.28f, 0.05f, 10, 0);
+                BevelBox(b, mount, new Vector3(0.12f, 0.07f, 0.17f), 0);
                 var gb = mount + new Vector3(0f, 0.10f, 0.10f);
                 var mz = gb + new Vector3(0f, 0.02f, g.GunLen);
                 Tube(b, new[] { gb, mz }, new[] { 0.058f, 0.050f }, 8, 0, false);
@@ -1044,8 +1047,8 @@ namespace SpaceGame
                 float sc = CrSample(cts, csc, t0);
                 float lift = CrSample(cts, clf, t0) * H;
                 var pc = new Vector3(side * W * sc * 0.92f, 0.12f * H + lift, zAt(t0));
-                Box(b, pc, new Vector3(0.13f, 0.11f, 0.26f), 0);
-                Box(b, pc + new Vector3(side * 0.14f, 0f, 0f), new Vector3(0.012f, 0.06f, 0.18f), 2);
+                BevelBox(b, pc, new Vector3(0.13f, 0.11f, 0.26f), 0);
+                BevelBox(b, pc + new Vector3(side * 0.14f, 0f, 0f), new Vector3(0.012f, 0.06f, 0.18f), 2);
                 var ant = pc + new Vector3(0f, 0.12f, -0.10f);
                 Tube(b, new[] { ant, ant + new Vector3(side * 0.08f, 0.30f, -0.06f) },
                     new[] { 0.020f, 0.004f }, 5, 3, true);
@@ -1060,7 +1063,7 @@ namespace SpaceGame
                     float sc = CrSample(cts, csc, t);
                     float lift = CrSample(cts, clf, t) * H;
                     var c = new Vector3(side * W * sc * xwAt(t) * 0.99f, -0.05f * H + lift, zAt(t));
-                    Box(b, c, new Vector3(0.025f, 0.035f, 0.10f), 2);
+                    BevelBox(b, c, new Vector3(0.025f, 0.035f, 0.10f), 2);
                 }
             }
 
@@ -1111,7 +1114,7 @@ namespace SpaceGame
                     float t = 0.78f + seg * 0.07f;
                     float sc = CrSample(cts, csc, t);
                     float lift = CrSample(cts, clf, t) * H;
-                    Box(b, new Vector3(side * W * sc * 0.97f, 0.05f * H + lift, zAt(t)),
+                    BevelBox(b, new Vector3(side * W * sc * 0.97f, 0.05f * H + lift, zAt(t)),
                         new Vector3(0.02f, 0.22f, 0.03f), 2);
                 }
             }

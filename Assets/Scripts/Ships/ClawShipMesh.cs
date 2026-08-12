@@ -291,8 +291,8 @@ namespace SpaceGame
                     float t = 0.34f + i * 0.16f;
                     float sc = CrSample(cts, csc, t);
                     var c = new Vector3(side * W * sc * 0.88f, -0.05f * H, (0.5f - t) * L);
-                    Box(b, c, new Vector3(0.14f, 0.11f, 0.16f), 1);
-                    Box(b, c + new Vector3(side * 0.10f, 0.02f, 0f), new Vector3(0.05f, 0.03f, 0.08f), 2);
+                    BevelBox(b, c, new Vector3(0.14f, 0.11f, 0.16f), 1);
+                    BevelBox(b, c + new Vector3(side * 0.10f, 0.02f, 0f), new Vector3(0.05f, 0.03f, 0.08f), 2);
                 }
             }
 
@@ -574,7 +574,7 @@ namespace SpaceGame
                 float y = -0.15f * H;
                 // shoulder mount block
                 var shoulder = new Vector3(x * 0.85f, y, (0.5f - 0.28f) * L);
-                Box(b, shoulder, new Vector3(0.18f, 0.16f, 0.22f), 1);
+                BevelBox(b, shoulder, new Vector3(0.18f, 0.16f, 0.22f), 1);
                 // segmented arm reaching forward and slightly out/down
                 var armDir = new Vector3(side * 0.16f, -0.06f, 0.98f).normalized;
                 const int armSegs = 6;
@@ -623,8 +623,8 @@ namespace SpaceGame
                     float t = 0.30f + i * 0.15f;
                     float sc = CrSample(cts, csc, t);
                     var c = new Vector3(side * W * sc * 0.90f, 0.08f * H, (0.5f - t) * L);
-                    Box(b, c, new Vector3(0.15f, 0.13f, 0.20f), i % 2 == 0 ? 1 : 0);
-                    Box(b, c + new Vector3(side * 0.11f, -0.04f, 0f), new Vector3(0.05f, 0.03f, 0.09f), 2);
+                    BevelBox(b, c, new Vector3(0.15f, 0.13f, 0.20f), i % 2 == 0 ? 1 : 0);
+                    BevelBox(b, c + new Vector3(side * 0.11f, -0.04f, 0f), new Vector3(0.05f, 0.03f, 0.09f), 2);
                 }
             }
 
@@ -878,7 +878,7 @@ namespace SpaceGame
                 float x = side * W * g.ArmSpread;
                 float y = -0.18f * H;
                 var shoulder = new Vector3(x, y, (0.5f - 0.14f) * L);
-                Box(b, shoulder, new Vector3(0.20f, 0.17f, 0.24f), 1);
+                BevelBox(b, shoulder, new Vector3(0.20f, 0.17f, 0.24f), 1);
                 var armDir = new Vector3(side * 0.30f, -g.ArmDroop, 0.92f).normalized;
                 const int armSegs = 7;
                 var path = new Vector3[armSegs + 1];
@@ -935,6 +935,7 @@ namespace SpaceGame
                     var d1 = new Vector3(side * (0.85f + g.LegA[li]), -0.50f, -0.15f).normalized;
                     float len1 = 0.55f * g.LegScale;
                     var j1 = mount + d1 * len1;
+                    Fairing(b, mount - d1 * 0.02f, d1, 0.115f, 0.20f, 0.10f, 8, 0);
                     Tube(b, new[] { mount, j1 }, new[] { 0.10f, 0.085f }, 7, 0, false);
                     Ball(b, j1, 0.115f, 1, 4, 8);
                     var d2 = new Vector3(side * (0.35f + g.LegA[li]), -0.72f, 0.18f).normalized;
@@ -954,8 +955,8 @@ namespace SpaceGame
                     float t = 0.24f + i * 0.16f;
                     float sc = CrSample(cts, csc, t);
                     var c = new Vector3(side * W * sc * 0.34f, -0.40f * H, (0.5f - t) * L);
-                    Box(b, c, new Vector3(0.16f, 0.10f, 0.18f), 1);
-                    Box(b, c + new Vector3(0f, -0.09f, side * 0.05f), new Vector3(0.06f, 0.025f, 0.09f), 2);
+                    BevelBox(b, c, new Vector3(0.16f, 0.10f, 0.18f), 1);
+                    BevelBox(b, c + new Vector3(0f, -0.09f, side * 0.05f), new Vector3(0.06f, 0.025f, 0.09f), 2);
                 }
             }
 

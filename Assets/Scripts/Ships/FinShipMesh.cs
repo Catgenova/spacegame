@@ -391,7 +391,7 @@ namespace SpaceGame
                     float t = 0.24f + i * 0.06f;
                     float sc = CrSample(cts, csc, t);
                     var c = new Vector3(side * W * sc * 0.80f, -0.24f * H, (0.5f - t) * L);
-                    Box(b, c, new Vector3(0.035f, 0.025f, 0.06f), 2);
+                    BevelBox(b, c, new Vector3(0.035f, 0.025f, 0.06f), 2);
                 }
             }
 
@@ -653,7 +653,7 @@ namespace SpaceGame
                     float t = 0.40f + i * 0.05f;
                     float sc = CrSample(cts, csc, t);
                     var c = new Vector3(side * W * sc * 0.72f, 0.10f * H, (0.5f - t) * L);
-                    Box(b, c, new Vector3(0.03f, 0.02f, 0.07f), 2);
+                    BevelBox(b, c, new Vector3(0.03f, 0.02f, 0.07f), 2);
                 }
             }
 
@@ -890,7 +890,7 @@ namespace SpaceGame
                     float t = 0.16f + i * 0.045f;
                     float sc = CrSample(cts, csc, t);
                     var c = new Vector3(side * W * sc * 0.68f, -0.20f * H, (0.5f - t) * L);
-                    Box(b, c, new Vector3(0.04f, 0.028f, 0.065f), 2);
+                    BevelBox(b, c, new Vector3(0.04f, 0.028f, 0.065f), 2);
                 }
             }
 

@@ -421,6 +421,98 @@ namespace SpaceGame
             b.QuadUDS(p011, p001, p000, p010, mat);
         }
 
+        /// <summary>Fairing skirt: one ring of quads flaring from a snug
+        /// collar (radius r0 at the attachment, height h along axis) down
+        /// to a wide base (radius r1 at the hull surface). Kills the
+        /// floating-primitive look under guns, masts, dishes, and legs.
+        /// Single-sided; winding resolved per-quad.</summary>
+        public static void Fairing(Builder b, Vector3 baseC, Vector3 axis, float r0, float r1,
+            float h, int sides, int mat)
+        {
+            axis = axis.normalized;
+            Basis(axis, out var right, out var up);
+            System.Func<int, float, float, Vector3> rp = (k, rad, ht) =>
+            {
+                float a = k / (float)sides * Mathf.PI * 2f;
+                return baseC + axis * ht + right * (Mathf.Cos(a) * rad) + up * (Mathf.Sin(a) * rad);
+            };
+            for (int k = 0; k < sides; k++)
+            {
+                int k2 = (k + 1) % sides;
+                var b0 = rp(k, r1, 0f); var b1 = rp(k2, r1, 0f);
+                var t0 = rp(k, r0, h); var t1 = rp(k2, r0, h);
+                var n = Vector3.Cross(b1 - b0, t0 - b0);
+                var outward = (b0 + b1 + t0 + t1) * 0.25f - (baseC + axis * (h * 0.5f));
+                if (Vector3.Dot(n, outward) > 0f) b.QuadU(t0, t1, b1, b0, mat);
+                else b.QuadU(t1, t0, b0, b1, mat);
+            }
+        }
+
+        /// <summary>BevelBox with the standard 0.03 chamfer.</summary>
+        public static void BevelBox(Builder b, Vector3 c, Vector3 half, int mat)
+            => BevelBox(b, c, half, 0.03f, mat);
+
+        /// <summary>Chamfered box: six inset faces, twelve 45-degree edge
+        /// strips, eight corner triangles. Single-sided, winding verified
+        /// against the hull-loft convention. Reads as machined plate where
+        /// Box reads as a primitive; ~44 tris vs Box's 24.</summary>
+        public static void BevelBox(Builder b, Vector3 c, Vector3 half, float bevel, int mat)
+        {
+            float v = Mathf.Min(bevel, Mathf.Min(half.x, Mathf.Min(half.y, half.z)) * 0.45f);
+            // Three points per corner, one pushed to each face plane.
+            var P = new Vector3[8][];
+            for (int ci = 0; ci < 8; ci++)
+            {
+                float sx = (ci & 4) != 0 ? 1f : -1f;
+                float sy = (ci & 2) != 0 ? 1f : -1f;
+                float sz = (ci & 1) != 0 ? 1f : -1f;
+                P[ci] = new[]
+                {
+                    c + new Vector3(sx * half.x, sy * (half.y - v), sz * (half.z - v)),
+                    c + new Vector3(sx * (half.x - v), sy * half.y, sz * (half.z - v)),
+                    c + new Vector3(sx * (half.x - v), sy * (half.y - v), sz * half.z),
+                };
+            }
+            // Faces: corner order wound so normals point out (verified).
+            int[][] faces =
+            {
+                new[] { 7, 5, 4, 6, 0 },  // +X
+                new[] { 3, 2, 0, 1, 0 },  // -X
+                new[] { 7, 6, 2, 3, 1 },  // +Y
+                new[] { 5, 1, 0, 4, 1 },  // -Y
+                new[] { 7, 3, 1, 5, 2 },  // +Z
+                new[] { 6, 4, 0, 2, 2 },  // -Z
+            };
+            foreach (var f in faces)
+                b.QuadU(P[f[3]][f[4]], P[f[2]][f[4]], P[f[1]][f[4]], P[f[0]][f[4]], mat);
+            // Edge strips between adjacent faces.
+            int[][] edges =
+            {
+                // corner A, corner B, axis of first face, axis of second face
+                new[] { 7, 5, 0, 2 }, new[] { 6, 4, 0, 2 }, new[] { 3, 1, 0, 2 }, new[] { 2, 0, 0, 2 },
+                new[] { 7, 6, 0, 1 }, new[] { 5, 4, 0, 1 }, new[] { 3, 2, 0, 1 }, new[] { 1, 0, 0, 1 },
+                new[] { 7, 3, 1, 2 }, new[] { 6, 2, 1, 2 }, new[] { 5, 1, 1, 2 }, new[] { 4, 0, 1, 2 },
+            };
+            foreach (var e in edges)
+            {
+                var a0 = P[e[0]][e[2]]; var a1 = P[e[1]][e[2]];
+                var b0 = P[e[0]][e[3]]; var b1 = P[e[1]][e[3]];
+                // wind so the strip faces outward: test the cross product
+                var n = Vector3.Cross(a1 - a0, b0 - a0);
+                var outward = (a0 + a1 + b0 + b1) * 0.25f - c;
+                if (Vector3.Dot(n, outward) > 0f) b.QuadU(b0, b1, a1, a0, mat);
+                else b.QuadU(b1, b0, a0, a1, mat);
+            }
+            // Corner triangles.
+            for (int ci = 0; ci < 8; ci++)
+            {
+                var n = Vector3.Cross(P[ci][1] - P[ci][0], P[ci][2] - P[ci][0]);
+                var outward = (P[ci][0] + P[ci][1] + P[ci][2]) / 3f - c;
+                if (Vector3.Dot(n, outward) > 0f) b.TriU(P[ci][0], P[ci][1], P[ci][2], mat);
+                else b.TriU(P[ci][0], P[ci][2], P[ci][1], mat);
+            }
+        }
+
         public static Material Metal(Color c, float metallic, float smooth)
         {
             var m = SystemView.Mat(c);
