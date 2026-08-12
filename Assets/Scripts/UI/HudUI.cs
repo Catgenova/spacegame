@@ -56,6 +56,7 @@ namespace SpaceGame
         void OnGUI()
         {
             if (GM == null || !GM.Ready) return;
+            GUI.skin = UiSkin.Skin;
             EnsureStyles();
             if (Event.current.type == EventType.Repaint) _uiRects.Clear();
 
@@ -103,9 +104,7 @@ namespace SpaceGame
         void Panel(Rect r)
         {
             if (Event.current.type == EventType.Repaint) _uiRects.Add(r);
-            GUI.color = new Color(0.04f, 0.07f, 0.11f, 0.92f);
-            GUI.DrawTexture(r, Texture2D.whiteTexture);
-            GUI.color = Color.white;
+            UiSkin.Panel(r);
         }
 
         static void DrawBarRow(float x, float y, float w, string label, float frac, Color c, string text)
@@ -212,6 +211,7 @@ namespace SpaceGame
                 case ObjKind.Gate: return "◈";
                 case ObjKind.Asteroid: return "▪";
                 case ObjKind.Npc: return "▲";
+                case ObjKind.Wreck: return "☒";
                 default: return "·";
             }
         }
@@ -224,6 +224,7 @@ namespace SpaceGame
                 case ObjKind.Asteroid: return new Color(0.85f, 0.78f, 0.62f);
                 case ObjKind.Station: return new Color(0.55f, 0.8f, 1f);
                 case ObjKind.Gate: return new Color(1f, 0.85f, 0.5f);
+                case ObjKind.Wreck: return new Color(0.65f, 0.6f, 0.5f);
                 default: return new Color(0.8f, 0.86f, 0.92f);
             }
         }
@@ -232,7 +233,7 @@ namespace SpaceGame
         {
             var sel = GM.Selected;
             if (sel == null) return;
-            var r = new Rect(12, Screen.height - 320, 250, 150);
+            var r = new Rect(12, Screen.height - 340, 250, 170);
             Panel(r);
             GUI.contentColor = KindColor(sel.Kind);
             GUI.Label(new Rect(r.x + 8, r.y + 5, r.width - 16, 18), sel.DisplayName, _titleStyle);
@@ -263,6 +264,30 @@ namespace SpaceGame
                     GameData.Ores[rock.Data.Ore].Name + ": " + Mathf.Round(rock.Data.Amount) + " m3 remaining", _smallStyle);
                 y += 17;
             }
+            else if (sel is Wreck wreck)
+            {
+                GUI.Label(new Rect(r.x + 8, y, r.width - 16, 14),
+                    wreck.Loot.Count > 0 ? wreck.Loot.Count + " item(s) detected inside" : "Scan inconclusive",
+                    _smallStyle);
+                y += 17;
+            }
+
+            // Expected hit quality for the first fitted weapon vs this target.
+            if (sel is NpcPirate target)
+            {
+                foreach (var entry in GM.Ship.Rack)
+                {
+                    if (entry.Def.Kind != ModuleKind.Weapon) continue;
+                    float angVel = Combat.AngularVelocity(
+                        target.transform.position - GM.Ship.transform.position,
+                        target.Vel - GM.Ship.Vel);
+                    int pct = Mathf.RoundToInt(Combat.HitChance(entry.Def.Tracking, angVel) * 100f);
+                    GUI.Label(new Rect(r.x + 8, y, r.width - 16, 14),
+                        entry.Def.Short + " tracking: ~" + pct + "% hit", _smallStyle);
+                    y += 14;
+                    break;
+                }
+            }
 
             var by = r.yMax - 30;
             float bx = r.x + 8;
@@ -279,6 +304,10 @@ namespace SpaceGame
             else if (sel.Kind == ObjKind.Gate)
             {
                 if (GUI.Button(new Rect(bx, by, 50, 22), "Jump")) GM.Jump();
+            }
+            else if (sel.Kind == ObjKind.Wreck)
+            {
+                if (GUI.Button(new Rect(bx, by, 50, 22), "Loot")) GM.LootWreck();
             }
         }
 
@@ -314,7 +343,7 @@ namespace SpaceGame
 
             GUI.Label(new Rect(r.x + 12, r.y + 8, w - 24, 20), GM.Station.Name.ToUpper(), _titleStyle);
 
-            string[] tabs = { "Market", "Fitting", "Ships", "Repair", "Agent" };
+            string[] tabs = { "Market", "Refine", "Fitting", "Ships", "Repair", "Agent" };
             for (int i = 0; i < tabs.Length; i++)
             {
                 GUI.backgroundColor = _stationTab == i ? new Color(0.5f, 0.75f, 1f) : Color.white;
@@ -337,10 +366,11 @@ namespace SpaceGame
             switch (_stationTab)
             {
                 case 0: DrawMarketTab(); break;
-                case 1: DrawFittingTab(); break;
-                case 2: DrawShipsTab(); break;
-                case 3: DrawRepairTab(); break;
-                case 4: DrawAgentTab(); break;
+                case 1: DrawRefineTab(); break;
+                case 2: DrawFittingTab(); break;
+                case 3: DrawShipsTab(); break;
+                case 4: DrawRepairTab(); break;
+                case 5: DrawAgentTab(); break;
             }
             GUILayout.EndScrollView();
             GUILayout.EndArea();
@@ -351,19 +381,19 @@ namespace SpaceGame
             var p = GM.Player;
             int trade = p.SkillLevel("trade");
 
-            GUILayout.Label("— SELL ORE —", _smallStyle);
+            GUILayout.Label("— SELL ORE & MINERALS —", _smallStyle);
             bool any = false;
-            foreach (var oreId in new List<string>(p.Cargo.Keys))
+            foreach (var id in new List<string>(p.Cargo.Keys))
             {
-                float qty = p.Cargo[oreId];
+                float qty = p.Cargo[id];
                 if (qty <= 0f) continue;
                 any = true;
-                long unit = Market.ApplyTradeSkill(Market.OreSellPrice(GM.StationId, oreId), trade, true);
+                long unit = Market.ApplyTradeSkill(Market.OreSellPrice(GM.StationId, id), trade, true);
                 GUILayout.BeginHorizontal();
-                GUILayout.Label(GameData.Ores[oreId].Name + "  ×" + Mathf.Round(qty) + " m3", GUILayout.Width(240));
+                GUILayout.Label(GameData.Commodity(id).Name + "  ×" + Mathf.Round(qty) + " m3", GUILayout.Width(240));
                 GUILayout.Label(unit + " cr/m3", GUILayout.Width(110));
                 GUILayout.Label("= " + GameData.FmtCredits((long)(unit * qty)), GUILayout.Width(130));
-                if (GUILayout.Button("Sell All", GUILayout.Width(80))) GM.SellOre(oreId);
+                if (GUILayout.Button("Sell All", GUILayout.Width(80))) GM.SellCommodity(id);
                 GUILayout.EndHorizontal();
             }
             if (!any) GUILayout.Label("Cargo hold is empty. Mine some ore!", _smallStyle);
@@ -382,6 +412,41 @@ namespace SpaceGame
                 GUILayout.EndHorizontal();
                 GUILayout.Label("    " + m.Desc, _smallStyle);
             }
+        }
+
+        void DrawRefineTab()
+        {
+            var p = GM.Player;
+            int pct = Mathf.RoundToInt(GM.RefineYield() * 100f);
+            GUILayout.Label("— REFINERY —", _smallStyle);
+            GUILayout.Label("Current yield: " + pct + "%  (base 66%, +4.5% per Refining level). "
+                + "Minerals are lighter and often worth more than raw ore.", _smallStyle);
+            GUILayout.Space(8);
+
+            bool any = false;
+            foreach (var id in new List<string>(p.Cargo.Keys))
+            {
+                if (!GameData.Ores.TryGetValue(id, out var def) || def.RefineInto == null) continue;
+                float qty = p.Cargo[id];
+                if (qty <= 0f) continue;
+                any = true;
+                string outputs = "";
+                foreach (var kv in def.RefineInto)
+                    outputs += (outputs.Length > 0 ? ", " : "")
+                        + Mathf.Round(qty * GM.RefineYield() * kv.Value) + " "
+                        + GameData.Minerals[kv.Key].Name;
+                GUILayout.BeginHorizontal();
+                GUILayout.Label(def.Name + "  ×" + Mathf.Round(qty) + " m3", GUILayout.Width(220));
+                GUILayout.Label("→  " + outputs + " (m3)", GUILayout.Width(330));
+                if (GUILayout.Button("Refine", GUILayout.Width(80)))
+                {
+                    GM.RefineOre(id);
+                    GUILayout.EndHorizontal();
+                    break;
+                }
+                GUILayout.EndHorizontal();
+            }
+            if (!any) GUILayout.Label("No refinable ore in your cargo hold.", _smallStyle);
         }
 
         void DrawFittingTab()

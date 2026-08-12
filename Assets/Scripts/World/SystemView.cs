@@ -126,6 +126,25 @@ namespace SpaceGame
             if (obj != null) Destroy(obj.gameObject);
         }
 
+        public Wreck SpawnWreck(NpcDef def, Vector3 pos, List<string> loot)
+        {
+            var go = new GameObject(def.Name + " Wreck");
+            go.transform.SetParent(_root, false);
+            go.transform.position = pos;
+            go.transform.rotation = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
+            float s = def.Id == "overlord" ? 2f : def.Id == "marauder" ? 1.4f : 1f;
+            ShipVisuals.BuildWreckVisual(go.transform, s);
+            var col = go.AddComponent<SphereCollider>();
+            col.radius = 4f * s;
+            var wreck = go.AddComponent<Wreck>();
+            wreck.Id = "wreck_" + go.GetInstanceID();
+            wreck.DisplayName = def.Name + " Wreck";
+            wreck.Kind = ObjKind.Wreck;
+            if (loot != null) wreck.Loot.AddRange(loot);
+            Objects.Add(wreck);
+            return wreck;
+        }
+
         public NpcPirate SpawnNpc(string typeId, Vector3 pos)
         {
             var def = GameData.Npcs[typeId];

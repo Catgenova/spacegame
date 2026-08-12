@@ -47,10 +47,18 @@ too, so an early warp-out beats their first volley.
 ### The loop
 
 - **Mine** ore in asteroid belts; richer, rarer ore lives in low-sec systems.
+- **Refine** ore into minerals (Tritanium/Pyerite/Mexallon/Isogen) at any
+  station — yield starts at 66% and grows with the Refining skill, so
+  refined mineral hauling out-earns raw ore once you're trained.
 - **Sell** at stations — each station has stable price personalities, so
-  hauling ore (or cheap modules) between systems is a real career.
+  hauling ore, minerals, or cheap modules between systems is a real career.
 - **Fight** pirates for bounties. Lower security means nastier spawns:
-  Solara (1.0) is safe; Abyss (0.0) is overlord country.
+  Solara (1.0) is safe; Abyss (0.0) is overlord country. Turrets have
+  tracking speeds: orbit fast and close to make big slow guns miss you
+  (the target panel shows your expected hit quality).
+- **Salvage** wrecks — destroyed pirates leave wrecks that can hold real
+  modules (better pirates drop better loot). Salvage rides in your cargo
+  and transfers to your hangar when you dock.
 - **Fit** your ship at stations: weapons, miners, shield boosters,
   afterburners, cargo/armor/cap passives.
 - **Upgrade** hulls: Wasp → Prospector (miner) / Talon (fighter) →

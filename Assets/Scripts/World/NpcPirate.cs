@@ -10,6 +10,7 @@ namespace SpaceGame
     {
         public NpcDef Def;
         public float Shield, Armor, Hull;
+        public Vector3 Vel => _vel;
 
         Vector3 _vel;
         float _cycleT;
@@ -71,7 +72,10 @@ namespace SpaceGame
                 {
                     _cycleT = 0f;
                     _fireFlash = 0.28f;
-                    gm.DamagePlayer(Def.Dmg, this);
+                    float angVel = Combat.AngularVelocity(
+                        gm.Ship.transform.position - transform.position, gm.Ship.Vel - _vel);
+                    float dmg = Combat.RollDamage(Def.Dmg, Def.Tracking, angVel, out _);
+                    gm.DamagePlayer(dmg, this);
                 }
             }
             else

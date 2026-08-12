@@ -85,6 +85,20 @@ namespace SpaceGame
                 new Vector3(0.8f * s, 0.5f * s, 0.4f * s), Vector3.zero, accent, true);
         }
 
+        public static void BuildWreckVisual(Transform root, float s)
+        {
+            var scorched = new Color(0.22f, 0.2f, 0.19f);
+            var ember = new Color(0.9f, 0.45f, 0.15f);
+            Part(root, PrimitiveType.Cube, Vector3.zero,
+                new Vector3(1.6f * s, 0.9f * s, 2.2f * s), new Vector3(10f, 25f, 5f), scorched);
+            Part(root, PrimitiveType.Cube, new Vector3(1.1f * s, 0.4f * s, -0.8f * s),
+                new Vector3(1.2f * s, 0.3f * s, 0.9f * s), new Vector3(-15f, 60f, 20f), scorched);
+            Part(root, PrimitiveType.Cube, new Vector3(-0.9f * s, -0.3f * s, 0.6f * s),
+                new Vector3(0.7f * s, 0.6f * s, 0.5f * s), new Vector3(30f, 10f, 45f), scorched);
+            Part(root, PrimitiveType.Cube, new Vector3(0.2f * s, 0f, -0.2f * s),
+                new Vector3(0.35f * s, 0.35f * s, 0.35f * s), Vector3.zero, ember, true);
+        }
+
         /// <summary>Distant emissive cubes pinned to the camera position — a cheap skybox.</summary>
         public static GameObject BuildStarfield()
         {

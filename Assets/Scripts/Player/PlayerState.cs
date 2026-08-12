@@ -28,6 +28,7 @@ namespace SpaceGame
 
         public string HullId;
         public readonly Dictionary<string, float> Cargo = new Dictionary<string, float>();
+        public readonly List<string> CargoModules = new List<string>(); // salvaged modules in the hold
         public readonly Dictionary<SlotType, string[]> Fitting = new Dictionary<SlotType, string[]>();
         public float Shield, Armor, HullHp, Cap;
         public float ExtraCargo; // e.g. a courier mission package occupying the hold
@@ -86,7 +87,7 @@ namespace SpaceGame
 
         public float CargoUsed()
         {
-            float sum = ExtraCargo;
+            float sum = ExtraCargo + CargoModules.Count * GameData.ModuleCargoVolume;
             foreach (var v in Cargo.Values) sum += v;
             return sum;
         }

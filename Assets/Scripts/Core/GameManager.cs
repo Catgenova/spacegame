@@ -179,6 +179,12 @@ namespace SpaceGame
             StationId = st.Id;
             Ship.ResetMotion();
             Log("Docked at " + st.DisplayName + ".");
+            if (Player.CargoModules.Count > 0)
+            {
+                Player.Hangar.AddRange(Player.CargoModules);
+                Log(Player.CargoModules.Count + " salvaged module(s) transferred to your hangar.");
+                Player.CargoModules.Clear();
+            }
             SaveSystem.Save(this);
         }
 
@@ -231,6 +237,7 @@ namespace SpaceGame
             }
             Player.ExtraCargo = 0f;
             Player.Cargo.Clear();
+            Player.CargoModules.Clear();
             Player.SetHull("wasp");
             Player.Fitting[SlotType.High][0] = "miner1";
             SystemId = HomeSystem;
@@ -249,6 +256,17 @@ namespace SpaceGame
             Player.Credits += npc.Def.Bounty;
             Log(npc.Def.Name + " destroyed. Bounty: " + GameData.FmtCredits(npc.Def.Bounty) + ".");
             if (Selected == npc) Selected = null;
+
+            // Leave a wreck, maybe with salvage.
+            var loot = new List<string>();
+            if (GameData.Loot.TryGetValue(npc.Def.Id, out var table) && Random.value < table.Chance)
+            {
+                int count = 1 + (table.MaxItems > 1 && Random.value < 0.5f ? 1 : 0);
+                for (int i = 0; i < count; i++)
+                    loot.Add(table.Pool[Random.Range(0, table.Pool.Length)]);
+            }
+            View.SpawnWreck(npc.Def, npc.transform.position, loot);
+
             View.RemoveObject(npc);
 
             var m = ActiveMission;
@@ -260,6 +278,40 @@ namespace SpaceGame
                     + (m.KillsDone >= m.KillsRequired ? " — return to the agent!" : "."));
                 SaveSystem.Save(this);
             }
+        }
+
+        public const float LootRange = 40f;
+
+        public void LootWreck()
+        {
+            var w = Selected as Wreck;
+            if (w == null || Docked) return;
+            if (DistTo(w) > LootRange) { Log("Get within " + GameData.FmtDist(LootRange) + " to salvage."); return; }
+            if (w.Loot.Count == 0)
+            {
+                Log("Nothing of value in the wreck.");
+                Select(null);
+                View.RemoveObject(w);
+                return;
+            }
+            var st = Player.ComputeStats();
+            for (int i = w.Loot.Count - 1; i >= 0; i--)
+            {
+                if (st.CargoCap - Player.CargoUsed() < GameData.ModuleCargoVolume)
+                {
+                    Log("Cargo hold too full for more salvage.");
+                    break;
+                }
+                Player.CargoModules.Add(w.Loot[i]);
+                Log("Salvaged " + GameData.Modules[w.Loot[i]].Name + ".");
+                w.Loot.RemoveAt(i);
+            }
+            if (w.Loot.Count == 0)
+            {
+                Select(null);
+                View.RemoveObject(w);
+            }
+            SaveSystem.Save(this);
         }
 
         public void RemoveAsteroid(AsteroidBody rock)
@@ -328,15 +380,37 @@ namespace SpaceGame
 
         int TradeLevel => Player.SkillLevel("trade");
 
-        public void SellOre(string oreId)
+        public void SellCommodity(string id)
         {
-            if (!Docked || !Player.Cargo.TryGetValue(oreId, out float qty) || qty <= 0f) return;
-            long unit = Market.ApplyTradeSkill(Market.OreSellPrice(StationId, oreId), TradeLevel, true);
+            if (!Docked || !Player.Cargo.TryGetValue(id, out float qty) || qty <= 0f) return;
+            long unit = Market.ApplyTradeSkill(Market.OreSellPrice(StationId, id), TradeLevel, true);
             long total = (long)Mathf.Round(unit * qty);
             Player.Credits += total;
-            Player.Cargo.Remove(oreId);
-            Log("Sold " + Mathf.Round(qty) + " m3 " + GameData.Ores[oreId].Name
+            Player.Cargo.Remove(id);
+            Log("Sold " + Mathf.Round(qty) + " m3 " + GameData.Commodity(id).Name
                 + " for " + GameData.FmtCredits(total) + ".");
+            SaveSystem.Save(this);
+        }
+
+        public float RefineYield()
+            => GameData.BaseRefineYield + GameData.RefineYieldPerLevel * Player.SkillLevel("refining");
+
+        public void RefineOre(string oreId)
+        {
+            if (!Docked || !GameData.Ores.TryGetValue(oreId, out var def) || def.RefineInto == null) return;
+            if (!Player.Cargo.TryGetValue(oreId, out float qty) || qty <= 0f) return;
+            float yield = RefineYield();
+            Player.Cargo.Remove(oreId);
+            var summary = "";
+            foreach (var kv in def.RefineInto)
+            {
+                float outM3 = qty * yield * kv.Value;
+                Player.Cargo.TryGetValue(kv.Key, out float have);
+                Player.Cargo[kv.Key] = have + outM3;
+                summary += (summary.Length > 0 ? ", " : "")
+                    + Mathf.Round(outM3) + " m3 " + GameData.Minerals[kv.Key].Name;
+            }
+            Log("Refined " + Mathf.Round(qty) + " m3 " + def.Name + " into " + summary + ".");
             SaveSystem.Save(this);
         }
 

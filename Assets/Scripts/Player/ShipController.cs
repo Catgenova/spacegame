@@ -391,7 +391,11 @@ namespace SpaceGame
                 r.Active = false;
                 return;
             }
+            // Tracking: fast transversal makes slow guns land glancing blows.
+            float angVel = Combat.AngularVelocity(
+                npc.transform.position - transform.position, npc.Vel - Vel);
             float dmg = m.Dmg * (1f + 0.05f * P.SkillLevel("gunnery"));
+            dmg = Combat.RollDamage(dmg, m.Tracking, angVel, out _);
             if (npc.TakeDamage(dmg))
             {
                 r.Active = false;

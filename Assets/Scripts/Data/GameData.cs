@@ -5,13 +5,22 @@ namespace SpaceGame
 {
     public enum SlotType { High, Mid, Low }
     public enum ModuleKind { Miner, Weapon, ShieldBooster, Afterburner, Passive }
-    public enum ObjKind { Sun, Planet, Belt, Station, Gate, Asteroid, Npc }
+    public enum ObjKind { Sun, Planet, Belt, Station, Gate, Asteroid, Npc, Wreck }
 
+    /// <summary>A tradable commodity: raw ore (refinable) or a mineral.</summary>
     public class OreDef
     {
         public string Id, Name;
         public float PricePerM3;
         public Color Color;
+        public Dictionary<string, float> RefineInto; // mineral id -> fraction (ores only)
+    }
+
+    public class LootTable
+    {
+        public float Chance;   // probability the wreck contains anything
+        public int MaxItems;
+        public string[] Pool;  // module ids
     }
 
     public class ShipDef
@@ -36,6 +45,7 @@ namespace SpaceGame
         public float Cycle, Range, CapUse;
         public float Yield;       // miner: m3/cycle
         public float Dmg;         // weapon: damage/cycle
+        public float Tracking;    // weapon: rad/s of target motion it can follow
         public float BoostAmount; // shield booster: hp/cycle
         public float SpeedMult;   // afterburner
         public float CargoBonus, ArmorBonus, CapBonus; // passives
@@ -46,6 +56,7 @@ namespace SpaceGame
         public string Id, Name;
         public float Shield, Armor, Hull;
         public float Dmg, Cycle, Range, Engage, Speed, Orbit;
+        public float Tracking; // rad/s — orbit fast and close to make big guns miss
         public long Bounty;
     }
 
@@ -67,11 +78,16 @@ namespace SpaceGame
         public const float MinWarpDist = 1500f;
         public const float UnitsToKm = 0.1f;
         public const float UnitsToMs = 100f;    // units/s -> m/s
+        public const float ModuleCargoVolume = 5f; // m3 a salvaged module occupies
+        public const float BaseRefineYield = 0.66f;
+        public const float RefineYieldPerLevel = 0.045f;
 
         /// <summary>XP required to go from `level` to `level + 1`.</summary>
         public static float XpForLevel(int level) => 300f * Mathf.Pow(4f, level);
 
         public static readonly Dictionary<string, OreDef> Ores = new Dictionary<string, OreDef>();
+        public static readonly Dictionary<string, OreDef> Minerals = new Dictionary<string, OreDef>();
+        public static readonly Dictionary<string, LootTable> Loot = new Dictionary<string, LootTable>();
         public static readonly Dictionary<string, ShipDef> Ships = new Dictionary<string, ShipDef>();
         public static readonly Dictionary<string, ModuleDef> Modules = new Dictionary<string, ModuleDef>();
         public static readonly Dictionary<string, NpcDef> Npcs = new Dictionary<string, NpcDef>();
@@ -84,6 +100,21 @@ namespace SpaceGame
             Ore("plagioclase", "Plagioclase", 27f, new Color(0.50f, 0.69f, 0.54f));
             Ore("kernite", "Kernite", 42f, new Color(0.69f, 0.50f, 0.66f));
             Ore("omber", "Omber", 65f, new Color(0.82f, 0.70f, 0.42f));
+
+            Mineral("tritanium", "Tritanium", 28f, new Color(0.75f, 0.78f, 0.82f));
+            Mineral("pyerite", "Pyerite", 44f, new Color(0.85f, 0.55f, 0.4f));
+            Mineral("mexallon", "Mexallon", 72f, new Color(0.45f, 0.75f, 0.8f));
+            Mineral("isogen", "Isogen", 120f, new Color(0.55f, 0.9f, 0.55f));
+
+            Ores["veldspar"].RefineInto = new Dictionary<string, float> { { "tritanium", 1f } };
+            Ores["scordite"].RefineInto = new Dictionary<string, float> { { "tritanium", 0.65f }, { "pyerite", 0.35f } };
+            Ores["plagioclase"].RefineInto = new Dictionary<string, float> { { "tritanium", 0.3f }, { "pyerite", 0.45f }, { "mexallon", 0.25f } };
+            Ores["kernite"].RefineInto = new Dictionary<string, float> { { "pyerite", 0.35f }, { "mexallon", 0.45f }, { "isogen", 0.2f } };
+            Ores["omber"].RefineInto = new Dictionary<string, float> { { "pyerite", 0.2f }, { "mexallon", 0.3f }, { "isogen", 0.5f } };
+
+            Loot["rookie"] = new LootTable { Chance = 0.45f, MaxItems = 1, Pool = new[] { "blaster1", "miner1", "afterburner1" } };
+            Loot["marauder"] = new LootTable { Chance = 0.75f, MaxItems = 1, Pool = new[] { "rail1", "shieldboost1", "plate1", "cargo1" } };
+            Loot["overlord"] = new LootTable { Chance = 1f, MaxItems = 2, Pool = new[] { "rail2", "miner2", "capbattery1", "plate1", "shieldboost1" } };
 
             Ships["wasp"] = new ShipDef
             {
@@ -142,19 +173,22 @@ namespace SpaceGame
             {
                 Id = "blaster1", Name = "Light Blaster", Short = "BLAS", Slot = SlotType.High,
                 Kind = ModuleKind.Weapon, Price = 13000, Cycle = 2f, Dmg = 15f, Range = 70f, CapUse = 3f,
-                Desc = "Close-range plasma cannon. High damage, short reach.",
+                Tracking = 0.40f,
+                Desc = "Close-range plasma cannon. High damage, excellent tracking.",
             };
             Modules["rail1"] = new ModuleDef
             {
                 Id = "rail1", Name = "Light Railgun", Short = "RAIL", Slot = SlotType.High,
                 Kind = ModuleKind.Weapon, Price = 17000, Cycle = 2.5f, Dmg = 11f, Range = 280f, CapUse = 4f,
-                Desc = "Long-range kinetic sniper for keeping pirates honest.",
+                Tracking = 0.07f,
+                Desc = "Long-range sniper. Struggles against fast close orbiters.",
             };
             Modules["rail2"] = new ModuleDef
             {
                 Id = "rail2", Name = "Medium Railgun", Short = "RAIL+", Slot = SlotType.High,
                 Kind = ModuleKind.Weapon, Price = 68000, Cycle = 3f, Dmg = 24f, Range = 360f, CapUse = 7f,
-                Desc = "Cruiser-grade railgun. Serious reach, serious holes.",
+                Tracking = 0.045f,
+                Desc = "Cruiser-grade railgun. Serious reach, poor tracking.",
             };
             Modules["shieldboost1"] = new ModuleDef
             {
@@ -192,21 +226,21 @@ namespace SpaceGame
                 Id = "rookie", Name = "Pirate Rookie",
                 Shield = 90, Armor = 70, Hull = 70,
                 Dmg = 7, Cycle = 2.5f, Range = 100f, Engage = 700f, Speed = 2.8f, Orbit = 60f,
-                Bounty = 3500,
+                Tracking = 0.30f, Bounty = 3500,
             };
             Npcs["marauder"] = new NpcDef
             {
                 Id = "marauder", Name = "Pirate Marauder",
                 Shield = 220, Armor = 180, Hull = 160,
                 Dmg = 16, Cycle = 2.8f, Range = 160f, Engage = 900f, Speed = 2.6f, Orbit = 100f,
-                Bounty = 11000,
+                Tracking = 0.13f, Bounty = 11000,
             };
             Npcs["overlord"] = new NpcDef
             {
                 Id = "overlord", Name = "Pirate Overlord",
                 Shield = 500, Armor = 420, Hull = 380,
                 Dmg = 34, Cycle = 3.2f, Range = 240f, Engage = 1200f, Speed = 2.2f, Orbit = 140f,
-                Bounty = 38000,
+                Tracking = 0.055f, Bounty = 38000,
             };
 
             Skill("mining", "Mining", "+5% mining laser yield per level.");
@@ -214,10 +248,21 @@ namespace SpaceGame
             Skill("engineering", "Engineering", "+5% capacitor amount and recharge per level.");
             Skill("navigation", "Navigation", "+5% max velocity per level.");
             Skill("trade", "Trade", "2% better market prices per level.");
+            Skill("refining", "Refining", "+4.5% refinery yield per level (base 66%).");
         }
 
         static void Ore(string id, string name, float price, Color c)
             => Ores[id] = new OreDef { Id = id, Name = name, PricePerM3 = price, Color = c };
+
+        static void Mineral(string id, string name, float price, Color c)
+            => Minerals[id] = new OreDef { Id = id, Name = name, PricePerM3 = price, Color = c };
+
+        /// <summary>Look up any tradable commodity (ore or mineral).</summary>
+        public static OreDef Commodity(string id)
+            => Ores.TryGetValue(id, out var o) ? o : Minerals[id];
+
+        public static bool CommodityExists(string id)
+            => Ores.ContainsKey(id) || Minerals.ContainsKey(id);
 
         static void Skill(string id, string name, string desc)
             => Skills[id] = new SkillDef { Id = id, Name = name, Desc = desc };

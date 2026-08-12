@@ -32,9 +32,10 @@ namespace SpaceGame
             public float Shield, Armor, HullHp, Cap;
             public Vector3 Pos;
 
-            // v2: missions
+            // v2: missions + salvage
             public int MissionCounter;
             public float ExtraCargo;
+            public List<string> CargoMods = new List<string>();
             public string MsnType = "";
             public string MsnTitle, MsnDesc;
             public string MsnOriginStation, MsnOriginSystem;
@@ -84,6 +85,7 @@ namespace SpaceGame
             foreach (var kv in p.Skills)
                 d.Skills.Add(new SkillSave { Id = kv.Key, Level = kv.Value.Level, Xp = kv.Value.Xp });
             d.Hangar.AddRange(p.Hangar);
+            d.CargoMods.AddRange(p.CargoModules);
             foreach (var kv in p.Cargo)
                 d.Cargo.Add(new OreSave { Id = kv.Key, Amount = kv.Value });
             foreach (var slot in new[] { SlotType.High, SlotType.Mid, SlotType.Low })
@@ -122,8 +124,11 @@ namespace SpaceGame
                 }
                 foreach (var modId in d.Hangar)
                     if (GameData.Modules.ContainsKey(modId)) p.Hangar.Add(modId);
+                if (d.CargoMods != null)
+                    foreach (var modId in d.CargoMods)
+                        if (GameData.Modules.ContainsKey(modId)) p.CargoModules.Add(modId);
                 foreach (var o in d.Cargo)
-                    if (GameData.Ores.ContainsKey(o.Id)) p.Cargo[o.Id] = o.Amount;
+                    if (GameData.CommodityExists(o.Id)) p.Cargo[o.Id] = o.Amount;
 
                 var st = p.ComputeStats();
                 p.Shield = Mathf.Clamp(d.Shield, 0f, st.MaxShield);

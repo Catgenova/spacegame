@@ -31,11 +31,11 @@ namespace SpaceGame
             return 1f - spread / 2f + (float)r.NextDouble() * spread;
         }
 
-        /// <summary>Price a station pays per m3 of ore (before trade skill).</summary>
-        public static long OreSellPrice(string stationId, string oreId)
+        /// <summary>Price a station pays per m3 of ore or mineral (before trade skill).</summary>
+        public static long OreSellPrice(string stationId, string commodityId)
         {
-            float basePrice = GameData.Ores[oreId].PricePerM3;
-            return (long)Mathf.Max(1f, Mathf.Round(basePrice * Mults(stationId).Ore * Jitter(stationId, oreId, 0.3f)));
+            float basePrice = GameData.Commodity(commodityId).PricePerM3;
+            return (long)Mathf.Max(1f, Mathf.Round(basePrice * Mults(stationId).Ore * Jitter(stationId, commodityId, 0.3f)));
         }
 
         /// <summary>Price a station charges for a module (before trade skill).</summary>
