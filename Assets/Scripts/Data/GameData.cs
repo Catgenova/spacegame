@@ -3,13 +3,13 @@ using UnityEngine;
 
 namespace SpaceGame
 {
-    public enum SlotType { High, Mid, Low, Web, Disruptor }
-    public enum ModuleKind { Miner, Weapon, ShieldBooster, Afterburner, Passive, Web, Disruptor }
+    public enum SlotType { High, Mid, Low, Web, Disruptor, Claw }
+    public enum ModuleKind { Miner, Weapon, ShieldBooster, Afterburner, Passive, Web, Disruptor, Claw }
 
     /// <summary>All fittable slot categories, in display/rack order.</summary>
     public static class Slots
     {
-        public static readonly SlotType[] All = { SlotType.High, SlotType.Mid, SlotType.Low, SlotType.Web, SlotType.Disruptor };
+        public static readonly SlotType[] All = { SlotType.High, SlotType.Mid, SlotType.Low, SlotType.Web, SlotType.Disruptor, SlotType.Claw };
     }
     public enum ObjKind { Sun, Planet, Belt, Station, Gate, Asteroid, Npc, Wreck }
 
@@ -34,7 +34,7 @@ namespace SpaceGame
         public string Id, Name, Class, Desc;
         public long Price;
         public float Cargo;
-        public int HighSlots, MidSlots, LowSlots, WebSlots, DisruptorSlots;
+        public int HighSlots, MidSlots, LowSlots, WebSlots, DisruptorSlots, ClawSlots;
         public float Shield, Armor, Hull;
         public float Cap, CapRegen;
         public float Speed;        // units/s (1 unit = 100 m)
@@ -260,6 +260,12 @@ namespace SpaceGame
                 Id = "disrupt1", Name = "Warp Disruptor I", Short = "DISR", Slot = SlotType.Disruptor,
                 Kind = ModuleKind.Disruptor, Price = 26000, Cycle = 2f, Range = 130f, CapUse = 4f,
                 Desc = "Jams the target's warp drive — a pointed pirate aligns out but can never jump. Requires a disruptor slot (Hive interdictors).",
+            };
+            Modules["claw1"] = new ModuleDef
+            {
+                Id = "claw1", Name = "Mining Claw I", Short = "CLAW", Slot = SlotType.Claw,
+                Kind = ModuleKind.Claw, Price = 21000, Cycle = 3f, Yield = 26f, Range = 10f, CapUse = 5f,
+                Desc = "Hydraulic rock claw. 26 m3 per 3s cycle, but you must be ON the rock (0 km). Requires a claw hardpoint (Claw hulls).",
             };
 
             Npcs["rookie"] = new NpcDef

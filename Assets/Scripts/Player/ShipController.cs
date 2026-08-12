@@ -81,7 +81,7 @@ namespace SpaceGame
         public void RefreshRack()
         {
             Rack.Clear();
-            foreach (var slot in new[] { SlotType.High, SlotType.Mid, SlotType.Web, SlotType.Disruptor })
+            foreach (var slot in new[] { SlotType.High, SlotType.Mid, SlotType.Web, SlotType.Disruptor, SlotType.Claw })
             {
                 if (!P.Fitting.ContainsKey(slot)) continue;
                 var arr = P.Fitting[slot];
@@ -160,17 +160,20 @@ namespace SpaceGame
                 return;
             }
             var m = r.Def;
-            if ((m.Kind == ModuleKind.Miner || m.Kind == ModuleKind.Weapon || m.Kind == ModuleKind.Web
-                || m.Kind == ModuleKind.Disruptor) && !ValidTarget(m))
+            if ((m.Kind == ModuleKind.Miner || m.Kind == ModuleKind.Claw || m.Kind == ModuleKind.Weapon
+                || m.Kind == ModuleKind.Web || m.Kind == ModuleKind.Disruptor) && !ValidTarget(m))
             {
                 var sel = GM.Selected;
-                bool rightKind = m.Kind == ModuleKind.Miner ? sel is AsteroidBody : sel is NpcPirate;
+                bool wantsRock = m.Kind == ModuleKind.Miner || m.Kind == ModuleKind.Claw;
+                bool rightKind = wantsRock ? sel is AsteroidBody : sel is NpcPirate;
                 if (!rightKind)
-                    GM.Log(m.Kind == ModuleKind.Miner
+                    GM.Log(wantsRock
                         ? "Select an asteroid first."
                         : "Select a hostile ship first.");
                 else if (Vector3.Distance(transform.position, sel.transform.position) > m.Range)
-                    GM.Log("Target out of range for " + m.Name + ".");
+                    GM.Log(m.Kind == ModuleKind.Claw
+                        ? "The claw needs to touch the rock — approach to 0 km."
+                        : "Target out of range for " + m.Name + ".");
                 else
                     GM.Log("Still locking target — wait for the lock.");
                 Sfx.Deny();
@@ -187,7 +190,8 @@ namespace SpaceGame
             var sel = GM.Selected;
             if (sel == null) return false;
             float d = Vector3.Distance(transform.position, sel.transform.position);
-            if (m.Kind == ModuleKind.Miner) return sel is AsteroidBody && d <= m.Range && GM.Locked;
+            if (m.Kind == ModuleKind.Miner || m.Kind == ModuleKind.Claw)
+                return sel is AsteroidBody && d <= m.Range && GM.Locked;
             if (m.Kind == ModuleKind.Weapon || m.Kind == ModuleKind.Web || m.Kind == ModuleKind.Disruptor)
                 return sel is NpcPirate && d <= m.Range && GM.Locked;
             return true;
@@ -330,7 +334,7 @@ namespace SpaceGame
                 if (r.T < m.Cycle) continue;
                 r.T = 0f;
 
-                if (m.Kind == ModuleKind.Miner) CompleteMiningCycle(m, r);
+                if (m.Kind == ModuleKind.Miner || m.Kind == ModuleKind.Claw) CompleteMiningCycle(m, r);
                 else if (m.Kind == ModuleKind.Weapon) CompleteWeaponCycle(m, r);
                 else if (m.Kind == ModuleKind.Web) CompleteWebCycle(m, r);
                 else if (m.Kind == ModuleKind.Disruptor) CompleteDisruptCycle(m, r);
@@ -340,7 +344,7 @@ namespace SpaceGame
                 // Decide whether the next cycle starts.
                 if (r.Active)
                 {
-                    if ((m.Kind == ModuleKind.Miner || m.Kind == ModuleKind.Weapon
+                    if ((m.Kind == ModuleKind.Miner || m.Kind == ModuleKind.Claw || m.Kind == ModuleKind.Weapon
                         || m.Kind == ModuleKind.Web || m.Kind == ModuleKind.Disruptor) && !ValidTarget(m))
                     {
                         r.Active = false;
@@ -452,6 +456,12 @@ namespace SpaceGame
                     {
                         show = true;
                         color = new Color(0.4f, 0.85f, 1f);
+                        break;
+                    }
+                    if (r.Def.Kind == ModuleKind.Claw && sel is AsteroidBody)
+                    {
+                        show = true;
+                        color = new Color(1f, 0.62f, 0.25f);
                         break;
                     }
                     if (r.Def.Kind == ModuleKind.Weapon && sel is NpcPirate)

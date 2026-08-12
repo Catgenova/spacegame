@@ -1092,6 +1092,7 @@ namespace SpaceGame
                 var arr = p.Fitting[slot];
                 string slotName = slot == SlotType.Web ? "Web"
                     : slot == SlotType.Disruptor ? "Disruptor"
+                    : slot == SlotType.Claw ? "Claw"
                     : slot == SlotType.High && p.Hull.TurretOnly ? "Turret" : slot.ToString();
                 for (int i = 0; i < arr.Length; i++)
                 {
@@ -1175,7 +1176,8 @@ namespace SpaceGame
                 _stationContent.Add(WrapText(def.Class + "  ·  " + def.Role, UiSkin.TextDim));
                 _stationContent.Add(WrapText(
                     "Turrets " + def.HighSlots + " · Webs " + def.WebSlots
-                    + (def.DisruptorSlots > 0 ? " · Disr " + def.DisruptorSlots : "") + " · Lows " + def.LowSlots
+                    + (def.DisruptorSlots > 0 ? " · Disr " + def.DisruptorSlots : "")
+                    + (def.ClawSlots > 0 ? " · Claws " + def.ClawSlots : "") + " · Lows " + def.LowSlots
                     + " · " + Mathf.Round(def.Speed * GameData.UnitsToMs) + " m/s · Shield "
                     + def.Shield + " · Cargo " + def.Cargo + " m3", UiSkin.TextDim));
                 if (def.Features != null)
