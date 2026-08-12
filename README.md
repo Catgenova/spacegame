@@ -34,6 +34,7 @@ frigate, a mining laser, and a blaster.
 | Scroll | Zoom camera |
 | `1`–`8` | Toggle fitted modules |
 | `K` | Skill training window |
+| `F10` | Toggle UI Toolkit / legacy IMGUI HUD |
 
 Use the **Overview** (right panel) to select things, then **Approach / Orbit /
 Warp** from the target panel. Warp to an asteroid belt, select a rock, activate
@@ -93,8 +94,13 @@ Assets/Scripts/
   Player/     PlayerState (credits/skills/fitting/cargo), ShipController
   World/      SystemView (spawns the scene), SpaceObject, NpcPirate,
               ShipVisuals (code-built hull/NPC models + starfield)
-  UI/         HudUI (IMGUI prototype interface)
+  UI/         UitHud (primary UI Toolkit interface, built fully in code),
+              HudUI (legacy IMGUI fallback), UiSwitcher (F10), UiSkin
 ```
 
-World scale: **1 Unity unit = 100 m**. The HUD/UI is a deliberate
-programmer-art placeholder (IMGUI) so gameplay can iterate before art.
+World scale: **1 Unity unit = 100 m**.
+
+The UI is UI Toolkit, generated entirely at runtime (PanelSettings and the
+whole visual tree are created in code — no UXML/USS/theme assets). If it
+fails to initialize on a given setup, the game automatically falls back to
+the legacy IMGUI HUD, and `F10` switches between the two at any time.

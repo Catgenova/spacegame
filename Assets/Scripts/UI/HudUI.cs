@@ -11,7 +11,9 @@ namespace SpaceGame
     /// </summary>
     public class HudUI : MonoBehaviour
     {
-        public static bool MouseOverUI { get; private set; }
+        // Shared "pointer is over UI" flag — written by whichever HUD is active
+        // (this IMGUI one or UitHud), read by input/camera code.
+        public static bool MouseOverUI { get; set; }
 
         readonly List<Rect> _uiRects = new List<Rect>();
         Vector2 _overviewScroll, _stationScroll, _skillsScroll;
@@ -200,7 +202,7 @@ namespace SpaceGame
             GUILayout.EndArea();
         }
 
-        static string KindIcon(ObjKind k)
+        public static string KindIcon(ObjKind k)
         {
             switch (k)
             {
@@ -216,7 +218,7 @@ namespace SpaceGame
             }
         }
 
-        static Color KindColor(ObjKind k)
+        public static Color KindColor(ObjKind k)
         {
             switch (k)
             {
