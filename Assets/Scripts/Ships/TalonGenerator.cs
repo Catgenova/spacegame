@@ -9,18 +9,20 @@ namespace SpaceGame
     /// arm's length — drones do the killing while the hull keeps station.
     /// Class 1 "Kestrel": 2 drone hardpoints, 1 turret, 2 mids, 2 lows.
     /// Class 2 "Berkut": 3 drone hardpoints, 1 turret, 3 mids, 3 lows.
+    /// Class 3 "Strix": 4 drone hardpoints, no guns, 1 web, 1 disruptor,
+    /// 3 mids, 2 lows — the recon owl that pins prey for the flock.
     /// Streams: talondef / talonbody / talonpanels.
     /// </summary>
     public static class TalonGenerator
     {
         public const string TypeId = "talon";
-        public const int MaxClass = 2;
+        public const int MaxClass = 3;
 
         class TalonClass
         {
             public string Label, Doctrine;
             public string[] Names;
-            public int DroneSlots, TurretSlots, MidSlots, LowSlots;
+            public int DroneSlots, TurretSlots, MidSlots, LowSlots, WebSlots, DisruptorSlots;
             public float ShieldMin, ShieldMax, ArmorMin, ArmorMax, HullMin, HullMax;
             public float SpeedMin, SpeedMax, TurnMin, TurnMax;
             public float CapMin, CapMax, RegenMin, RegenMax;
@@ -67,6 +69,25 @@ namespace SpaceGame
                     ["tritanium"] = 2000f, ["pyerite"] = 1150f, ["mexallon"] = 460f, ["isogen"] = 200f,
                 },
             },
+            [3] = new TalonClass
+            {
+                Label = "Talon-class Strix (C3)",
+                Doctrine = "Recon owl: no guns — webs and jams hold the prey while four talons feed.",
+                Names = new[] { "Strix", "Bubo", "Tyto", "Aluco", "Otus", "Asio", "Nyctea", "Ninox" },
+                DroneSlots = 4, TurretSlots = 0, MidSlots = 3, LowSlots = 2,
+                WebSlots = 1, DisruptorSlots = 1,
+                ShieldMin = 440, ShieldMax = 540, ArmorMin = 310, ArmorMax = 380,
+                HullMin = 320, HullMax = 390,
+                SpeedMin = 2.4f, SpeedMax = 3.0f, TurnMin = 55, TurnMax = 75,
+                CapMin = 360, CapMax = 450, RegenMin = 18, RegenMax = 22,
+                CargoMin = 300, CargoMax = 400,
+                PriceMin = 850000, PriceMax = 1050000,
+                Fee = 210000,
+                Materials = new Dictionary<string, float>
+                {
+                    ["tritanium"] = 3400f, ["pyerite"] = 1950f, ["mexallon"] = 800f, ["isogen"] = 360f,
+                },
+            },
         };
 
         static readonly string[] NamePool =
@@ -104,15 +125,16 @@ namespace SpaceGame
         /// <summary>Higher classes drop from more dangerous wrecks.</summary>
         static int RollClass(string npcId)
         {
-            float c2;
+            float c3, c2;
             switch (npcId)
             {
-                case "convoyhauler": c2 = 0.30f; break;
-                case "overlord": c2 = 0.22f; break;
-                case "marauder": c2 = 0.09f; break;
-                default: c2 = 0.03f; break;
+                case "convoyhauler": c3 = 0.12f; c2 = 0.30f; break;
+                case "overlord": c3 = 0.08f; c2 = 0.22f; break;
+                case "marauder": c3 = 0.03f; c2 = 0.09f; break;
+                default: c3 = 0.008f; c2 = 0.03f; break;
             }
-            return Random.value < c2 ? 2 : 1;
+            float r2 = Random.value;
+            return r2 < c3 ? 3 : r2 < c3 + c2 ? 2 : 1;
         }
 
         public static Blueprint RollBlueprint(string npcId)
@@ -154,7 +176,8 @@ namespace SpaceGame
                 Price = (long)R(c.PriceMin, c.PriceMax),
                 Cargo = Mathf.Round(R(c.CargoMin, c.CargoMax)),
                 HighSlots = c.TurretSlots, MidSlots = c.MidSlots, LowSlots = c.LowSlots,
-                WebSlots = 0, DisruptorSlots = 0, ClawSlots = 0, DroneSlots = c.DroneSlots,
+                WebSlots = c.WebSlots, DisruptorSlots = c.DisruptorSlots,
+                ClawSlots = 0, DroneSlots = c.DroneSlots,
                 TurretOnly = true,
                 Shield = Mathf.Round(R(c.ShieldMin, c.ShieldMax)),
                 Armor = Mathf.Round(R(c.ArmorMin, c.ArmorMax)),
