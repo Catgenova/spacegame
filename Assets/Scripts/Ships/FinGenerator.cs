@@ -9,12 +9,13 @@ namespace SpaceGame
     /// Fins are cheap, turret-heavy fleet ships that hunt in packs.
     /// Class 1 "Shark": 2 turrets, 2 mids, 2 lows.
     /// Class 2 "Manta": 3 turrets, 2 mids, 2 lows — a flying gun wing.
+    /// Class 3 "Stingray": 4 turrets, 2 mids, 1 low — the fleet's fang.
     /// Streams: findef / finbody / finpanels.
     /// </summary>
     public static class FinGenerator
     {
         public const string TypeId = "fin";
-        public const int MaxClass = 2;
+        public const int MaxClass = 3;
 
         class FinClass
         {
@@ -65,6 +66,23 @@ namespace SpaceGame
                     ["tritanium"] = 800f, ["pyerite"] = 450f, ["mexallon"] = 170f, ["isogen"] = 70f,
                 },
             },
+            [3] = new FinClass
+            {
+                Label = "Fin-class Stingray (C3)",
+                Doctrine = "Fleet fang: four hardpoints on a hull built to sting first.",
+                TurretSlots = 4, MidSlots = 2, LowSlots = 1,
+                ShieldMin = 260, ShieldMax = 320, ArmorMin = 180, ArmorMax = 230,
+                HullMin = 190, HullMax = 240,
+                SpeedMin = 3.0f, SpeedMax = 3.6f, TurnMin = 75, TurnMax = 100,
+                CapMin = 220, CapMax = 280, RegenMin = 13, RegenMax = 16,
+                CargoMin = 200, CargoMax = 280,
+                PriceMin = 380000, PriceMax = 470000,
+                Fee = 95000,
+                Materials = new Dictionary<string, float>
+                {
+                    ["tritanium"] = 1500f, ["pyerite"] = 850f, ["mexallon"] = 340f, ["isogen"] = 150f,
+                },
+            },
         };
 
         static readonly string[] NamePool =
@@ -99,23 +117,26 @@ namespace SpaceGame
 
         // ---------- blueprints ----------
 
-        /// <summary>Class-2 chance scales with wreck tier, like the Hive line.</summary>
-        static float C2Chance(string npcId)
+        /// <summary>Higher classes drop from more dangerous wrecks.</summary>
+        static int RollClass(string npcId)
         {
+            float c3, c2;
             switch (npcId)
             {
-                case "convoyhauler": return 0.40f;
-                case "overlord": return 0.28f;
-                case "marauder": return 0.12f;
-                default: return 0.04f;
+                case "convoyhauler": c3 = 0.12f; c2 = 0.35f; break;
+                case "overlord": c3 = 0.08f; c2 = 0.25f; break;
+                case "marauder": c3 = 0.03f; c2 = 0.11f; break;
+                default: c3 = 0.008f; c2 = 0.04f; break;
             }
+            float r2 = Random.value;
+            return r2 < c3 ? 3 : r2 < c3 + c2 ? 2 : 1;
         }
 
         public static Blueprint RollBlueprint(string npcId)
         {
             float r = Random.value;
             int rarity = r < 0.6f ? 0 : r < 0.85f ? 1 : r < 0.97f ? 2 : 3;
-            int cls = Random.value < C2Chance(npcId) ? 2 : 1;
+            int cls = RollClass(npcId);
             return new Blueprint
             {
                 Hash = HiveGenerator.NewHash(),
