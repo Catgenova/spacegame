@@ -9,16 +9,19 @@ namespace SpaceGame
     /// hears salvage before anyone else sees it, sweeps it up, and runs.
     /// Class 1 "Fennec": 1 sensor hardpoint, 1 collector hardpoint,
     /// 3 mids, 2 lows.
+    /// Class 2 "Otocyon": 2 sensors, 2 collectors, 3 mids, 3 lows — the
+    /// bat-eared dark-space explorer.
     /// Streams: traildef / trailbody / trailpanels.
     /// </summary>
     public static class TrailGenerator
     {
         public const string TypeId = "trail";
-        public const int MaxClass = 1;
+        public const int MaxClass = 2;
 
         class TrailClass
         {
             public string Label, Doctrine;
+            public string[] Names;
             public int SensorSlots, CollectorSlots, MidSlots, LowSlots;
             public float ShieldMin, ShieldMax, ArmorMin, ArmorMax, HullMin, HullMax;
             public float SpeedMin, SpeedMax, TurnMin, TurnMax;
@@ -46,6 +49,24 @@ namespace SpaceGame
                 Materials = new Dictionary<string, float>
                 {
                     ["tritanium"] = 900f, ["pyerite"] = 500f, ["mexallon"] = 210f, ["isogen"] = 90f,
+                },
+            },
+            [2] = new TrailClass
+            {
+                Label = "Trail-class Otocyon (C2)",
+                Doctrine = "Dark-space explorer: twin ears spread wide, it maps what the charts missed.",
+                Names = new[] { "Otocyon", "Batear", "Culpeo", "Pampas", "Bengal", "Tibetan", "Blanford", "Ruppell" },
+                SensorSlots = 2, CollectorSlots = 2, MidSlots = 3, LowSlots = 3,
+                ShieldMin = 260, ShieldMax = 320, ArmorMin = 150, ArmorMax = 190,
+                HullMin = 160, HullMax = 200,
+                SpeedMin = 3.8f, SpeedMax = 4.4f, TurnMin = 110, TurnMax = 135,
+                CapMin = 380, CapMax = 460, RegenMin = 18, RegenMax = 22,
+                CargoMin = 420, CargoMax = 560,
+                PriceMin = 520000, PriceMax = 640000,
+                Fee = 130000,
+                Materials = new Dictionary<string, float>
+                {
+                    ["tritanium"] = 2000f, ["pyerite"] = 1150f, ["mexallon"] = 460f, ["isogen"] = 200f,
                 },
             },
         };
@@ -82,6 +103,20 @@ namespace SpaceGame
 
         // ---------- blueprints ----------
 
+        /// <summary>Higher classes drop from more dangerous wrecks.</summary>
+        static int RollClass(string npcId)
+        {
+            float c2;
+            switch (npcId)
+            {
+                case "convoyhauler": c2 = 0.28f; break;
+                case "overlord": c2 = 0.20f; break;
+                case "marauder": c2 = 0.08f; break;
+                default: c2 = 0.025f; break;
+            }
+            return Random.value < c2 ? 2 : 1;
+        }
+
         public static Blueprint RollBlueprint(string npcId)
         {
             float r = Random.value;
@@ -90,7 +125,7 @@ namespace SpaceGame
             {
                 Hash = HiveGenerator.NewHash(),
                 TypeId = TypeId,
-                Class = 1,
+                Class = RollClass(npcId),
                 Rarity = rarity,
                 RunsLeft = GameData.RarityRuns[rarity],
             };
@@ -109,10 +144,11 @@ namespace SpaceGame
             var rng = Rng.Stream(DefKey(cls, hash));
             System.Func<float, float, float> R = (lo, hi) => lo + (float)rng.NextDouble() * (hi - lo);
 
+            var pool = c.Names ?? NamePool;
             var def = new ShipDef
             {
                 Id = IdFromHash(hash, cls),
-                Name = NamePool[rng.Next(NamePool.Length)] + "-" + hash.Substring(0, 4),
+                Name = pool[rng.Next(pool.Length)] + "-" + hash.Substring(0, 4),
                 Class = c.Label,
                 Desc = "One-off scout hull, body " + hash + ". " + c.Doctrine,
                 Role = c.Doctrine,
