@@ -10,12 +10,14 @@ namespace SpaceGame
     /// Class 1 "Bactrian": 1 turret, 2 mids, 4 lows.
     /// Class 2 "Tusker": 1 turret, 3 mids, 5 lows — the elephant bulk
     /// freighter, a trunk to load with and four legs of hold.
+    /// Class 3 "Testudo": 1 turret, 3 mids, 6 lows — the tortoise
+    /// super-heavy carrier, half shell and half warehouse.
     /// Streams: packdef / packbody / packpanels.
     /// </summary>
     public static class PackGenerator
     {
         public const string TypeId = "pack";
-        public const int MaxClass = 2;
+        public const int MaxClass = 3;
 
         class PackClass
         {
@@ -68,6 +70,24 @@ namespace SpaceGame
                     ["tritanium"] = 4000f, ["pyerite"] = 2300f, ["mexallon"] = 950f, ["isogen"] = 420f,
                 },
             },
+            [3] = new PackClass
+            {
+                Label = "Pack-class Testudo (C3)",
+                Doctrine = "Super-heavy carrier: half shell, half warehouse — it arrives when it arrives.",
+                Names = new[] { "Testudo", "Galapagos", "Aldabra", "Carapace", "Archelon", "Meiolania", "Gopherus", "Terrapin" },
+                TurretSlots = 1, MidSlots = 3, LowSlots = 6,
+                ShieldMin = 450, ShieldMax = 540, ArmorMin = 520, ArmorMax = 620,
+                HullMin = 700, HullMax = 820,
+                SpeedMin = 1.6f, SpeedMax = 2.0f, TurnMin = 32, TurnMax = 45,
+                CapMin = 320, CapMax = 400, RegenMin = 16, RegenMax = 20,
+                CargoMin = 4800, CargoMax = 5800,
+                PriceMin = 2400000, PriceMax = 2900000,
+                Fee = 600000,
+                Materials = new Dictionary<string, float>
+                {
+                    ["tritanium"] = 9000f, ["pyerite"] = 5200f, ["mexallon"] = 2200f, ["isogen"] = 950f,
+                },
+            },
         };
 
         static readonly string[] NamePool =
@@ -105,15 +125,16 @@ namespace SpaceGame
         /// <summary>Higher classes drop from more dangerous wrecks.</summary>
         static int RollClass(string npcId)
         {
-            float c2;
+            float c3, c2;
             switch (npcId)
             {
-                case "convoyhauler": c2 = 0.30f; break;
-                case "overlord": c2 = 0.22f; break;
-                case "marauder": c2 = 0.08f; break;
-                default: c2 = 0.025f; break;
+                case "convoyhauler": c3 = 0.12f; c2 = 0.26f; break;
+                case "overlord": c3 = 0.08f; c2 = 0.19f; break;
+                case "marauder": c3 = 0.03f; c2 = 0.075f; break;
+                default: c3 = 0.008f; c2 = 0.022f; break;
             }
-            return Random.value < c2 ? 2 : 1;
+            float r2 = Random.value;
+            return r2 < c3 ? 3 : r2 < c3 + c2 ? 2 : 1;
         }
 
         public static Blueprint RollBlueprint(string npcId)

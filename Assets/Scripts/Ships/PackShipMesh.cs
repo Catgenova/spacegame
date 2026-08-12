@@ -15,8 +15,13 @@ namespace SpaceGame
     /// off the face, ivory tusks, big flat ear plates, a double row of
     /// stacked cargo containers, four massive robot legs, and a wide
     /// four-engine drive block.
+    /// C3 "Testudo" is the tortoise super-heavy carrier: a huge scute-
+    /// plated shell dome over the hold, a beaked tortoise head on a neck
+    /// out front, four rounded leg pods (the rear pair doubling as
+    /// engines), amber rim lights around the shell skirt, and a stub tail.
     /// Submeshes: 0 sand, 1 olive, 2 amber glow, 3 dark glass.
-    /// Streams: packbody / packpanels (C1), pack2body / pack2panels (C2).
+    /// Streams: packbody / packpanels (C1), pack2body / pack2panels (C2),
+    /// pack3body / pack3panels (C3).
     /// </summary>
     public static class PackShipMesh
     {
@@ -25,7 +30,8 @@ namespace SpaceGame
         static readonly int[] StripStart = { 0, 3, 6, 9, 12, 15, 18, 21 };
 
         public static GameObject Build(string hash, int cls, Transform shipRoot)
-            => cls == 2 ? BuildC2(hash, shipRoot) : BuildC1(hash, shipRoot);
+            => cls == 3 ? BuildC3(hash, shipRoot)
+             : cls == 2 ? BuildC2(hash, shipRoot) : BuildC1(hash, shipRoot);
 
         class GenomeP1
         {
@@ -710,6 +716,256 @@ namespace SpaceGame
 
             if (microHit && tm > 0.07f && tm < 0.94f) return 1;
             return 0;
+        }
+
+        // ==================== Class 3 "Testudo" ====================
+
+        class GenomeP3
+        {
+            public float L, W, H;
+            public float DomeH, HeadSize, PodR, PodLen;
+            public float GunLen, TailLen;
+            public int EngineSegs;
+            public float Hue, Sat, Val, OliveHue, MarkOdds, SurfAmp, SurfPhase;
+            public int BandMode, BandCount;
+            public float BandPhase;
+            public Color Sand, Olive;
+        }
+
+        static GenomeP3 RollP3(string hash)
+        {
+            var rng = Rng.Stream("pack3body:" + hash);
+            System.Func<float, float, float> R = (lo, hi) => lo + (float)rng.NextDouble() * (hi - lo);
+            var g = new GenomeP3();
+            g.L = R(12.5f, 13.5f);
+            g.W = R(2.2f, 2.4f);
+            g.H = R(1.3f, 1.45f);
+            g.DomeH = R(0.9f, 1.1f);
+            g.HeadSize = R(0.9f, 1.1f);
+            g.PodR = R(0.26f, 0.32f);
+            g.PodLen = R(0.9f, 1.2f);
+            g.GunLen = R(1.1f, 1.4f);
+            g.TailLen = R(0.5f, 0.7f);
+            g.EngineSegs = 3 + rng.Next(2);
+            g.Hue = R(0.10f, 0.13f);
+            g.Sat = R(0.30f, 0.45f);
+            g.Val = R(0.75f, 0.85f);
+            g.OliveHue = R(0.22f, 0.28f);
+            g.MarkOdds = R(0.40f, 0.65f);
+            g.SurfAmp = R(0f, 0.5f);
+            g.SurfPhase = R(0f, 1f);
+            g.BandMode = rng.Next(3);
+            g.BandCount = 2 + rng.Next(3);
+            g.BandPhase = R(0f, 1f);
+            g.Sand = Color.HSVToRGB(g.Hue, g.Sat, g.Val);
+            g.Olive = Color.HSVToRGB(g.OliveHue, R(0.45f, 0.60f), R(0.28f, 0.38f));
+            return g;
+        }
+
+        static GameObject BuildC3(string hash, Transform shipRoot)
+        {
+            var g = RollP3(hash);
+            var b = new Builder();
+            float L = g.L, W = g.W, H = g.H;
+            const int rings = 44;
+
+            var panelRng = Rng.Stream("pack3panels:" + hash);
+            var markCell = new bool[30];
+            for (int i = 0; i < 30; i++) markCell[i] = panelRng.NextDouble() < g.MarkOdds;
+            var micro = new bool[rings - 1, Spans];
+            for (int i = 0; i < rings - 1; i++)
+                for (int j = 0; j < Spans; j++)
+                    micro[i, j] = panelRng.NextDouble() < 0.04;
+
+            // Tortoise underbody: a wide flat oval that the shell sits on.
+            float[] cts = { 0.00f, 0.08f, 0.22f, 0.40f, 0.58f, 0.75f, 0.90f, 1.00f };
+            float[] csc = { 0.40f, 0.72f, 0.94f, 1.00f, 1.00f, 0.96f, 0.86f, 0.62f };
+            float[] clf = { -0.03f, 0.00f, 0.02f, 0.03f, 0.03f, 0.02f, 0.00f, -0.03f };
+
+            System.Func<float, float> zAt = t => (0.50f - 1.00f * t) * L;
+            System.Func<int, float, float> hullY = (k, t) =>
+            {
+                float sc2 = CrSample(cts, csc, t);
+                return HalfPtP(k, t).y * H * sc2 + CrSample(cts, clf, t) * H;
+            };
+
+            // ---- underbody loft ----
+            var stripVerts = new int[8][][];
+            var ringT = new float[rings];
+            for (int s = 0; s < 8; s++) stripVerts[s] = new int[rings][];
+
+            for (int j = 0; j < rings; j++)
+            {
+                float t = j / (float)(rings - 1);
+                ringT[j] = t;
+                float sc = CrSample(cts, csc, t);
+                sc *= 1f + g.SurfAmp * 0.012f * Mathf.Sin((t * 6f + g.SurfPhase) * Mathf.PI * 2f);
+                float lift = CrSample(cts, clf, t) * H;
+                float z = zAt(t);
+                for (int s = 0; s < 8; s++)
+                {
+                    stripVerts[s][j] = new int[4];
+                    for (int p = 0; p < 4; p++)
+                    {
+                        int li = (StripStart[s] + p) % LoopPts;
+                        var pt = LoopPtP(li, t);
+                        stripVerts[s][j][p] = b.Add(new Vector3(pt.x * W * sc, pt.y * H * sc + lift, z));
+                    }
+                }
+            }
+            for (int i = 0; i < rings - 1; i++)
+            {
+                float tm = (ringT[i] + ringT[i + 1]) * 0.5f;
+                for (int s = 0; s < 8; s++)
+                    for (int p = 0; p < 3; p++)
+                    {
+                        int mat = PaintMatP2(new GenomeP2
+                        {
+                            BandMode = g.BandMode, BandCount = g.BandCount, BandPhase = g.BandPhase,
+                        }, s, p, tm, markCell, micro[i, s * 3 + p]);
+                        b.FaceQ(stripVerts[s][i][p], stripVerts[s][i + 1][p],
+                            stripVerts[s][i + 1][p + 1], stripVerts[s][i][p + 1], mat);
+                    }
+            }
+
+            // Bow and stern caps.
+            var prow = new Vector3(0f, CrSample(cts, clf, 0f) * H - 0.02f, 0.50f * L + 0.08f);
+            for (int s = 0; s < 8; s++)
+                for (int p = 0; p < 3; p++)
+                    b.TriU(prow, b.V[stripVerts[s][0][p + 1]], b.V[stripVerts[s][0][p]], 1);
+            var sternC = new Vector3(0f, CrSample(cts, clf, 1f) * H, -0.50f * L - 0.05f);
+            for (int s = 0; s < 8; s++)
+                for (int p = 0; p < 3; p++)
+                    b.TriU(sternC, b.V[stripVerts[s][rings - 1][p]], b.V[stripVerts[s][rings - 1][p + 1]], 1);
+
+            // ---- the shell: a scute-plated dome over the whole back ----
+            {
+                const int segs = 16;
+                const int rows = 6;
+                float yBase = hullY(0, 0.5f) - 0.06f;
+                float zC = zAt(0.52f);
+                float zR = 0.42f * L;
+                float xR = W * 1.12f;
+                var dome = new Vector3[rows][];
+                for (int ri = 0; ri < rows; ri++)
+                {
+                    float phi = ri / (float)rows * Mathf.PI * 0.5f;
+                    float y = yBase + g.DomeH * Mathf.Sin(phi);
+                    float shrink = Mathf.Cos(phi);
+                    dome[ri] = new Vector3[segs];
+                    for (int k = 0; k < segs; k++)
+                    {
+                        float ang = k / (float)segs * Mathf.PI * 2f;
+                        dome[ri][k] = new Vector3(
+                            xR * shrink * Mathf.Cos(ang), y, zC + zR * shrink * Mathf.Sin(ang));
+                    }
+                }
+                var apex = new Vector3(0f, yBase + g.DomeH, zC);
+                for (int ri = 0; ri < rows - 1; ri++)
+                    for (int k = 0; k < segs; k++)
+                    {
+                        int k2 = (k + 1) % segs;
+                        int mat = ri < 2 ? 1 : 0;
+                        b.QuadUDS(dome[ri][k], dome[ri][k2], dome[ri + 1][k2], dome[ri + 1][k], mat);
+                    }
+                for (int k = 0; k < segs; k++)
+                    b.TriUDS(dome[rows - 1][k], dome[rows - 1][(k + 1) % segs], apex, 0);
+                // Seam studs on the upper scutes and rim lights on the skirt.
+                for (int k = 0; k < segs; k += 2)
+                {
+                    Ball(b, dome[3][k], 0.045f, k % 4 == 0 ? 2 : 1, 2, 5);
+                    Ball(b, dome[0][k] + Vector3.up * 0.03f, 0.04f, 2, 2, 5);
+                }
+            }
+
+            // ---- beaked tortoise head on a neck out front ----
+            {
+                float hs = g.HeadSize;
+                var neckBase = new Vector3(0f, -0.05f * H, 0.50f * L - 0.10f);
+                var headC = new Vector3(0f, -0.02f * H, 0.50f * L + 0.55f * hs);
+                Tube(b, new[] { neckBase, headC }, new[] { 0.22f * hs, 0.18f * hs }, 8, 1, false);
+                Box(b, headC + Vector3.forward * (0.18f * hs), new Vector3(0.30f * hs, 0.22f * hs, 0.32f * hs), 1);
+                Box(b, headC + Vector3.forward * (0.42f * hs) + Vector3.up * (0.02f * hs),
+                    new Vector3(0.22f * hs, 0.15f * hs, 0.10f * hs), 0);
+                Box(b, headC + Vector3.forward * (0.50f * hs) + Vector3.up * (0.09f * hs),
+                    new Vector3(0.15f * hs, 0.045f * hs, 0.03f * hs), 3);
+                for (int side = -1; side <= 1; side += 2)
+                    Box(b, headC + new Vector3(side * 0.24f * hs, -0.04f * hs, 0.30f * hs),
+                        new Vector3(0.02f, 0.03f, 0.06f), 2);
+                Box(b, headC + Vector3.forward * (0.52f * hs) - Vector3.up * (0.08f * hs),
+                    new Vector3(0.10f * hs, 0.04f * hs, 0.04f * hs), 1);
+            }
+
+            // ---- four rounded leg pods; the rear pair are engines ----
+            for (int side = -1; side <= 1; side += 2)
+            {
+                for (int leg = 0; leg < 2; leg++)
+                {
+                    float t = leg == 0 ? 0.28f : 0.74f;
+                    var c = new Vector3(side * W * 0.82f, -0.34f * H, zAt(t));
+                    Tube(b, new[] { c + Vector3.forward * (g.PodLen * 0.5f), c - Vector3.forward * (g.PodLen * 0.5f) },
+                        new[] { g.PodR, g.PodR }, 8, leg == 0 ? 1 : 0, true);
+                    if (leg == 0)
+                    {
+                        Box(b, c + Vector3.forward * (g.PodLen * 0.5f + 0.03f),
+                            new Vector3(g.PodR * 0.6f, g.PodR * 0.5f, 0.025f), 3);
+                        Box(b, c + new Vector3(side * g.PodR * 0.9f, 0f, 0.1f),
+                            new Vector3(0.012f, 0.04f, 0.14f), 2);
+                    }
+                    else
+                    {
+                        Tube(b, new[] { c - Vector3.forward * (g.PodLen * 0.5f), c - Vector3.forward * (g.PodLen * 0.5f + 0.09f) },
+                            new[] { g.PodR * 0.85f, g.PodR * 0.7f }, 8, 2, true);
+                        Box(b, c + new Vector3(side * g.PodR * 0.9f, 0f, 0f),
+                            new Vector3(0.012f, 0.04f, 0.16f), 2);
+                    }
+                }
+            }
+
+            // ---- one modest gun on the shell crown ----
+            {
+                var mount = new Vector3(0f, hullY(0, 0.5f) - 0.06f + g.DomeH + 0.02f, zAt(0.30f));
+                Box(b, mount, new Vector3(0.10f, 0.05f, 0.13f), 1);
+                var gb = mount + new Vector3(0f, 0.07f, 0.07f);
+                var mz = gb + new Vector3(0f, 0.012f, g.GunLen);
+                Tube(b, new[] { gb, mz }, new[] { 0.048f, 0.04f }, 7, 1, false);
+                Tube(b, new[] { mz, mz + Vector3.forward * 0.08f }, new[] { 0.046f, 0.04f }, 7, 0, true);
+            }
+
+            // ---- stub tail and center engine ----
+            {
+                var basePt = new Vector3(0f, -0.10f * H, -0.50f * L - 0.02f);
+                Tube(b, new[] { basePt, basePt + new Vector3(0f, -0.06f, -g.TailLen * 0.6f), basePt + new Vector3(0f, -0.16f, -g.TailLen) },
+                    new[] { 0.10f, 0.06f, 0.012f }, 6, 1, true);
+                var ec = new Vector3(0f, 0.10f * H, zAt(0.97f));
+                Tube(b, new[] { ec + Vector3.forward * 0.25f, ec - Vector3.forward * 0.40f },
+                    new[] { 0.20f, 0.20f }, 8, 1, false);
+                Tube(b, new[] { ec - Vector3.forward * 0.40f, ec - Vector3.forward * 0.49f },
+                    new[] { 0.18f, 0.15f }, 8, 2, true);
+                int n = g.EngineSegs;
+                for (int i = 0; i < n; i++)
+                    Tube(b, new[] { ec + new Vector3(0f, 0f, 0.18f - i * 0.18f), ec + new Vector3(0f, 0f, 0.10f - i * 0.18f) },
+                        new[] { 0.215f, 0.215f }, 8, i % 2 == 0 ? 0 : 1, false);
+            }
+
+            var go = new GameObject("Hull");
+            go.transform.SetParent(shipRoot, false);
+            var mesh = new Mesh { name = "pack3_" + hash };
+            mesh.SetVertices(b.V);
+            mesh.subMeshCount = 4;
+            for (int m = 0; m < 4; m++) mesh.SetTriangles(b.Sub[m], m);
+            mesh.RecalculateNormals();
+            mesh.RecalculateBounds();
+            go.AddComponent<MeshFilter>().mesh = mesh;
+            var mr = go.AddComponent<MeshRenderer>();
+            mr.materials = new[]
+            {
+                Metal(g.Sand, 0.88f, 0.80f),
+                Metal(g.Olive, 0.90f, 0.72f),
+                SystemView.Mat(new Color(1.0f, 0.72f, 0.25f), true),
+                Metal(new Color(0.05f, 0.08f, 0.09f), 0.9f, 0.95f),
+            };
+            return go;
         }
     }
 }
