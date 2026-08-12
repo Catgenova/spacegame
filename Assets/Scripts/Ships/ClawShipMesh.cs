@@ -20,7 +20,7 @@ namespace SpaceGame
         static readonly int[] StripStart = { 0, 3, 6, 9, 12, 15, 18, 21 };
 
         public static GameObject Build(string hash, int cls, Transform shipRoot)
-            => BuildC1(hash, shipRoot); // single class so far
+            => cls == 2 ? BuildC2(hash, shipRoot) : BuildC1(hash, shipRoot);
 
         class GenomeU1
         {
@@ -368,6 +368,359 @@ namespace SpaceGame
             var go = new GameObject("Hull");
             go.transform.SetParent(shipRoot, false);
             var mesh = new Mesh { name = "claw1_" + hash };
+            mesh.SetVertices(b.V);
+            mesh.subMeshCount = 4;
+            for (int m = 0; m < 4; m++) mesh.SetTriangles(b.Sub[m], m);
+            mesh.RecalculateNormals();
+            mesh.RecalculateBounds();
+            go.AddComponent<MeshFilter>().mesh = mesh;
+            var mr = go.AddComponent<MeshRenderer>();
+            mr.materials = new[]
+            {
+                Metal(g.Orange, 0.80f, 0.65f),
+                Metal(new Color(0.16f, 0.15f, 0.14f), 0.90f, 0.60f),
+                SystemView.Mat(new Color(1f, 0.62f, 0.25f), true),
+                Metal(g.Bone, 0.75f, 0.70f),
+            };
+            return go;
+        }
+
+        // ================= CLASS 2 — "Lobster" =================
+        // The ore barge, matched to its reference: long boxy industrial
+        // hull with a blunt white cabin face and framed cockpit, two swept
+        // antennae, machinery modules with running lights down both flanks,
+        // stacked engine drum clusters astern — and the stars of the show,
+        // two giant segmented claw arms ending in serrated open pincers.
+        // Streams: claw2body / claw2panels.
+
+        class GenomeL2
+        {
+            public float L, W, H, Nose, CanopyStart, CanopyLen;
+            public float ArmLen, ArmSpread, ClawGape;
+            public float AntLen, AntRake;
+            public int EngineSegs;
+            public float Hue, Sat, Val, BoneVal, PanelOdds, SurfAmp, SurfPhase;
+            public int BandMode, BandCount;
+            public float BandPhase;
+            public Color Orange, Bone;
+        }
+
+        static GenomeL2 RollL2(string hash)
+        {
+            var rng = Rng.Stream("claw2body:" + hash);
+            System.Func<float, float, float> R = (lo, hi) => lo + (float)rng.NextDouble() * (hi - lo);
+            var g = new GenomeL2();
+            g.L = R(6.4f, 7.0f);
+            g.W = R(1.25f, 1.45f);
+            g.H = R(1.00f, 1.15f);
+            g.Nose = R(0.25f, 0.40f);
+            g.CanopyStart = R(0.08f, 0.12f);
+            g.CanopyLen = R(0.16f, 0.20f);
+            g.ArmLen = R(2.6f, 3.2f);
+            g.ArmSpread = R(0.75f, 0.90f);
+            g.ClawGape = R(0.28f, 0.40f);
+            g.AntLen = R(2.8f, 3.6f);
+            g.AntRake = R(0.50f, 0.70f);
+            g.EngineSegs = 4 + rng.Next(2);
+            g.Hue = R(0.055f, 0.085f);
+            g.Sat = R(0.75f, 0.90f);
+            g.Val = R(0.75f, 0.90f);
+            g.BoneVal = R(0.82f, 0.90f);
+            g.PanelOdds = R(0.40f, 0.65f);
+            g.SurfAmp = R(0f, 0.5f);
+            g.SurfPhase = R(0f, 1f);
+            g.BandMode = rng.Next(3);
+            g.BandCount = 2 + rng.Next(3);
+            g.BandPhase = R(0f, 1f);
+            g.Orange = Color.HSVToRGB(g.Hue, g.Sat, g.Val);
+            g.Bone = new Color(g.BoneVal, g.BoneVal - 0.015f, g.BoneVal - 0.05f);
+            return g;
+        }
+
+        // Boxy barge sections: blunt tall cabin face, square shoulders,
+        // full belly.
+        static readonly float[,] NoseL =
+        {
+            {0.00f, 0.52f}, {0.30f, 0.50f}, {0.55f, 0.44f}, {0.72f, 0.33f},
+            {0.84f, 0.18f}, {0.90f, 0.00f}, {0.86f, -0.16f},
+            {0.74f, -0.28f}, {0.55f, -0.36f}, {0.34f, -0.41f},
+            {0.21f, -0.43f}, {0.08f, -0.45f}, {0.00f, -0.45f},
+        };
+        static readonly float[,] MidL =
+        {
+            {0.00f, 0.78f}, {0.38f, 0.76f}, {0.66f, 0.68f}, {0.84f, 0.52f},
+            {0.95f, 0.28f}, {1.00f, 0.00f}, {0.96f, -0.26f},
+            {0.84f, -0.48f}, {0.62f, -0.62f}, {0.40f, -0.70f},
+            {0.25f, -0.73f}, {0.10f, -0.76f}, {0.00f, -0.77f},
+        };
+        static readonly float[,] SternL =
+        {
+            {0.00f, 0.68f}, {0.34f, 0.66f}, {0.60f, 0.58f}, {0.78f, 0.44f},
+            {0.90f, 0.24f}, {0.96f, 0.00f}, {0.92f, -0.22f},
+            {0.80f, -0.40f}, {0.60f, -0.52f}, {0.38f, -0.60f},
+            {0.24f, -0.63f}, {0.09f, -0.66f}, {0.00f, -0.66f},
+        };
+
+        static Vector2 HalfPtL(int k, float t)
+        {
+            float wMid = Smooth01(t / 0.30f);
+            float wStern = Smooth01((t - 0.62f) / 0.38f);
+            float x = Mathf.Lerp(NoseL[k, 0], MidL[k, 0], wMid);
+            float y = Mathf.Lerp(NoseL[k, 1], MidL[k, 1], wMid);
+            x = Mathf.Lerp(x, SternL[k, 0], wStern);
+            y = Mathf.Lerp(y, SternL[k, 1], wStern);
+            return new Vector2(x, y);
+        }
+
+        static Vector2 LoopPtL(int li, float t)
+        {
+            if (li <= 12) return HalfPtL(li, t);
+            var p = HalfPtL(LoopPts - li, t);
+            return new Vector2(-p.x, p.y);
+        }
+
+        // Same industrial patchwork family as the Urchin, with a bone cabin
+        // face up front.
+        static int PaintMatL(GenomeL2 g, int s, int p, float tm, bool[] panelCell, bool microHit)
+        {
+            bool deck = s == 0 || s == 7;
+            bool upper = s == 1 || s == 6;
+            bool lower = s == 2 || s == 5;
+            bool belly = s == 3 || s == 4;
+            int side = s <= 3 ? 0 : 1;
+
+            // Bone cabin face and saddle.
+            if (!belly && tm < 0.20f) return 3;
+            if (deck && tm > 0.20f && tm < 0.42f) return 3;
+
+            // Gunmetal machinery girdle and belly.
+            bool chineSpan = (s == 1 && p == 2) || (s == 2 && p == 0)
+                || (s == 6 && p == 0) || (s == 5 && p == 2);
+            if (chineSpan && tm > 0.24f && tm < 0.88f) return 1;
+            if (belly && tm > 0.20f && tm < 0.88f) return 1;
+
+            // Patchwork panels on the orange hull.
+            if (upper || lower)
+            {
+                float skew = (upper ? 0f : 0.04f) + p * 0.02f;
+                float ft = tm - 0.24f - skew;
+                if (ft >= 0f && ft < 0.60f)
+                {
+                    int cell = Mathf.Min(4, (int)(ft / 0.121f));
+                    int band = upper ? 0 : 1;
+                    if (panelCell[(side * 15 + band * 5 + cell) % 30])
+                        return cell % 2 == 0 ? 3 : 1;
+                }
+            }
+
+            if (g.BandMode == 1 && tm > 0.74f && tm < 0.94f)
+            {
+                float u = (tm - 0.74f) / 0.20f;
+                if ((int)(u * g.BandCount * 2 + g.BandPhase * 2f) % 2 == 0) return 1;
+            }
+            else if (g.BandMode == 2 && tm > 0.22f && tm < 0.38f)
+            {
+                float u = (tm - 0.22f) / 0.16f;
+                if ((int)(u * g.BandCount * 2.5f + g.BandPhase * 2f) % 2 == 0) return 1;
+            }
+
+            if (microHit && tm > 0.20f && tm < 0.90f) return 1;
+            return 0;
+        }
+
+        static GameObject BuildC2(string hash, Transform shipRoot)
+        {
+            var g = RollL2(hash);
+            var b = new Builder();
+            float L = g.L, W = g.W, H = g.H;
+            const int rings = 48;
+
+            var panelRng = Rng.Stream("claw2panels:" + hash);
+            var panelCell = new bool[30];
+            for (int i = 0; i < 30; i++) panelCell[i] = panelRng.NextDouble() < g.PanelOdds;
+            var micro = new bool[rings - 1, Spans];
+            for (int i = 0; i < rings - 1; i++)
+                for (int j = 0; j < Spans; j++)
+                    micro[i, j] = panelRng.NextDouble() < 0.03;
+
+            // Blunt-nosed barge plan: swells fast, holds fat, tapers late.
+            float[] cts = { 0.00f, 0.07f, 0.18f, 0.34f, 0.52f, 0.72f, 0.90f, 1.00f };
+            float[] csc = { 0.42f, 0.62f, 0.82f, 0.96f, 1.00f, 0.94f, 0.76f, 0.55f };
+            float[] clf = { 0.00f, 0.01f, 0.02f, 0.03f, 0.03f, 0.02f, 0.01f, 0.00f };
+
+            var stripVerts = new int[8][][];
+            var ringT = new float[rings];
+            for (int s = 0; s < 8; s++) stripVerts[s] = new int[rings][];
+            for (int i = 0; i < rings; i++)
+            {
+                float t = i / (float)(rings - 1);
+                ringT[i] = t;
+                float sc = CrSample(cts, csc, t);
+                sc *= 1f + g.SurfAmp * 0.012f * Mathf.Sin((t * 6f + g.SurfPhase) * Mathf.PI * 2f);
+                float lift = CrSample(cts, clf, t) * H;
+                float z = (0.5f - t) * L;
+                for (int s = 0; s < 8; s++)
+                {
+                    stripVerts[s][i] = new int[4];
+                    for (int p = 0; p < 4; p++)
+                    {
+                        int li = (StripStart[s] + p) % LoopPts;
+                        var pt = LoopPtL(li, t);
+                        stripVerts[s][i][p] = b.Add(new Vector3(pt.x * W * sc, pt.y * H * sc + lift, z));
+                    }
+                }
+            }
+            for (int i = 0; i < rings - 1; i++)
+            {
+                float tm = (ringT[i] + ringT[i + 1]) * 0.5f;
+                for (int s = 0; s < 8; s++)
+                    for (int p = 0; p < 3; p++)
+                    {
+                        int mat = PaintMatL(g, s, p, tm, panelCell, micro[i, s * 3 + p]);
+                        b.FaceQ(stripVerts[s][i][p], stripVerts[s][i + 1][p],
+                            stripVerts[s][i + 1][p + 1], stripVerts[s][i][p + 1], mat);
+                    }
+            }
+
+            // Blunt bone cabin cap and gunmetal stern cap.
+            var noseTip = new Vector3(0f, 0f, 0.5f * L + g.Nose);
+            for (int s = 0; s < 8; s++)
+                for (int p = 0; p < 3; p++)
+                    b.TriU(noseTip, b.V[stripVerts[s][0][p + 1]], b.V[stripVerts[s][0][p]], 3);
+            var sternC = new Vector3(0f, 0f, -0.5f * L - 0.05f);
+            for (int s = 0; s < 8; s++)
+                for (int p = 0; p < 3; p++)
+                    b.TriU(sternC, b.V[stripVerts[s][rings - 1][p]], b.V[stripVerts[s][rings - 1][p + 1]], 1);
+
+            // Framed cockpit band across the cabin face.
+            {
+                float tCan = g.CanopyStart + g.CanopyLen * 0.5f;
+                float zC = (0.5f - tCan) * L;
+                float halfLen = g.CanopyLen * L * 0.72f;
+                System.Func<float, float> deckAt = z =>
+                {
+                    float t = Mathf.Clamp01(0.5f - z / L);
+                    float sc = CrSample(cts, csc, t);
+                    return HalfPtL(0, t).y * H * sc + CrSample(cts, clf, t) * H;
+                };
+                Canopy(b, zC + halfLen, zC - halfLen, 0.30f, 0.16f, deckAt, 2, 1, 1);
+            }
+
+            // Two swept antennae off the cabin roof.
+            for (int side = -1; side <= 1; side += 2)
+            {
+                float scA = CrSample(cts, csc, 0.14f);
+                float deckY = HalfPtL(0, 0.14f).y * H * scA + CrSample(cts, clf, 0.14f) * H;
+                var mount = new Vector3(side * W * 0.14f, deckY - 0.02f, (0.5f - 0.14f) * L);
+                var dir = new Vector3(side * 0.07f, g.AntRake * 0.6f, -0.80f).normalized;
+                const int segsA = 5;
+                var path = new Vector3[segsA + 1];
+                var radii = new float[segsA + 1];
+                for (int i = 0; i <= segsA; i++)
+                {
+                    float u = i / (float)segsA;
+                    path[i] = mount + dir * (g.AntLen * u) + new Vector3(0f, 0.25f * u * u, 0f);
+                    radii[i] = Mathf.Lerp(0.05f, 0.010f, u);
+                }
+                Tube(b, path, radii, 6, 1, true);
+                Ball(b, mount, 0.09f, 1, 4, 8);
+            }
+
+            // Twin giant claw arms with serrated open pincers — the two
+            // claw hardpoints made visible.
+            for (int side = -1; side <= 1; side += 2)
+            {
+                float x = side * W * g.ArmSpread;
+                float y = -0.15f * H;
+                // shoulder mount block
+                var shoulder = new Vector3(x * 0.85f, y, (0.5f - 0.28f) * L);
+                Box(b, shoulder, new Vector3(0.18f, 0.16f, 0.22f), 1);
+                // segmented arm reaching forward and slightly out/down
+                var armDir = new Vector3(side * 0.16f, -0.06f, 0.98f).normalized;
+                const int armSegs = 6;
+                var path = new Vector3[armSegs + 1];
+                var radii = new float[armSegs + 1];
+                for (int i = 0; i <= armSegs; i++)
+                {
+                    path[i] = shoulder + armDir * (i * (g.ArmLen * 0.75f / armSegs));
+                    radii[i] = i % 2 == 0 ? 0.20f : 0.165f;
+                }
+                Tube(b, path, radii, 10, 0, false);
+                for (int i = 1; i < armSegs; i += 2)
+                    Tube(b, new[] { path[i] - armDir * 0.04f, path[i] + armDir * 0.04f },
+                        new[] { 0.215f, 0.215f }, 10, 1, false);
+                // amber wrist collar
+                var wrist = path[armSegs];
+                Tube(b, new[] { wrist - armDir * 0.05f, wrist + armDir * 0.05f },
+                    new[] { 0.22f, 0.22f }, 10, 2, false);
+                // serrated pincer: two jaws curving toward each other
+                for (int jaw = -1; jaw <= 1; jaw += 2)
+                {
+                    var j0 = wrist + new Vector3(0f, jaw * 0.10f, 0.06f);
+                    var j1 = j0 + new Vector3(side * 0.04f, jaw * g.ClawGape * 0.55f, g.ArmLen * 0.16f);
+                    var j2 = j1 + new Vector3(side * 0.02f, -jaw * g.ClawGape * 0.30f, g.ArmLen * 0.16f);
+                    var j3 = j2 + new Vector3(0f, -jaw * g.ClawGape * 0.35f, g.ArmLen * 0.10f);
+                    Tube(b, new[] { j0, j1, j2, j3 }, new[] { 0.155f, 0.125f, 0.08f, 0.012f }, 8, 1, true);
+                    // teeth along the inner edge, biting toward the other jaw
+                    for (int tooth = 0; tooth < 4; tooth++)
+                    {
+                        float u = 0.25f + tooth * 0.22f;
+                        var basePt = u < 0.5f
+                            ? Vector3.Lerp(j1, j2, u * 2f)
+                            : Vector3.Lerp(j2, j3, (u - 0.5f) * 2f);
+                        var tDir = new Vector3(0f, -jaw, 0.10f).normalized;
+                        Tube(b, new[] { basePt, basePt + tDir * 0.16f },
+                            new[] { 0.045f, 0.006f }, 5, 1, true);
+                    }
+                }
+            }
+
+            // Machinery modules with running lights down both flanks.
+            for (int side = -1; side <= 1; side += 2)
+            {
+                for (int i = 0; i < 4; i++)
+                {
+                    float t = 0.30f + i * 0.15f;
+                    float sc = CrSample(cts, csc, t);
+                    var c = new Vector3(side * W * sc * 0.90f, 0.08f * H, (0.5f - t) * L);
+                    Box(b, c, new Vector3(0.15f, 0.13f, 0.20f), i % 2 == 0 ? 1 : 0);
+                    Box(b, c + new Vector3(side * 0.11f, -0.04f, 0f), new Vector3(0.05f, 0.03f, 0.09f), 2);
+                }
+            }
+
+            // Stacked engine drum clusters astern: two per side.
+            for (int side = -1; side <= 1; side += 2)
+            {
+                for (int row = 0; row < 2; row++)
+                {
+                    var ec = new Vector3(side * W * 0.45f, (row == 0 ? 0.28f : -0.22f) * H, -0.5f * L + 0.30f);
+                    int n = g.EngineSegs;
+                    var path = new Vector3[n + 1];
+                    var radii = new float[n + 1];
+                    float rBase = row == 0 ? 0.26f : 0.30f;
+                    for (int i = 0; i <= n; i++)
+                    {
+                        path[i] = ec + Vector3.forward * (-i * 0.26f);
+                        radii[i] = i % 2 == 0 ? rBase : rBase * 0.84f;
+                    }
+                    Tube(b, path, radii, 12, 1, false);
+                    for (int i = 1; i < n; i += 2)
+                        Tube(b, new[] { path[i] + Vector3.forward * 0.03f, path[i] - Vector3.forward * 0.03f },
+                            new[] { rBase + 0.02f, rBase + 0.02f }, 12, 0, false);
+                    var gc = path[n] + Vector3.forward * -0.03f;
+                    for (int k = 0; k < 12; k++)
+                    {
+                        float a0 = k / 12f * Mathf.PI * 2f, a1 = (k + 1) / 12f * Mathf.PI * 2f;
+                        b.TriUDS(gc,
+                            gc + new Vector3(Mathf.Cos(a0) * rBase * 0.6f, Mathf.Sin(a0) * rBase * 0.6f, 0f),
+                            gc + new Vector3(Mathf.Cos(a1) * rBase * 0.6f, Mathf.Sin(a1) * rBase * 0.6f, 0f), 2);
+                    }
+                }
+            }
+
+            var go = new GameObject("Hull");
+            go.transform.SetParent(shipRoot, false);
+            var mesh = new Mesh { name = "claw2_" + hash };
             mesh.SetVertices(b.V);
             mesh.subMeshCount = 4;
             for (int m = 0; m < 4; m++) mesh.SetTriangles(b.Sub[m], m);

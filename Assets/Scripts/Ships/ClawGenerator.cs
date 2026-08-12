@@ -8,12 +8,13 @@ namespace SpaceGame
     /// No turrets — a Claw hull mounts hydraulic rock claws that only work
     /// at 0 km, so the doctrine is: sprint to the rock, latch on, strip it.
     /// Class 1 "Urchin": 1 claw hardpoint, 1 mid, 2 lows. Small and fast.
+    /// Class 2 "Lobster": 2 claw hardpoints, 1 mid, 3 lows. The ore barge.
     /// Streams: clawdef / clawbody / clawpanels.
     /// </summary>
     public static class ClawGenerator
     {
         public const string TypeId = "claw";
-        public const int MaxClass = 1;
+        public const int MaxClass = 2;
 
         class ClawClass
         {
@@ -45,6 +46,23 @@ namespace SpaceGame
                 Materials = new Dictionary<string, float>
                 {
                     ["tritanium"] = 380f, ["pyerite"] = 200f, ["mexallon"] = 80f, ["isogen"] = 30f,
+                },
+            },
+            [2] = new ClawClass
+            {
+                Label = "Claw-class Lobster (C2)",
+                Doctrine = "Twin-claw barge: two grips on the rock and a hold that swallows belts.",
+                ClawSlots = 2, MidSlots = 1, LowSlots = 3,
+                ShieldMin = 150, ShieldMax = 190, ArmorMin = 140, ArmorMax = 180,
+                HullMin = 150, HullMax = 190,
+                SpeedMin = 3.3f, SpeedMax = 3.9f, TurnMin = 95, TurnMax = 120,
+                CapMin = 140, CapMax = 180, RegenMin = 10, RegenMax = 13,
+                CargoMin = 420, CargoMax = 560,
+                PriceMin = 180000, PriceMax = 230000,
+                Fee = 48000,
+                Materials = new Dictionary<string, float>
+                {
+                    ["tritanium"] = 780f, ["pyerite"] = 420f, ["mexallon"] = 160f, ["isogen"] = 65f,
                 },
             },
         };
@@ -81,15 +99,28 @@ namespace SpaceGame
 
         // ---------- blueprints ----------
 
+        /// <summary>Class-2 chance scales with wreck tier, like the other lines.</summary>
+        static float C2Chance(string npcId)
+        {
+            switch (npcId)
+            {
+                case "convoyhauler": return 0.35f;
+                case "overlord": return 0.22f;
+                case "marauder": return 0.10f;
+                default: return 0.03f;
+            }
+        }
+
         public static Blueprint RollBlueprint(string npcId)
         {
             float r = Random.value;
             int rarity = r < 0.6f ? 0 : r < 0.85f ? 1 : r < 0.97f ? 2 : 3;
+            int cls = Random.value < C2Chance(npcId) ? 2 : 1;
             return new Blueprint
             {
                 Hash = HiveGenerator.NewHash(),
                 TypeId = TypeId,
-                Class = 1,
+                Class = cls,
                 Rarity = rarity,
                 RunsLeft = GameData.RarityRuns[rarity],
             };
