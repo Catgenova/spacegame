@@ -540,8 +540,8 @@ namespace SpaceGame
             }
             foreach (var bp in new List<Blueprint>(p.Blueprints))
             {
-                var def = HiveGenerator.Def(bp.Hash, bp.Class);
-                GUILayout.Label(HiveGenerator.DescribeBlueprint(bp) + "  ·  body #" + bp.Hash);
+                var def = ShipGen.Def(bp);
+                GUILayout.Label(ShipGen.DescribeBlueprint(bp) + "  ·  body #" + bp.Hash);
                 GUILayout.Label("    " + def.Class + " · Turrets " + def.HighSlots + " · Webs " + def.WebSlots
                     + (def.DisruptorSlots > 0 ? " · Disr " + def.DisruptorSlots : "")
                     + " · " + Mathf.Round(def.Speed * GameData.UnitsToMs) + " m/s", _smallStyle);

@@ -315,12 +315,11 @@ namespace SpaceGame
         public static ShipDef ResolveShip(string id)
         {
             if (Ships.TryGetValue(id, out var def)) return def;
-            if (HiveGenerator.IsHiveId(id)) return HiveGenerator.Def(HiveGenerator.HashFromId(id));
-            return null;
+            return ShipGen.ResolveGenerated(id);
         }
 
         public static bool ShipExists(string id)
-            => Ships.ContainsKey(id) || HiveGenerator.IsHiveId(id);
+            => Ships.ContainsKey(id) || ShipGen.IsGeneratedId(id);
 
         // ---- faction standing (with the Frontier Authority) ----
         // Kills raise it; tiers grant better mission pay and cheaper repairs.

@@ -339,7 +339,7 @@ namespace SpaceGame
 
             // Ship blueprint chips: rarer, and the real reason to hunt convoys.
             if (Random.value < npc.Def.BpChance)
-                wreck.BpLoot.Add(HiveGenerator.RollBlueprint(npc.Def.Id));
+                wreck.BpLoot.Add(ShipGen.RollBlueprint(npc.Def.Id));
 
             View.RemoveObject(npc);
 
@@ -382,7 +382,7 @@ namespace SpaceGame
             {
                 var bp = w.BpLoot[i];
                 Player.Blueprints.Add(bp);
-                Log("BLUEPRINT acquired: " + HiveGenerator.DescribeBlueprint(bp)
+                Log("BLUEPRINT acquired: " + ShipGen.DescribeBlueprint(bp)
                     + " — see the Industry tab at any station.");
                 w.BpLoot.RemoveAt(i);
             }
@@ -643,38 +643,38 @@ namespace SpaceGame
         {
             if (!Docked) return "Dock at a station to manufacture.";
             if (bp.RunsLeft <= 0) return "Blueprint exhausted.";
-            foreach (var kv in HiveGenerator.MaterialCost(bp.Class))
+            foreach (var kv in ShipGen.MaterialCost(bp))
             {
                 Player.Cargo.TryGetValue(kv.Key, out float have);
                 if (have < kv.Value)
                     return "Missing " + Mathf.Round(kv.Value - have) + " m3 "
                         + GameData.Minerals[kv.Key].Name + " (must be in your cargo hold).";
             }
-            if (Player.Credits < HiveGenerator.Fee(bp.Class))
-                return "Assembly fee is " + GameData.FmtCredits(HiveGenerator.Fee(bp.Class)) + ".";
+            if (Player.Credits < ShipGen.Fee(bp))
+                return "Assembly fee is " + GameData.FmtCredits(ShipGen.Fee(bp)) + ".";
             return null;
         }
 
         public void Manufacture(Blueprint bp)
         {
             if (ManufactureBlocker(bp) != null) { Log(ManufactureBlocker(bp)); return; }
-            var def = HiveGenerator.Def(bp.Hash, bp.Class);
+            var def = ShipGen.Def(bp);
 
             // Everything left in the hold after the minerals burn must fit the new hull.
             float materialVolume = 0f;
-            foreach (var kv in HiveGenerator.MaterialCost(bp.Class)) materialVolume += kv.Value;
+            foreach (var kv in ShipGen.MaterialCost(bp)) materialVolume += kv.Value;
             if (Player.CargoUsed() - materialVolume > def.Cargo)
             {
                 Log("Your remaining cargo would not fit the " + def.Name + "'s hold. Sell some first.");
                 return;
             }
 
-            foreach (var kv in HiveGenerator.MaterialCost(bp.Class))
+            foreach (var kv in ShipGen.MaterialCost(bp))
             {
                 Player.Cargo[kv.Key] -= kv.Value;
                 if (Player.Cargo[kv.Key] <= 0.01f) Player.Cargo.Remove(kv.Key);
             }
-            Player.Credits -= HiveGenerator.Fee(bp.Class);
+            Player.Credits -= ShipGen.Fee(bp);
             long tradeIn = Market.ShipTradeInValue(StationId, Player.HullId);
             Player.Credits += tradeIn;
 

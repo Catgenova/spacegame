@@ -1169,7 +1169,7 @@ namespace SpaceGame
             foreach (var bp in new List<Blueprint>(p.Blueprints))
             {
                 var b = bp;
-                var def = HiveGenerator.Def(bp.Hash, bp.Class);
+                var def = ShipGen.Def(bp);
                 _stationContent.Add(Section(def.Name + "  —  " + GameData.RarityNames[bp.Rarity]
                     + "  ·  " + bp.RunsLeft + " run" + (bp.RunsLeft == 1 ? "" : "s") + " left  ·  body #" + bp.Hash));
                 _stationContent.Add(WrapText(def.Class + "  ·  " + def.Role, UiSkin.TextDim));
@@ -1181,10 +1181,10 @@ namespace SpaceGame
                 if (def.Features != null)
                     _stationContent.Add(WrapText(string.Join("  ·  ", def.Features), UiSkin.AccentWarm));
                 string bpCost = "";
-                foreach (var kv in HiveGenerator.MaterialCost(bp.Class))
+                foreach (var kv in ShipGen.MaterialCost(bp))
                     bpCost += (bpCost.Length > 0 ? ", " : "") + kv.Value + " " + GameData.Minerals[kv.Key].Name;
                 _stationContent.Add(WrapText("Cost per run: " + bpCost + " (m3) + "
-                    + GameData.FmtCredits(HiveGenerator.Fee(bp.Class)) + " fee.", UiSkin.TextDim));
+                    + GameData.FmtCredits(ShipGen.Fee(bp)) + " fee.", UiSkin.TextDim));
                 string blocker = gm.ManufactureBlocker(bp);
                 var row = Row();
                 if (blocker == null)
