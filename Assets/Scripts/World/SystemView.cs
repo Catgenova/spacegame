@@ -17,6 +17,14 @@ namespace SpaceGame
         static Shader _shader;
         static int _idSeq;
 
+        /// <summary>Which shader the world resolved to — reported at boot, since
+        /// it tells you whether the URP path or the Built-in path is live.</summary>
+        public static string ShaderName()
+        {
+            Mat(Color.white);              // force the lookup
+            return _shader == null ? "none found" : _shader.name;
+        }
+
         public static Material Mat(Color c, bool emissive = false)
         {
             if (_shader == null)

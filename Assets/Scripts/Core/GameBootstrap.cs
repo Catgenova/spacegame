@@ -74,6 +74,7 @@ namespace SpaceGame
             var view = gameGo.AddComponent<SystemView>();
             var gm = gameGo.AddComponent<GameManager>();
             gm.Init(view, ship);
+            gm.Log(RenderReport());
 
             // UI: UI Toolkit HUD is primary; IMGUI is the automatic fallback
             // and stays one F10 away (UiSwitcher). No uGUI EventSystem needed:
@@ -83,6 +84,20 @@ namespace SpaceGame
             gameGo.AddComponent<UiSwitcher>();
             gameGo.AddComponent<AudioDirector>();
             if (!UitHud.TryCreate()) gameGo.AddComponent<HudUI>();
+        }
+
+        /// <summary>Names the active render pipeline and the shader the world
+        /// actually resolved, in the message log. Which pipeline a project runs
+        /// is not in version control — ProjectSettings only carries the editor
+        /// version — so the running game is the only reliable place to ask.
+        /// It also decides what post-processing is even possible.</summary>
+        static string RenderReport()
+        {
+            var rp = UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline;
+            string pipe = rp == null ? "Built-in Render Pipeline" : rp.GetType().Name;
+            string shader = SystemView.ShaderName();
+            return "Renderer: " + pipe + "  ·  shader \"" + shader + "\"  ·  MSAA "
+                + QualitySettings.antiAliasing + "x";
         }
 
         static void AddLight(string name, Color c, float intensity, float pitch, float yaw)
