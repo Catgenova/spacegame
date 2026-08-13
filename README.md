@@ -96,6 +96,15 @@ too, so an early warp-out beats their first volley.
   was first identified in the Apollo 11 samples. **Nickel** comes only out of
   Taenite, and every hull and nearly every module needs nickel superalloy — so
   the safest belts in the game never stop being worth mining.
+
+  Each type has **three rock models** shaped like the real mineral, so you can
+  read a belt by eye before you lock anything: Taenite is a smooth metallic
+  meteorite pitted with thumbprint regmaglypts, Anorthite is blocky cleaved
+  feldspar, Armalcolite is a dark angular titanate, Rutile throws long needle
+  crystals, and Beryl grows hexagonal columns out of its host rock. The three
+  variants per type are a rounded mass, an elongated shard and a flattened slab,
+  and which one a given rock uses is fixed by its id — so a particular asteroid
+  always looks the same.
 - **Refine** ore *and recovered scrap* into minerals
   (Iron/Nickel/Aluminium/Titanium/Beryllium) at any station — yield starts at 66%
   and grows with the Refining skill, so refining out-earns raw selling once

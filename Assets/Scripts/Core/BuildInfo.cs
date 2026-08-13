@@ -14,13 +14,13 @@ namespace SpaceGame
     /// </summary>
     public static class BuildInfo
     {
-        public const string Version = "0.22.0";
-        public const string Codename = "Bone Fleet";
+        public const string Version = "0.23.0";
+        public const string Codename = "Real Rocks II";
         public const string Date = "2026-08-13";
 
         /// <summary>What landed in this build — the thing to go and look at.</summary>
         public const string Headline =
-            "pirates rebuilt as skull hulls — one mesh per class";
+            "three asteroid models per ore type, shaped like the real mineral";
 
         /// <summary>"v0.11.0 Shipyards" — for the HUD top bar.</summary>
         public static string Short => "v" + Version + " " + Codename;

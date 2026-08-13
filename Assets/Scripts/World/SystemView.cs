@@ -103,13 +103,18 @@ namespace SpaceGame
 
         public AsteroidBody SpawnAsteroid(AsteroidData a)
         {
-            var go = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            go.name = a.Id;
+            // One of three models for this ore, picked from the rock's own id so
+            // it never changes under the player. The mesh sits on a child so
+            // AsteroidBody.SyncScale can keep shrinking the whole rock as it is
+            // mined out.
+            var go = new GameObject(a.Id);
             go.transform.SetParent(_root, false);
             go.transform.position = a.Pos;
             go.transform.rotation = Random.rotation;
             var ore = GameData.Ores[a.Ore];
-            go.GetComponent<Renderer>().material = Mat(Color.Lerp(new Color(0.42f, 0.38f, 0.32f), ore.Color, 0.4f));
+            AsteroidMesh.Build(a.Ore, AsteroidMesh.VariantFor(a.Id), go.transform);
+            var col = go.AddComponent<SphereCollider>();
+            col.radius = 1.15f;
             var body = go.AddComponent<AsteroidBody>();
             body.Id = a.Id;
             body.DisplayName = ore.Name + " Asteroid";

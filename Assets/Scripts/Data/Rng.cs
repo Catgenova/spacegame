@@ -22,7 +22,10 @@ namespace SpaceGame
         public static float Range(System.Random r, float min, float max)
             => min + (float)r.NextDouble() * (max - min);
 
-        static uint HashU(string s)
+        /// <summary>FNV-1a as an unsigned hash. Public because callers that need
+        /// a stable non-negative bucket (which of N mesh variants a rock uses)
+        /// want the raw value, not System.Random.</summary>
+        public static uint HashU(string s)
         {
             unchecked
             {
