@@ -18,20 +18,6 @@ namespace SpaceGame
             PackGenerator.TypeId,
         };
 
-        /// <summary>The hull a new pilot starts in: a Hive-class Scout.
-        ///
-        /// A turret, a web and a low — the swarm doctrine in miniature, and a
-        /// real fighting hull rather than a mining barge. It cannot mine at all
-        /// (Hive hardpoints take turrets only), so a rookie's first credits come
-        /// from bounties, not rock. Fixed body, so every pilot's first ship is
-        /// the same recognisable Scout.
-        ///
-        /// Losing it does not put you back in one of these — see
-        /// GameData.Ships["probe"], the escape pod, which can mine.</summary>
-        public const string RookieLine = HiveGenerator.TypeId;
-
-        public static string RookieHullId => IdFromHash(RookieLine, BodyHash("rookie"), 1);
-
         /// <summary>Ten digits from a stable key, for hulls the game itself has
         /// to mint (the loaner, and replacements for retired catalogue ships).</summary>
         public static string BodyHash(string key)
@@ -50,7 +36,7 @@ namespace SpaceGame
         /// Class 1 body on the line that took over its job.</summary>
         static readonly Dictionary<string, string> LegacyHullLines = new Dictionary<string, string>
         {
-            { "wasp", ClawGenerator.TypeId },        // rookie   -> the loaner itself
+            { "wasp", HiveGenerator.TypeId },        // rookie   -> Hive Scout
             { "prospector", ClawGenerator.TypeId },  // miner    -> Claw Urchin
             { "talon", TalonGenerator.TypeId },      // gunboat  -> Talon Kestrel
             { "mule", PackGenerator.TypeId },        // hauler   -> Pack Bactrian
@@ -62,7 +48,6 @@ namespace SpaceGame
         public static string MigrateHullId(string id)
         {
             if (id == null) return null;
-            if (id == "wasp") return RookieHullId;
             return LegacyHullLines.TryGetValue(id, out var line)
                 ? IdFromHash(line, BodyHash("legacy:" + id), 1)
                 : id;

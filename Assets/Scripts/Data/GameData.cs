@@ -117,6 +117,9 @@ namespace SpaceGame
         public const float BaseRefineYield = 0.66f;
         public const float RefineYieldPerLevel = 0.045f;
 
+        /// <summary>The escape pod every pilot starts in and falls back to.</summary>
+        public const string ProbeHull = "probe";
+
         /// <summary>XP required to go from `level` to `level + 1`.</summary>
         public static float XpForLevel(int level) => 300f * Mathf.Pow(4f, level);
 
@@ -227,15 +230,16 @@ namespace SpaceGame
 
             // Every *ship* in the game comes out of the seven generator lines.
             // The one exception is the Probe: not a ship you fly by choice but
-            // the pod you wake up in after losing everything. It cannot be
-            // bought — BuyShip only accepts licensed yard stock — and it is
-            // deliberately miserable: one T0 mining head at half efficiency, a
-            // 50 m3 hold, no mid or low slots, and no gun. What it does have is
-            // an instant warp drive, so digging yourself out of a wipe is slow
-            // but never tedious.
-            Ships["probe"] = new ShipDef
+            // where every pilot begins and where every pilot lands again after
+            // losing a hull. It cannot be bought — BuyShip only accepts licensed
+            // yard stock — and it is deliberately miserable: one T0 mining head
+            // at half efficiency, a 50 m3 hold, no mid or low slots, and no gun.
+            // What it does have is an instant warp drive, so the grind out of it
+            // is slow but never tedious. Mining is the only thing it can do, and
+            // that is the point: the first goal in the game is a real hull.
+            Ships[ProbeHull] = new ShipDef
             {
-                Id = "probe", Name = "Probe", Class = "Escape Pod", Price = 1000,
+                Id = ProbeHull, Name = "Probe", Class = "Escape Pod", Price = 1000,
                 Desc = "Emergency hull. One mining head, a thimble of cargo, and a warp drive"
                      + " that does not wait. Mine your way back to a real ship.",
                 Role = "Survival: dig out, sell up, get back in a hull that shoots.",

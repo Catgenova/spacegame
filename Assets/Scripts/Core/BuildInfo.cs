@@ -14,13 +14,13 @@ namespace SpaceGame
     /// </summary>
     public static class BuildInfo
     {
-        public const string Version = "0.16.0";
-        public const string Codename = "Warehouse Refining";
+        public const string Version = "0.17.0";
+        public const string Codename = "Start In The Pod";
         public const string Date = "2026-08-13";
 
         /// <summary>What landed in this build — the thing to go and look at.</summary>
         public const string Headline =
-            "refined metal always lands in the station bay, and the bay can feed the refinery";
+            "new pilots start in the Probe — mine your way into your first real hull";
 
         /// <summary>"v0.11.0 Shipyards" — for the HUD top bar.</summary>
         public static string Short => "v" + Version + " " + Codename;

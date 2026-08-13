@@ -15,9 +15,6 @@ namespace SpaceGame
         public const string HomeSystem = "solara";
         public const string HomeStation = "solara_station";
 
-        /// <summary>The escape pod a destroyed pilot wakes up in.</summary>
-        public const string ProbeHull = "probe";
-
         public UniverseData Universe;
         public string SystemId;
         public bool Docked;
@@ -69,7 +66,9 @@ namespace SpaceGame
                 SystemId = HomeSystem;
                 Docked = true;
                 StationId = HomeStation;
-                Log("Welcome to the frontier, capsuleer. Undock when ready.");
+                Log("Welcome to the frontier, capsuleer. You have a Probe, a mining head and "
+                    + "5,000 credits. Warp to a belt, fill the hold, sell it, repeat — the "
+                    + "Shipyard tab here sells real hulls.");
             }
 
             // Always stamp the build into the log, so which code you are
@@ -305,13 +304,10 @@ namespace SpaceGame
             Player.ExtraCargo = 0f;
             Player.Cargo.Clear();
             Player.CargoModules.Clear();
-            // You do not wake up in another Scout. You wake up in a Probe: one
-            // T0 mining head at half efficiency, 50 m3 of hold, no gun and no
-            // mid or low slots. Nothing sells modules, so the tool you are handed
-            // has to be the one that earns on its own — and the instant warp
-            // drive is what keeps clawing back out of a wipe bearable.
-            Player.SetHull(ProbeHull);
-            Player.Fitting[SlotType.High][0] = "miner0";
+            // Straight back to where you started: a Probe with a mining head.
+            // Nothing sells modules, so the one tool you are handed has to be the
+            // one that earns on its own.
+            Player.BoardProbe();
             SystemId = HomeSystem;
             StationId = HomeStation;
             Docked = true;

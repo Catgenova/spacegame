@@ -82,12 +82,17 @@ namespace SpaceGame
             var p = new PlayerState { Credits = 5000 };
             foreach (var id in GameData.Skills.Keys)
                 p.Skills[id] = new SkillState();
-            // A Hive Scout flies the swarm doctrine: pin with the web, saw with
-            // the gun. It cannot mine, so a rookie's first income is bounties.
-            p.SetHull(ShipGen.RookieHullId);
-            p.Fitting[SlotType.High][0] = "blaster1";
-            p.Fitting[SlotType.Web][0] = "web1";
+            p.BoardProbe();
             return p;
+        }
+
+        /// <summary>Drop into the escape pod with its mining head fitted. Both
+        /// the opening of the game and every death land here, so the two can
+        /// never drift apart: you start with exactly what you get back.</summary>
+        public void BoardProbe()
+        {
+            SetHull(GameData.ProbeHull);
+            Fitting[SlotType.High][0] = "miner0";
         }
 
         /// <summary>Switch hulls: resets fitting slots and refills HP/cap.</summary>

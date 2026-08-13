@@ -41,12 +41,17 @@ created from code. No prefabs, no serialized assets, no scene wiring.
 ## How to play
 
 Every ship in the game is procedurally generated — there is no hand-written
-ship list. You start docked at **Solara Prime** with 5,000 credits and a
-**Hive-class Scout**: a Class 1 swarm frigate with a blaster and a stasis web.
-It flies the Hive doctrine — dart in, pin the target, saw it down — and it
-cannot mine at all, so your first credits are bounties. Solara itself is 1.0
-security and spawns nothing, so the opening move is one jump to **Verdant** for
-rookie pirates.
+ship list, and you do not start with one. You start docked at **Solara Prime**
+with 5,000 credits and a **Probe**: an escape pod with a single mining head, a
+50 m3 hold and no gun (see [The Probe](#the-probe)). Solara is 1.0 security and
+spawns no pirates, so nothing is hunting you while you work.
+
+**The first goal of the game is a real hull.** Warp to a belt — the Probe's warp
+is instant — fill the little hold, dock, refine, sell, repeat. About sixty loads
+of local rock buys the cheapest Class 1 hull off Solara Prime's shipyard pad, and
+a single short **courier contract** from the Agent tab is worth a dozen of those
+loads, so read the board before you grind. Once you are in a real hull the game
+opens up: bounties, salvage, blueprints, exploration.
 
 | Input | Action |
 | --- | --- |
@@ -210,14 +215,15 @@ too, so an early warp-out beats their first volley.
   requisitions, and courier runs (the package really occupies your hold).
   One active mission at a time; turn in at the agent for the reward.
 
-Dying costs you your ship, your fitting and your cargo; you respawn docked at Solara Prime in a
-**Probe** (see below). Progress autosaves (PlayerPrefs) every 20 seconds and on every
+Dying costs you your ship, your fitting and your cargo; you respawn docked at
+Solara Prime in a **Probe** — exactly where you started. Progress autosaves (PlayerPrefs) every 20 seconds and on every
 dock/jump.
 
 ### The Probe
 
-Lose your ship and you wake up in a **Probe** — not a ship so much as a pod with
-ambitions. It is deliberately meagre:
+Every pilot begins in a **Probe**, and every pilot who loses a hull is put back
+in one — the opening of the game and the cost of dying are the same state. It is
+not a ship so much as a pod with ambitions, and it is deliberately meagre:
 
 | | |
 | --- | --- |
@@ -230,9 +236,17 @@ ambitions. It is deliberately meagre:
 So a wipe costs you everything except the ability to earn. You mine slow ore
 into a thimble of a hold and sell it until you can afford a real hull off a
 shipyard pad. The instant warp drive is the one kindness: crawling back should
-be humbling, not tedious. The Probe cannot be bought, is worth almost nothing
-as a trade-in, and its T0 head is the only module in the game that is neither
-lootable nor printable — you get it with the pod.
+be humbling, not tedious.
+
+What the pod **cannot** do is worth knowing, because it shapes the early game:
+it has no gun, so bounty contracts are out, and a 50 m3 hold cannot carry an ore
+requisition (those start at 150 m3). Courier contracts are the exception —
+packages run 40-120 m3, so the pod can take the small ones, and they pay far
+better per minute than mining does.
+
+The Probe cannot be bought, is worth almost nothing as a trade-in, and its T0
+head is the only module in the game that is neither lootable nor printable — you
+get it with the pod.
 
 ## The universe
 
