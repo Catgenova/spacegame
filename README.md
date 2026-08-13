@@ -79,7 +79,9 @@ too, so an early warp-out beats their first volley.
   hull, leaving you to top up bulk iron from ore. Anything that won't fit
   your hold is banked in the station's storage bay.
 - **Sell** at stations — each station has stable price personalities, so
-  hauling ore, minerals, or cheap modules between systems is a real career.
+  hauling ore and minerals between systems is a real career. Stations buy
+  raw materials and sell hulls, refining, repairs and licences. **No station
+  sells a single fittable module**, at any price.
 - **Fight** pirates for bounties. Lower security means nastier spawns:
   Solara (1.0) is safe; Abyss (0.0) is overlord country. Turrets have
   tracking speeds: orbit fast and close to make big slow guns miss you
@@ -87,9 +89,14 @@ too, so an early warp-out beats their first volley.
 - **Salvage** wrecks — destroyed pirates never carry fittable gear. Their
   hulks yield **graded scrap** (Class 1/2/3, priced 45/130/380 cr per m3)
   and, rarely, a blueprint chip. Tougher targets leave a richer grade and
-  more of it, so a full hold of Class 3 scrap is worth the trip. Fittable
-  modules come from the market or from **drifting caches** turned up by a
-  sensor sweep.
+  more of it, so a full hold of Class 3 scrap is worth the trip.
+- **Everything you fit is found or built.** Credits cannot buy gear anywhere
+  in the game, so there are exactly two routes to a module: **drifting
+  caches** turned up by a sensor sweep, which hold basic Tech I pieces
+  (including a mining laser and a gun, so a wiped-out pilot always has a way
+  back), and **module blueprints** off pirate wrecks, which cover the entire
+  catalogue up to Tech II. A better gun is something you earn, not something
+  you shop for.
 - **Watch them run** — badly damaged pirates break off and warp out
   (overlords fight to the death), idle pirates roam between belts, and
   **pirate convoys** appear in low-sec: a fat hauler with a 60k bounty, a
@@ -126,9 +133,10 @@ too, so an early warp-out beats their first volley.
   clearing a field and losing it. Richer tiers hide in lower security, so the
   best fields sit where the law does not.
 - **Print gear from module blueprints** — pirate wrecks also drop blueprints
-  for **Tech I and Tech II** hardpoint gear (claws, webs, disruptors, drones,
-  sensors, collectors) and mid/low slot gear (boosters, afterburners, cargo,
-  armour, capacitor). These run **opposite to ship blueprints**: a Common
+  for **Tech I and Tech II** hardpoint gear (**turrets, mining lasers**,
+  claws, webs, disruptors, drones, sensors, collectors) and mid/low slot gear
+  (boosters, afterburners, cargo, armour, capacitor) — the whole catalogue,
+  since nothing is for sale. These run **opposite to ship blueprints**: a Common
   print gives **5 runs of plain, base-stat gear**, while a Pristine print is
   a **single run at 5x material cost that rolls 5 modifiers** onto the
   finished piece. Modifiers only touch stats the module actually uses — a
@@ -150,8 +158,8 @@ too, so an early warp-out beats their first volley.
   wait there forever, but the bay is strictly local: you must fly back to
   that station to collect it. Salvaged and purchased modules land in the
   local bay too, so plan where you stage your gear.
-- **Fit** your ship at stations: weapons, miners, shield boosters,
-  afterburners, cargo/armor/cap passives.
+- **Fit** your ship at stations from what you have recovered or printed:
+  weapons, miners, shield boosters, afterburners, cargo/armor/cap passives.
 - **Upgrade** hulls: Wasp → Prospector (miner) / Talon (fighter) →
   Mule (hauler) → Aurora (cruiser). These five are stocked everywhere.
 - **Buy a real hull at a Shipyard** — three of the five stations hold

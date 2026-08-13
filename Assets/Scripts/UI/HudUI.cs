@@ -494,19 +494,11 @@ namespace SpaceGame
             if (!any) GUILayout.Label("Cargo hold is empty. Mine some ore!", _smallStyle);
 
             GUILayout.Space(14);
-            GUILayout.Label("— MODULES FOR SALE —", _smallStyle);
-            foreach (var m in GameData.Modules.Values)
-            {
-                long price = Market.ApplyTradeSkill(Market.ModuleBuyPrice(GM.StationId, m.Id), trade, false);
-                GUILayout.BeginHorizontal();
-                GUILayout.Label(m.Name + "  [" + m.Slot + "]", GUILayout.Width(240));
-                GUILayout.Label(GameData.FmtCredits(price), GUILayout.Width(110));
-                GUI.enabled = p.Credits >= price;
-                if (GUILayout.Button("Buy", GUILayout.Width(80))) GM.BuyModule(m.Id);
-                GUI.enabled = true;
-                GUILayout.EndHorizontal();
-                GUILayout.Label("    " + m.Desc, _smallStyle);
-            }
+            GUILayout.Label("— NO MODULES FOR SALE —", _smallStyle);
+            GUILayout.Label("This station trades in raw materials only. No fittable gear changes hands"
+                + " here, at any price.\nEvery module is recovered or built: crack a drifting cache"
+                + " with a sensor sweep, or print one from a\nmodule blueprint on the Industry tab."
+                + " Credits buy ore, hulls, repairs and licences — not guns.", _smallStyle);
         }
 
         void DrawRefineTab()

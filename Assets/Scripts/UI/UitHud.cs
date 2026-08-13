@@ -1123,17 +1123,13 @@ namespace SpaceGame
             }
             if (!any) _stationContent.Add(WrapText("Cargo hold is empty. Mine some ore!", UiSkin.TextDim));
 
-            _stationContent.Add(Section("MODULES FOR SALE"));
-            foreach (var mDef in GameData.Modules.Values)
-            {
-                string mid = mDef.Id;
-                long price = Market.ApplyTradeSkill(Market.ModuleBuyPrice(gm.StationId, mDef.Id), trade, false);
-                _stationContent.Add(Row(
-                    Cell(mDef.Name + "  [" + mDef.Slot + "]", 250, UiSkin.TextMain),
-                    Cell(GameData.FmtCredits(price), 140, UiSkin.AccentWarm),
-                    Btn("Buy", () => { gm.BuyModule(mid); RefreshStationTab(); })));
-                _stationContent.Add(WrapText("    " + mDef.Desc, UiSkin.TextDim));
-            }
+            _stationContent.Add(Section("NO MODULES FOR SALE"));
+            _stationContent.Add(WrapText(
+                "This station trades in raw materials only — no fittable gear changes hands here, "
+                + "at any price. Every module in the game is recovered or built: crack a drifting "
+                + "cache with a sensor sweep, or print one from a module blueprint on the Industry "
+                + "tab. Credits buy ore, hulls, repairs and licences; they do not buy guns.",
+                UiSkin.TextDim));
         }
 
         void BuildRefineTab(GameManager gm)

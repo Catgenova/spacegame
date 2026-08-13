@@ -11,18 +11,18 @@ namespace SpaceGame
     {
         public struct StationMults
         {
-            public float Ore, Module, Ship;
+            public float Ore, Ship;
         }
 
         public static StationMults Mults(string stationId)
         {
             var r = Rng.Seeded(stationId);
-            return new StationMults
-            {
-                Ore = Rng.Range(r, 0.85f, 1.30f),
-                Module = Rng.Range(r, 0.90f, 1.25f),
-                Ship = Rng.Range(r, 0.95f, 1.15f),
-            };
+            float ore = Rng.Range(r, 0.85f, 1.30f);
+            // Stations no longer stock modules, but this draw has to stay: the
+            // three multipliers come off one stream in order, so dropping it
+            // would silently reprice every hull in the game.
+            Rng.Range(r, 0.90f, 1.25f);
+            return new StationMults { Ore = ore, Ship = Rng.Range(r, 0.95f, 1.15f) };
         }
 
         static float Jitter(string stationId, string itemId, float spread)
@@ -38,12 +38,9 @@ namespace SpaceGame
             return (long)Mathf.Max(1f, Mathf.Round(basePrice * Mults(stationId).Ore * Jitter(stationId, commodityId, 0.3f)));
         }
 
-        /// <summary>Price a station charges for a module (before trade skill).</summary>
-        public static long ModuleBuyPrice(string stationId, string modId)
-        {
-            float basePrice = GameData.ResolveModule(modId).Price;
-            return (long)Mathf.Max(1f, Mathf.Round(basePrice * Mults(stationId).Module * Jitter(stationId, modId, 0.2f)));
-        }
+        // Stations do not sell modules at all: every fittable module in the game
+        // is salvaged from a drifting cache or printed from a blueprint. A module
+        // has a Price only so blueprint material bills and fees can scale off it.
 
         public static long ShipBuyPrice(string stationId, string shipId)
         {

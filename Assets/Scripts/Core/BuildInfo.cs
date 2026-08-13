@@ -14,12 +14,12 @@ namespace SpaceGame
     /// </summary>
     public static class BuildInfo
     {
-        public const string Version = "0.11.0";
-        public const string Codename = "Shipyards";
+        public const string Version = "0.12.0";
+        public const string Codename = "Salvage Economy";
         public const string Date = "2026-08-13";
 
         /// <summary>What landed in this build — the thing to go and look at.</summary>
-        public const string Headline = "Class 1 hulls for sale at Shipyard stations";
+        public const string Headline = "stations sell no modules; all gear is looted or printed";
 
         /// <summary>"v0.11.0 Shipyards" — for the HUD top bar.</summary>
         public static string Short => "v" + Version + " " + Codename;

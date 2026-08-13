@@ -303,7 +303,10 @@ namespace SpaceGame
             Player.Cargo.Clear();
             Player.CargoModules.Clear();
             Player.SetHull("wasp");
+            // The loaner comes with a laser AND a gun. Nothing sells modules, so
+            // waking up unarmed would leave no route back to combat at all.
             Player.Fitting[SlotType.High][0] = "miner1";
+            Player.Fitting[SlotType.High][1] = "blaster1";
             SystemId = HomeSystem;
             StationId = HomeStation;
             Docked = true;
@@ -730,17 +733,6 @@ namespace SpaceGame
                 + (spilled > 0.01f
                     ? "  Hold was full — " + Mathf.Round(spilled) + " m3 went into station storage."
                     : ""));
-            SaveSystem.Save(this);
-        }
-
-        public void BuyModule(string modId)
-        {
-            if (!Docked) return;
-            long price = Market.ApplyTradeSkill(Market.ModuleBuyPrice(StationId, modId), TradeLevel, false);
-            if (Player.Credits < price) { Log("Not enough credits."); return; }
-            Player.Credits -= price;
-            Store.Modules.Add(modId);
-            Log("Bought " + GameData.ResolveModule(modId).Name + " for " + GameData.FmtCredits(price) + " (into station storage).");
             SaveSystem.Save(this);
         }
 

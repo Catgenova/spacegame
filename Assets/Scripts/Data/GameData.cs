@@ -192,10 +192,15 @@ namespace SpaceGame
             // Pirates never carry salvageable gear — their wrecks yield graded
             // scrap and, rarely, a blueprint chip. Modules come from drifting
             // caches turned up by a sensor sweep, or from the market.
+            // Drifting caches are the only place fittable gear is simply found.
+            // Since no station sells modules, the pool has to cover the basics —
+            // a mining laser and a gun — or a pilot who loses a fit has no way
+            // back that does not depend on a blueprint drop.
             Loot["cache"] = new LootTable
             {
                 Chance = 1f, MaxItems = 2,
-                Pool = new[] { "shieldboost1", "afterburner1", "cargo1", "plate1", "capbattery1", "rail1" },
+                Pool = new[] { "miner1", "blaster1", "rail1", "shieldboost1",
+                               "afterburner1", "cargo1", "plate1", "capbattery1" },
             };
 
             Ships["wasp"] = new ShipDef
