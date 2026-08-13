@@ -154,6 +154,19 @@ namespace SpaceGame
             Scrap("scrap2", "Class 2 Scrap", 130f, new Color(0.66f, 0.58f, 0.44f));
             Scrap("scrap3", "Class 3 Scrap", 380f, new Color(0.70f, 0.56f, 0.32f));
 
+            // Scrap is compacted hulk: one m3 of it mills out into several m3 of
+            // usable stock, so hauling scrap is far denser than hauling metal.
+            // Ratios are set so refining roughly matches the raw sale value at
+            // base skill and clearly beats it once trained — the same deal ore
+            // gets. Crucially this is the only route to titanium and beryllium
+            // that does not involve mining low-sec belts.
+            Scraps["scrap1"].RefineInto = new Dictionary<string, float>
+                { { "iron", 1.00f }, { "aluminium", 0.90f } };
+            Scraps["scrap2"].RefineInto = new Dictionary<string, float>
+                { { "iron", 1.40f }, { "aluminium", 1.50f }, { "titanium", 1.20f } };
+            Scraps["scrap3"].RefineInto = new Dictionary<string, float>
+                { { "iron", 2.00f }, { "aluminium", 2.20f }, { "titanium", 2.40f }, { "beryllium", 1.80f } };
+
             Ores["hematite"].RefineInto = new Dictionary<string, float> { { "iron", 1f } };
             Ores["pyroxene"].RefineInto = new Dictionary<string, float> { { "iron", 0.65f }, { "aluminium", 0.35f } };
             Ores["plagioclase"].RefineInto = new Dictionary<string, float> { { "iron", 0.3f }, { "aluminium", 0.45f }, { "titanium", 0.25f } };
@@ -482,6 +495,16 @@ namespace SpaceGame
         public static OreDef Commodity(string id)
             => Ores.TryGetValue(id, out var o) ? o
              : Minerals.TryGetValue(id, out var m) ? m : Scraps[id];
+
+        /// <summary>Anything that can be put through a station refinery: raw
+        /// ore, or recovered scrap. Minerals are already refined.</summary>
+        public static bool TryRefinable(string id, out OreDef def)
+        {
+            if (Ores.TryGetValue(id, out def) && def.RefineInto != null) return true;
+            if (Scraps.TryGetValue(id, out def) && def.RefineInto != null) return true;
+            def = null;
+            return false;
+        }
 
         public static bool CommodityExists(string id)
             => Ores.ContainsKey(id) || Minerals.ContainsKey(id) || Scraps.ContainsKey(id);

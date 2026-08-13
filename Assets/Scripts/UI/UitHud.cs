@@ -1121,12 +1121,14 @@ namespace SpaceGame
             var p = gm.Player;
             _stationContent.Add(Section("REFINERY"));
             _stationContent.Add(WrapText("Current yield: " + Mathf.RoundToInt(gm.RefineYield() * 100f)
-                + "%  (base 66%, +4.5% per Refining level). Minerals are lighter and often worth more than raw ore.",
+                + "%  (base 66%, +4.5% per Refining level). Ore and recovered scrap both mill down here — "
+                + "scrap is compacted hull, so it yields several times its own volume in metal, and Class 3 "
+                + "scrap is the only source of beryllium outside low-sec belts.",
                 UiSkin.TextDim));
             bool any = false;
             foreach (var id in new List<string>(p.Cargo.Keys))
             {
-                if (!GameData.Ores.TryGetValue(id, out var def) || def.RefineInto == null) continue;
+                if (!GameData.TryRefinable(id, out var def)) continue;
                 float qty = p.Cargo[id];
                 if (qty <= 0f) continue;
                 any = true;

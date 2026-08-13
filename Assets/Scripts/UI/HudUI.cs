@@ -492,13 +492,14 @@ namespace SpaceGame
             int pct = Mathf.RoundToInt(GM.RefineYield() * 100f);
             GUILayout.Label("— REFINERY —", _smallStyle);
             GUILayout.Label("Current yield: " + pct + "%  (base 66%, +4.5% per Refining level). "
-                + "Minerals are lighter and often worth more than raw ore.", _smallStyle);
+                + "Ore and recovered scrap both mill down here; scrap yields several times "
+                + "its own volume in metal.", _smallStyle);
             GUILayout.Space(8);
 
             bool any = false;
             foreach (var id in new List<string>(p.Cargo.Keys))
             {
-                if (!GameData.Ores.TryGetValue(id, out var def) || def.RefineInto == null) continue;
+                if (!GameData.TryRefinable(id, out var def)) continue;
                 float qty = p.Cargo[id];
                 if (qty <= 0f) continue;
                 any = true;

@@ -638,22 +638,37 @@ namespace SpaceGame
         public float RefineYield()
             => GameData.BaseRefineYield + GameData.RefineYieldPerLevel * Player.SkillLevel("refining");
 
+        /// <summary>Run ore or scrap through the station refinery. Scrap mills
+        /// out into more volume than it occupied, so anything that will not fit
+        /// the hold is banked in this station's storage bay rather than lost.</summary>
         public void RefineOre(string oreId)
         {
-            if (!Docked || !GameData.Ores.TryGetValue(oreId, out var def) || def.RefineInto == null) return;
+            if (!Docked || !GameData.TryRefinable(oreId, out var def)) return;
             if (!Player.Cargo.TryGetValue(oreId, out float qty) || qty <= 0f) return;
             float yield = RefineYield();
             Player.Cargo.Remove(oreId);
+            float cap = Player.ComputeStats().CargoCap;
             var summary = "";
+            float spilled = 0f;
             foreach (var kv in def.RefineInto)
             {
                 float outM3 = qty * yield * kv.Value;
-                Player.Cargo.TryGetValue(kv.Key, out float have);
-                Player.Cargo[kv.Key] = have + outM3;
+                float room = Mathf.Max(0f, cap - Player.CargoUsed());
+                float toHold = Mathf.Min(outM3, room);
+                if (toHold > 0f)
+                {
+                    Player.Cargo.TryGetValue(kv.Key, out float have);
+                    Player.Cargo[kv.Key] = have + toHold;
+                }
+                float rest = outM3 - toHold;
+                if (rest > 0.01f) { Store.AddCargo(kv.Key, rest); spilled += rest; }
                 summary += (summary.Length > 0 ? ", " : "")
                     + Mathf.Round(outM3) + " m3 " + GameData.Minerals[kv.Key].Name;
             }
-            Log("Refined " + Mathf.Round(qty) + " m3 " + def.Name + " into " + summary + ".");
+            Log("Refined " + Mathf.Round(qty) + " m3 " + def.Name + " into " + summary + "."
+                + (spilled > 0.01f
+                    ? "  Hold was full — " + Mathf.Round(spilled) + " m3 went into station storage."
+                    : ""));
             SaveSystem.Save(this);
         }
 

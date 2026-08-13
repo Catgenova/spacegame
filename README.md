@@ -50,9 +50,15 @@ too, so an early warp-out beats their first volley.
 ### The loop
 
 - **Mine** ore in asteroid belts; richer, rarer ore lives in low-sec systems.
-- **Refine** ore into minerals (Iron/Aluminium/Titanium/Beryllium) at any
-  station — yield starts at 66% and grows with the Refining skill, so
-  refined mineral hauling out-earns raw ore once you're trained.
+- **Refine** ore *and recovered scrap* into minerals
+  (Iron/Aluminium/Titanium/Beryllium) at any station — yield starts at 66%
+  and grows with the Refining skill, so refining out-earns raw selling once
+  you're trained. Scrap is compacted hull, so it mills out into several
+  times its own volume in metal (Class 3 gives 8.4 m3 of metal per m3), and
+  it is the only route to **titanium and beryllium that doesn't involve
+  mining low-sec belts** — one convoy kill covers the exotic metals for a
+  hull, leaving you to top up bulk iron from ore. Anything that won't fit
+  your hold is banked in the station's storage bay.
 - **Sell** at stations — each station has stable price personalities, so
   hauling ore, minerals, or cheap modules between systems is a real career.
 - **Fight** pirates for bounties. Lower security means nastier spawns:
