@@ -244,6 +244,15 @@ namespace SpaceGame
             };
             // The finest builds need beryllium for their precision internals.
             if (bp.Rarity >= 2) cost["beryllium"] = Mathf.Round(unit * 0.6f * mult);
+            // ...and exotic metal that exists nowhere but a deep-space anomaly.
+            // This is the gate: no exploration, no top-tier gear.
+            if (bp.Rarity == 2)
+                cost["tantalum"] = Mathf.Max(1f, Mathf.Round(unit * 0.10f * mult));
+            else if (bp.Rarity == 3)
+            {
+                cost["hafnium"] = Mathf.Max(1f, Mathf.Round(unit * 0.09f * mult));
+                cost["rhenium"] = Mathf.Max(1f, Mathf.Round(unit * 0.045f * mult));
+            }
             return cost;
         }
 

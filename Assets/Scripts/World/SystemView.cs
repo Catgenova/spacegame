@@ -146,6 +146,71 @@ namespace SpaceGame
             return wreck;
         }
 
+        /// <summary>Spawn an anomaly with its spread of containers. Tier sets
+        /// how rich it is, how long the window lasts, and what answers the
+        /// noise.</summary>
+        public AnomalySite SpawnSite(int tier, Vector3 pos)
+        {
+            tier = Mathf.Clamp(tier, 1, 3);
+            var go = new GameObject("Anomaly T" + tier);
+            go.transform.SetParent(_root, false);
+            go.transform.position = pos;
+            ShipVisuals.BuildSiteVisual(go.transform, tier);
+            var col = go.AddComponent<SphereCollider>();
+            col.radius = 12f;
+            var site = go.AddComponent<AnomalySite>();
+            site.Id = "site_" + _idSeq++;
+            site.Kind = ObjKind.Site;
+            site.Tier = tier;
+            site.DisplayName = (tier == 3 ? "Shattered Relic Field"
+                : tier == 2 ? "Collapsed Survey Hulk" : "Drifting Debris Pocket")
+                + " (T" + tier + ")";
+
+            // The window: richer sites give you longer, but not proportionally.
+            site.TotalLife = tier == 3 ? 240f : tier == 2 ? 195f : 165f;
+            site.Life = site.TotalLife;
+            site.RatTimer = site.TotalLife * 0.45f;
+            site.RatWave = tier == 3
+                ? new[] { "overlord", "marauder", "marauder", "rookie" }
+                : tier == 2 ? new[] { "marauder", "marauder", "rookie" }
+                : new[] { "rookie", "rookie" };
+
+            int cans = tier == 3 ? 5 : tier == 2 ? 4 : 3;
+            string exoticId = GameData.ExoticIdForTier(tier);
+            float perCan = tier == 3 ? 11f : tier == 2 ? 7f : 4.5f;
+            for (int i = 0; i < cans; i++)
+            {
+                // Spread them out so clearing the site means covering ground.
+                float ang = (i / (float)cans) * Mathf.PI * 2f + Random.Range(-0.3f, 0.3f);
+                float rad = Random.Range(180f, 120f + 95f * cans);
+                var cpos = pos + new Vector3(Mathf.Cos(ang) * rad,
+                    Random.Range(-40f, 40f), Mathf.Sin(ang) * rad);
+                var cgo = new GameObject("Container");
+                cgo.transform.SetParent(_root, false);
+                cgo.transform.position = cpos;
+                cgo.transform.rotation = Quaternion.Euler(Random.Range(0f, 360f),
+                    Random.Range(0f, 360f), Random.Range(0f, 360f));
+                ShipVisuals.BuildContainerVisual(cgo.transform, tier);
+                var ccol = cgo.AddComponent<SphereCollider>();
+                ccol.radius = 5f;
+                var can = cgo.AddComponent<SiteContainer>();
+                can.Id = "can_" + _idSeq++;
+                can.Kind = ObjKind.Container;
+                can.DisplayName = "Sealed Container " + (i + 1);
+                can.Site = site;
+                can.Exotics[exoticId] = Mathf.Round(perCan * Random.Range(0.7f, 1.4f));
+                // The deepest container in a rich field may hold a print.
+                if (Random.value < (tier == 3 ? 0.26f : tier == 2 ? 0.14f : 0.06f))
+                    can.BpLoot.Add(Random.value < 0.6f
+                        ? ModGen.RollBlueprint(tier == 3 ? "overlord" : "marauder")
+                        : ShipGen.RollBlueprint(tier == 3 ? "overlord" : "marauder"));
+                site.Containers.Add(can);
+                Objects.Add(can);
+            }
+            Objects.Add(site);
+            return site;
+        }
+
         public NpcPirate SpawnNpc(string typeId, Vector3 pos)
         {
             var def = GameData.Npcs[typeId];

@@ -840,7 +840,24 @@ namespace SpaceGame
             }
 
             string extra = "";
-            if (sel is AsteroidBody rock)
+            if (sel is AnomalySite site)
+            {
+                extra = "COLLAPSE IN " + Mathf.CeilToInt(site.Life) + "s"
+                    + "  ·  " + site.ContainersLeft + " container(s) sealed"
+                    + "  ·  " + Mathf.Round(site.ExoticM3Left()) + " m3 exotics";
+                if (!site.RatsCalled)
+                    extra += "  ·  response fleet in " + Mathf.CeilToInt(Mathf.Max(0f, site.RatTimer)) + "s";
+                else
+                    extra += "  ·  FLEET ON SITE";
+            }
+            else if (sel is SiteContainer scan)
+            {
+                extra = Mathf.Round(scan.TotalM3()) + " m3 exotics sealed inside";
+                if (scan.BpLoot.Count > 0) extra += "  +  BLUEPRINT SIGNATURE";
+                if (scan.Site != null)
+                    extra += "  ·  field collapses in " + Mathf.CeilToInt(scan.Site.Life) + "s";
+            }
+            else if (sel is AsteroidBody rock)
                 extra = GameData.Ores[rock.Data.Ore].Name + ": " + Mathf.Round(rock.Data.Amount) + " m3 remaining";
             else if (sel is Wreck wreck)
             {
@@ -1136,7 +1153,7 @@ namespace SpaceGame
                 string outputs = "";
                 foreach (var kv in def.RefineInto)
                     outputs += (outputs.Length > 0 ? ", " : "")
-                        + Mathf.Round(qty * gm.RefineYield() * kv.Value) + " " + GameData.Minerals[kv.Key].Name;
+                        + Mathf.Round(qty * gm.RefineYield() * kv.Value) + " " + GameData.Commodity(kv.Key).Name;
                 _stationContent.Add(Row(
                     Cell(def.Name + "  ×" + Mathf.Round(qty) + " m3", 230, UiSkin.TextMain),
                     Cell("→  " + outputs + " (m3)", 350, UiSkin.TextDim, 10),
@@ -1236,7 +1253,7 @@ namespace SpaceGame
             _stationContent.Add(WrapText(baseDef.Desc, UiSkin.TextDim));
             string cost = "";
             foreach (var kv in ModGen.MaterialCost(bp))
-                cost += (cost.Length > 0 ? ", " : "") + kv.Value + " " + GameData.Minerals[kv.Key].Name;
+                cost += (cost.Length > 0 ? ", " : "") + kv.Value + " " + GameData.Commodity(kv.Key).Name;
             _stationContent.Add(WrapText("Cost per run: " + cost + " (m3) + "
                 + GameData.FmtCredits(ModGen.Fee(bp)) + " fee.", UiSkin.TextDim));
             string blocker = gm.ManufactureBlocker(bp);
@@ -1287,7 +1304,7 @@ namespace SpaceGame
                     _stationContent.Add(WrapText(string.Join("  ·  ", def.Features), UiSkin.AccentWarm));
                 string bpCost = "";
                 foreach (var kv in ShipGen.MaterialCost(bp))
-                    bpCost += (bpCost.Length > 0 ? ", " : "") + kv.Value + " " + GameData.Minerals[kv.Key].Name;
+                    bpCost += (bpCost.Length > 0 ? ", " : "") + kv.Value + " " + GameData.Commodity(kv.Key).Name;
                 _stationContent.Add(WrapText("Cost per run: " + bpCost + " (m3) + "
                     + GameData.FmtCredits(ShipGen.Fee(bp)) + " fee.", UiSkin.TextDim));
                 string blocker = gm.ManufactureBlocker(bp);

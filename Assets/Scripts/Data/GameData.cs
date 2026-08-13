@@ -11,7 +11,7 @@ namespace SpaceGame
     {
         public static readonly SlotType[] All = { SlotType.High, SlotType.Mid, SlotType.Low, SlotType.Web, SlotType.Disruptor, SlotType.Claw, SlotType.Drone, SlotType.Sensor, SlotType.Collector };
     }
-    public enum ObjKind { Sun, Planet, Belt, Station, Gate, Asteroid, Npc, Wreck }
+    public enum ObjKind { Sun, Planet, Belt, Station, Gate, Asteroid, Npc, Wreck, Site, Container }
 
     /// <summary>A tradable commodity: raw ore (refinable) or a mineral.</summary>
     public class OreDef
@@ -124,6 +124,10 @@ namespace SpaceGame
         /// <summary>Combat salvage, graded by the class of hull it came off.
         /// Sells well but takes hold space — the reason to loot a kill.</summary>
         public static readonly Dictionary<string, OreDef> Scraps = new Dictionary<string, OreDef>();
+        /// <summary>Exotic metals found only in deep-space anomalies. They cannot
+        /// be mined or refined from anything — exploration is the sole supply, and
+        /// the best blueprints will not run without them.</summary>
+        public static readonly Dictionary<string, OreDef> Exotics = new Dictionary<string, OreDef>();
         public static readonly Dictionary<string, LootTable> Loot = new Dictionary<string, LootTable>();
         public static readonly Dictionary<string, ShipDef> Ships = new Dictionary<string, ShipDef>();
         public static readonly Dictionary<string, ModuleDef> Modules = new Dictionary<string, ModuleDef>();
@@ -166,6 +170,18 @@ namespace SpaceGame
                 { { "iron", 1.40f }, { "aluminium", 1.50f }, { "titanium", 1.20f } };
             Scraps["scrap3"].RefineInto = new Dictionary<string, float>
                 { { "iron", 2.00f }, { "aluminium", 2.20f }, { "titanium", 2.40f }, { "beryllium", 1.80f } };
+
+            // Anomaly exotics, in the order real aerospace reaches for them:
+            // tantalum for capacitor foil, hafnium for superalloys and control
+            // surfaces, rhenium for rocket-nozzle throats. All three are real
+            // metals used in genuinely hard spacecraft engineering, and none can
+            // be had by mining — you fly out and take them.
+            // Priced so a cleared field pays about what a comparable combat
+            // target does. The prize is access, not resale: nothing else in the
+            // game can supply these at all.
+            Exotic("tantalum", "Tantalum", 240f, new Color(0.55f, 0.56f, 0.62f));
+            Exotic("hafnium", "Hafnium", 520f, new Color(0.62f, 0.66f, 0.72f));
+            Exotic("rhenium", "Rhenium", 1100f, new Color(0.78f, 0.80f, 0.86f));
 
             Ores["hematite"].RefineInto = new Dictionary<string, float> { { "iron", 1f } };
             Ores["pyroxene"].RefineInto = new Dictionary<string, float> { { "iron", 0.65f }, { "aluminium", 0.35f } };
@@ -494,7 +510,8 @@ namespace SpaceGame
         /// <summary>Look up any tradable commodity (ore or mineral).</summary>
         public static OreDef Commodity(string id)
             => Ores.TryGetValue(id, out var o) ? o
-             : Minerals.TryGetValue(id, out var m) ? m : Scraps[id];
+             : Minerals.TryGetValue(id, out var m) ? m
+             : Scraps.TryGetValue(id, out var s) ? s : Exotics[id];
 
         /// <summary>Anything that can be put through a station refinery: raw
         /// ore, or recovered scrap. Minerals are already refined.</summary>
@@ -507,7 +524,15 @@ namespace SpaceGame
         }
 
         public static bool CommodityExists(string id)
-            => Ores.ContainsKey(id) || Minerals.ContainsKey(id) || Scraps.ContainsKey(id);
+            => Ores.ContainsKey(id) || Minerals.ContainsKey(id)
+               || Scraps.ContainsKey(id) || Exotics.ContainsKey(id);
+
+        static void Exotic(string id, string name, float price, Color c)
+            => Exotics[id] = new OreDef { Id = id, Name = name, PricePerM3 = price, Color = c };
+
+        /// <summary>Which exotic an anomaly of this tier yields.</summary>
+        public static string ExoticIdForTier(int tier)
+            => tier >= 3 ? "rhenium" : tier == 2 ? "hafnium" : "tantalum";
 
         static void Scrap(string id, string name, float price, Color c)
             => Scraps[id] = new OreDef { Id = id, Name = name, PricePerM3 = price, Color = c };

@@ -185,9 +185,9 @@ namespace SpaceGame
                 var sel = GM.Selected;
                 if (m.Kind == ModuleKind.Collector)
                 {
-                    GM.Log(!(sel is Wreck)
-                        ? "Select a wreck first."
-                        : "Wreck out of collector range.");
+                    GM.Log(!(sel is Wreck) && !(sel is SiteContainer)
+                        ? "Select a wreck or a sealed container first."
+                        : "Target out of collector range.");
                     Sfx.Deny();
                     return;
                 }
@@ -223,7 +223,8 @@ namespace SpaceGame
                 || m.Kind == ModuleKind.Drone)
                 return sel is NpcPirate && d <= m.Range && GM.Locked;
             if (m.Kind == ModuleKind.Collector)
-                return sel is Wreck && d <= m.Range; // wrecks need no target lock
+                // wrecks and containers need no target lock
+                return (sel is Wreck || sel is SiteContainer) && d <= m.Range;
             return true;
         }
 
@@ -511,6 +512,31 @@ namespace SpaceGame
 
         void CompleteSensorCycle(ModuleDef m, RackEntry r)
         {
+            // A sharper array finds more, and finds deeper. Low security means
+            // richer anomalies: the good stuff sits where the law does not.
+            float sec = GM.System != null ? GM.System.Sec : 1f;
+            float siteChance = (m.Cycle <= 8f ? 0.26f : 0.18f) + (1f - sec) * 0.16f;
+            if (Random.value < siteChance)
+            {
+                int tier = 1;
+                float tr = Random.value;
+                float t3 = (1f - sec) * 0.30f, t2 = 0.22f + (1f - sec) * 0.22f;
+                if (tr < t3) tier = 3;
+                else if (tr < t3 + t2) tier = 2;
+                if (m.Cycle > 8f && tier == 3 && Random.value < 0.5f) tier = 2; // T1 array rarely cracks the best
+
+                var sdir = Random.onUnitSphere;
+                sdir.y *= 0.12f;
+                sdir = sdir.normalized;
+                var spos = transform.position + sdir * Random.Range(700f, 1600f);
+                var site = GM.View.SpawnSite(tier, spos);
+                GM.Log("Sensor sweep: ANOMALY — " + site.DisplayName + " "
+                    + GameData.FmtDist(Vector3.Distance(transform.position, spos))
+                    + " out. " + site.Containers.Count + " sealed containers, "
+                    + Mathf.Round(site.TotalLife) + "s before it collapses, and something will answer. Move.");
+                Sfx.Locked();
+                return;
+            }
             if (Random.value < 0.35f)
             {
                 var dir = Random.onUnitSphere;
@@ -538,6 +564,20 @@ namespace SpaceGame
 
         void CompleteCollectorCycle(ModuleDef m, RackEntry r)
         {
+            // A sealed container is the collector's other job — and the one that
+            // actually pays, if you can crack enough of them in time.
+            var can = GM.Selected as SiteContainer;
+            if (can != null)
+            {
+                if (Vector3.Distance(transform.position, can.transform.position) > m.Range)
+                {
+                    r.Active = false;
+                    return;
+                }
+                GM.CrackContainer(can, m.Yield > 0f ? m.Yield : 12f);
+                if (can.Empty) r.Active = false;
+                return;
+            }
             var w = GM.Selected as Wreck;
             if (w == null || Vector3.Distance(transform.position, w.transform.position) > m.Range)
             {

@@ -44,7 +44,25 @@ namespace SpaceGame
              : bp.TypeId == PackGenerator.TypeId ? PackGenerator.Def(bp.Hash, bp.Class)
              : HiveGenerator.Def(bp.Hash, bp.Class);
 
+        /// <summary>Material bill for one hull run. Returns a fresh dictionary —
+        /// the generators hand back their shared static sheets, which callers must
+        /// never mutate. Class 3 hulls additionally need anomaly exotics, so the
+        /// top of the ship tree is gated behind exploration too.</summary>
         public static Dictionary<string, float> MaterialCost(Blueprint bp)
+        {
+            var basis = BaseMaterialCost(bp);
+            var cost = new Dictionary<string, float>(basis);
+            if (bp.Class >= 3)
+            {
+                float bulk = 0f;
+                foreach (var kv in basis) bulk += kv.Value;
+                cost["tantalum"] = Mathf.Max(2f, Mathf.Round(bulk * 0.006f));
+                cost["hafnium"] = Mathf.Max(1f, Mathf.Round(bulk * 0.0025f));
+            }
+            return cost;
+        }
+
+        static Dictionary<string, float> BaseMaterialCost(Blueprint bp)
             => bp.TypeId == FinGenerator.TypeId ? FinGenerator.MaterialCost(bp.Class)
              : bp.TypeId == ClawGenerator.TypeId ? ClawGenerator.MaterialCost(bp.Class)
              : bp.TypeId == TalonGenerator.TypeId ? TalonGenerator.MaterialCost(bp.Class)

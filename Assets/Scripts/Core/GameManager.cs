@@ -446,6 +446,55 @@ namespace SpaceGame
             SaveSystem.Save(this);
         }
 
+        /// <summary>Pull up to `m3` of exotics (and any blueprint chips) out of a
+        /// sealed container. Partial hauls are fine — the hold filling up should
+        /// cost you time, not the whole container.</summary>
+        public void CrackContainer(SiteContainer can, float m3)
+        {
+            if (can == null || can.Empty) return;
+
+            // Blueprint chips are data — they come out whole, first.
+            for (int i = can.BpLoot.Count - 1; i >= 0; i--)
+            {
+                var bp = can.BpLoot[i];
+                Player.Blueprints.Add(bp);
+                Log("BLUEPRINT recovered from the container: " + ShipGen.DescribeBlueprint(bp));
+                can.BpLoot.RemoveAt(i);
+            }
+
+            float cap = Player.ComputeStats().CargoCap;
+            var ids = new List<string>(can.Exotics.Keys);
+            foreach (var id in ids)
+            {
+                float room = cap - Player.CargoUsed();
+                if (room <= 0.01f) { Log("Cargo hold full — exotics left in the container."); break; }
+                float take = Mathf.Min(Mathf.Min(can.Exotics[id], m3), room);
+                if (take <= 0.01f) continue;
+                Player.Cargo.TryGetValue(id, out var had);
+                Player.Cargo[id] = had + take;
+                can.Exotics[id] -= take;
+                if (can.Exotics[id] <= 0.01f) can.Exotics.Remove(id);
+                Log("Recovered " + Mathf.Round(take) + " m3 " + GameData.Commodity(id).Name + ".");
+                Sfx.MinerChunk();
+                m3 -= take;
+                if (m3 <= 0.01f) break;
+            }
+
+            if (can.Empty)
+            {
+                Log(can.DisplayName + " stripped.");
+                var site = can.Site;
+                if (Selected == can) Select(null);
+                View.RemoveObject(can);
+                if (site != null)
+                {
+                    site.Containers.Remove(can);
+                    site.NoteContainerEmptied(this);
+                }
+            }
+            SaveSystem.Save(this);
+        }
+
         /// <summary>Tick a salvage mission for one recovered haul.</summary>
         public void CountSalvageMission()
         {
@@ -458,6 +507,14 @@ namespace SpaceGame
 
         public void LootWreck()
         {
+            // The Loot button doubles as "crack container" when one is selected.
+            if (Selected is SiteContainer can && !Docked)
+            {
+                if (DistTo(can) > LootRange)
+                { Log("Get within " + GameData.FmtDist(LootRange) + " to crack the container."); return; }
+                CrackContainer(can, 9999f);
+                return;
+            }
             var w = Selected as Wreck;
             if (w == null || Docked) return;
             if (DistTo(w) > LootRange) { Log("Get within " + GameData.FmtDist(LootRange) + " to salvage."); return; }
@@ -663,7 +720,7 @@ namespace SpaceGame
                 float rest = outM3 - toHold;
                 if (rest > 0.01f) { Store.AddCargo(kv.Key, rest); spilled += rest; }
                 summary += (summary.Length > 0 ? ", " : "")
-                    + Mathf.Round(outM3) + " m3 " + GameData.Minerals[kv.Key].Name;
+                    + Mathf.Round(outM3) + " m3 " + GameData.Commodity(kv.Key).Name;
             }
             Log("Refined " + Mathf.Round(qty) + " m3 " + def.Name + " into " + summary + "."
                 + (spilled > 0.01f
@@ -765,7 +822,7 @@ namespace SpaceGame
                 Player.Cargo.TryGetValue(kv.Key, out float have);
                 if (have < kv.Value)
                     return "Missing " + Mathf.Round(kv.Value - have) + " m3 "
-                        + GameData.Minerals[kv.Key].Name + " (must be in your cargo hold).";
+                        + GameData.Commodity(kv.Key).Name + " (must be in your cargo hold).";
             }
             if (Player.Credits < ShipGen.Fee(bp))
                 return "Assembly fee is " + GameData.FmtCredits(ShipGen.Fee(bp)) + ".";
@@ -779,7 +836,7 @@ namespace SpaceGame
                 Player.Cargo.TryGetValue(kv.Key, out float have);
                 if (have < kv.Value)
                     return "Missing " + Mathf.Round(kv.Value - have) + " m3 "
-                        + GameData.Minerals[kv.Key].Name + " (must be in your cargo hold).";
+                        + GameData.Commodity(kv.Key).Name + " (must be in your cargo hold).";
             }
             if (Player.Credits < ModGen.Fee(bp))
                 return "Assembly fee is " + GameData.FmtCredits(ModGen.Fee(bp)) + ".";

@@ -269,6 +269,26 @@ namespace SpaceGame
                     GameData.Ores[rock.Data.Ore].Name + ": " + Mathf.Round(rock.Data.Amount) + " m3 remaining", _smallStyle);
                 y += 17;
             }
+            else if (sel is AnomalySite site)
+            {
+                GUI.Label(new Rect(r.x + 8, y, r.width - 16, 14),
+                    "COLLAPSE IN " + Mathf.CeilToInt(site.Life) + "s · "
+                    + site.ContainersLeft + " sealed · "
+                    + Mathf.Round(site.ExoticM3Left()) + " m3 exotics · "
+                    + (site.RatsCalled ? "FLEET ON SITE"
+                        : "fleet in " + Mathf.CeilToInt(Mathf.Max(0f, site.RatTimer)) + "s"),
+                    _smallStyle);
+                y += 17;
+            }
+            else if (sel is SiteContainer scan)
+            {
+                GUI.Label(new Rect(r.x + 8, y, r.width - 16, 14),
+                    Mathf.Round(scan.TotalM3()) + " m3 exotics sealed"
+                    + (scan.BpLoot.Count > 0 ? " + BLUEPRINT" : "")
+                    + (scan.Site != null ? " · field blows in " + Mathf.CeilToInt(scan.Site.Life) + "s" : ""),
+                    _smallStyle);
+                y += 17;
+            }
             else if (sel is Wreck wreck)
             {
                 GUI.Label(new Rect(r.x + 8, y, r.width - 16, 14),
@@ -507,7 +527,7 @@ namespace SpaceGame
                 foreach (var kv in def.RefineInto)
                     outputs += (outputs.Length > 0 ? ", " : "")
                         + Mathf.Round(qty * GM.RefineYield() * kv.Value) + " "
-                        + GameData.Minerals[kv.Key].Name;
+                        + GameData.Commodity(kv.Key).Name;
                 GUILayout.BeginHorizontal();
                 GUILayout.Label(def.Name + "  ×" + Mathf.Round(qty) + " m3", GUILayout.Width(220));
                 GUILayout.Label("→  " + outputs + " (m3)", GUILayout.Width(330));

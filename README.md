@@ -91,6 +91,21 @@ too, so an early warp-out beats their first volley.
   manufacture runs at any station's **Industry** tab using refined
   minerals from your hold. When the runs are spent, that body is gone
   from the universe forever — and if you lose the ship, so is yours.
+- **Explore for exotics (Trail hulls)** — a Trail hull's Pathfinder Array
+  sweeps for deep-space **anomalies**, and they are the *only* source of
+  **Tantalum, Hafnium and Rhenium**. Nothing can be mined or refined into
+  them, and the best blueprints will not run without them: Rare and Pristine
+  module prints and every Class 3 hull need exotics.
+  The catch is the clock. A field holds 3-5 sealed containers spread out
+  across tens of km, and it is structurally unstable — 165s to 240s before it
+  **detonates**, destroying everything left inside and shockwaving anyone
+  within 26 km. Partway through the countdown the noise draws a **response
+  fleet** that warps straight in on you (two rookies at Tier 1, an overlord
+  and escorts at Tier 3). So it is a race: fly the route, crack the cans, get
+  out. That is exactly what a fast Trail hull with a Salvage Collector II and
+  an afterburner is for — the collector's cycle time is the difference between
+  clearing a field and losing it. Richer tiers hide in lower security, so the
+  best fields sit where the law does not.
 - **Print gear from module blueprints** — pirate wrecks also drop blueprints
   for **Tech I and Tech II** hardpoint gear (claws, webs, disruptors, drones,
   sensors, collectors) and mid/low slot gear (boosters, afterburners, cargo,
