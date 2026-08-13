@@ -41,7 +41,7 @@ namespace SpaceGame
         /// <summary>Price a station charges for a module (before trade skill).</summary>
         public static long ModuleBuyPrice(string stationId, string modId)
         {
-            float basePrice = GameData.Modules[modId].Price;
+            float basePrice = GameData.ResolveModule(modId).Price;
             return (long)Mathf.Max(1f, Mathf.Round(basePrice * Mults(stationId).Module * Jitter(stationId, modId, 0.2f)));
         }
 

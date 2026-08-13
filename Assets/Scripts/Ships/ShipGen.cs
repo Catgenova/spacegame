@@ -88,6 +88,7 @@ namespace SpaceGame
 
         public static string DescribeBlueprint(Blueprint bp)
         {
+            if (bp.IsModule) return ModGen.Describe(bp);
             var def = Def(bp);
             return def.Name + " (" + TypeName(bp) + " C" + bp.Class
                 + ")  [" + GameData.RarityNames[bp.Rarity] + ", "

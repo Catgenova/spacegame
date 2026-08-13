@@ -343,7 +343,9 @@ namespace SpaceGame
 
             // Ship blueprint chips: rarer, and the real reason to hunt convoys.
             if (Random.value < npc.Def.BpChance)
-                wreck.BpLoot.Add(ShipGen.RollBlueprint(npc.Def.Id));
+                wreck.BpLoot.Add(Random.value < 0.55f
+                    ? ModGen.RollBlueprint(npc.Def.Id)
+                    : ShipGen.RollBlueprint(npc.Def.Id));
 
             View.RemoveObject(npc);
 
@@ -509,7 +511,7 @@ namespace SpaceGame
                     break;
                 }
                 Player.CargoModules.Add(w.Loot[i]);
-                Log("Salvaged " + GameData.Modules[w.Loot[i]].Name + ".");
+                Log("Salvaged " + GameData.ResolveModule(w.Loot[i]).Name + ".");
                 w.Loot.RemoveAt(i);
                 CountSalvageMission();
             }
@@ -662,7 +664,7 @@ namespace SpaceGame
             if (Player.Credits < price) { Log("Not enough credits."); return; }
             Player.Credits -= price;
             Store.Modules.Add(modId);
-            Log("Bought " + GameData.Modules[modId].Name + " for " + GameData.FmtCredits(price) + " (into station storage).");
+            Log("Bought " + GameData.ResolveModule(modId).Name + " for " + GameData.FmtCredits(price) + " (into station storage).");
             SaveSystem.Save(this);
         }
 
@@ -701,7 +703,7 @@ namespace SpaceGame
         {
             if (!Docked || hangarIndex < 0 || hangarIndex >= Store.Modules.Count) return;
             string modId = Store.Modules[hangarIndex];
-            var m = GameData.Modules[modId];
+            var m = GameData.ResolveModule(modId);
             if (m.Slot == SlotType.High && Player.Hull.TurretOnly && m.Kind != ModuleKind.Weapon)
             {
                 Log("Hive hardpoints only accept turrets — no " + m.Name + " here.");
@@ -731,7 +733,7 @@ namespace SpaceGame
             if (string.IsNullOrEmpty(modId)) return;
             Player.Fitting[slot][idx] = null;
             Store.Modules.Add(modId);
-            Log("Unfitted " + GameData.Modules[modId].Name + ".");
+            Log("Unfitted " + GameData.ResolveModule(modId).Name + ".");
             SaveSystem.Save(this);
         }
 
@@ -742,6 +744,7 @@ namespace SpaceGame
         {
             if (!Docked) return "Dock at a station to manufacture.";
             if (bp.RunsLeft <= 0) return "Blueprint exhausted.";
+            if (bp.IsModule) return ModuleBlocker(bp);
             foreach (var kv in ShipGen.MaterialCost(bp))
             {
                 Player.Cargo.TryGetValue(kv.Key, out float have);
@@ -754,9 +757,53 @@ namespace SpaceGame
             return null;
         }
 
+        string ModuleBlocker(Blueprint bp)
+        {
+            foreach (var kv in ModGen.MaterialCost(bp))
+            {
+                Player.Cargo.TryGetValue(kv.Key, out float have);
+                if (have < kv.Value)
+                    return "Missing " + Mathf.Round(kv.Value - have) + " m3 "
+                        + GameData.Minerals[kv.Key].Name + " (must be in your cargo hold).";
+            }
+            if (Player.Credits < ModGen.Fee(bp))
+                return "Assembly fee is " + GameData.FmtCredits(ModGen.Fee(bp)) + ".";
+            return null;
+        }
+
+        /// <summary>Print one module off a module blueprint. The finished piece
+        /// carries whatever modifiers its rarity rolled and lands in this
+        /// station's storage bay.</summary>
+        void ManufactureModule(Blueprint bp)
+        {
+            foreach (var kv in ModGen.MaterialCost(bp))
+            {
+                Player.Cargo[kv.Key] -= kv.Value;
+                if (Player.Cargo[kv.Key] <= 0.01f) Player.Cargo.Remove(kv.Key);
+            }
+            Player.Credits -= ModGen.Fee(bp);
+
+            // Each run is its own piece: mix the print's hash with the run index
+            // so a 5-run Common print yields five distinct (if plain) modules.
+            int run = GameData.ModBpRuns[bp.Rarity] - bp.RunsLeft;
+            string craftId = ModGen.CraftId(bp.ModuleId, bp.Hash + run, bp.Rarity);
+            Store.Modules.Add(craftId);
+            var made = GameData.ResolveModule(craftId);
+
+            bp.RunsLeft--;
+            Log("Manufactured " + made.Name + " — in this station's storage.");
+            if (bp.RunsLeft <= 0)
+            {
+                Player.Blueprints.Remove(bp);
+                Log("That blueprint is spent and gone.");
+            }
+            SaveSystem.Save(this);
+        }
+
         public void Manufacture(Blueprint bp)
         {
             if (ManufactureBlocker(bp) != null) { Log(ManufactureBlocker(bp)); return; }
+            if (bp.IsModule) { ManufactureModule(bp); return; }
             var def = ShipGen.Def(bp);
 
             // Everything left in the hold after the minerals burn must fit the new hull.

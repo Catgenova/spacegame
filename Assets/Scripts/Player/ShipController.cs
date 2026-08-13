@@ -19,7 +19,7 @@ namespace SpaceGame
             public string ModId;
             public bool Active;
             public float T;
-            public ModuleDef Def => GameData.Modules[ModId];
+            public ModuleDef Def => GameData.ResolveModule(ModId);
         }
 
         const float Inertia = 1.4f;
@@ -588,7 +588,7 @@ namespace SpaceGame
                 int last = w.Loot.Count - 1;
                 string modId = w.Loot[last];
                 P.CargoModules.Add(modId);
-                GM.Log("Collector reeled in " + GameData.Modules[modId].Name + ".");
+                GM.Log("Collector reeled in " + GameData.ResolveModule(modId).Name + ".");
                 w.Loot.RemoveAt(last);
                 Sfx.MinerChunk();
                 GM.CountSalvageMission();

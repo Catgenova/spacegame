@@ -1167,7 +1167,7 @@ namespace SpaceGame
                     int idx = i;
                     bool empty = string.IsNullOrEmpty(arr[i]);
                     var row = Row(Cell(slotName + " " + (i + 1) + ":  "
-                        + (empty ? "<empty>" : GameData.Modules[arr[i]].Name), 330,
+                        + (empty ? "<empty>" : GameData.ResolveModule(arr[i]).Name), 330,
                         empty ? UiSkin.TextDim : UiSkin.TextMain));
                     if (!empty)
                         row.Add(Btn("Unfit", () => { gm.UnfitModule(slotC, idx); RefreshStationTab(); }));
@@ -1182,7 +1182,7 @@ namespace SpaceGame
             {
                 int idx = i;
                 _stationContent.Add(Row(
-                    Cell(GameData.Modules[gm.Store.Modules[i]].Name + "  [" + GameData.Modules[gm.Store.Modules[i]].Slot + "]",
+                    Cell(GameData.ResolveModule(gm.Store.Modules[i]).Name + "  [" + GameData.ResolveModule(gm.Store.Modules[i]).Slot + "]",
                         330, UiSkin.TextMain),
                     Btn("Fit", () => { gm.FitModule(idx); RefreshStationTab(); })));
             }
@@ -1219,10 +1219,40 @@ namespace SpaceGame
             }
         }
 
+        /// <summary>One module blueprint: what it makes, and at what cost.</summary>
+        void BuildModulePrintCard(GameManager gm, Blueprint bp)
+        {
+            var baseDef = GameData.ResolveModule(bp.ModuleId);
+            int mods = GameData.ModBpMods[bp.Rarity];
+            _stationContent.Add(Section(baseDef.Name + "  —  " + GameData.RarityNames[bp.Rarity]
+                + "  ·  " + bp.RunsLeft + " run" + (bp.RunsLeft == 1 ? "" : "s") + " left"));
+            _stationContent.Add(WrapText("[" + baseDef.Slot + " slot]  "
+                + (mods == 0
+                    ? "Factory-standard: base stats, no modifiers."
+                    : "Each run rolls " + mods + " modifier" + (mods == 1 ? "" : "s") + " onto the finished piece.")
+                + "  " + GameData.ModBpMatMult[bp.Rarity] + "x material cost.", UiSkin.AccentWarm));
+            _stationContent.Add(WrapText(baseDef.Desc, UiSkin.TextDim));
+            string cost = "";
+            foreach (var kv in ModGen.MaterialCost(bp))
+                cost += (cost.Length > 0 ? ", " : "") + kv.Value + " " + GameData.Minerals[kv.Key].Name;
+            _stationContent.Add(WrapText("Cost per run: " + cost + " (m3) + "
+                + GameData.FmtCredits(ModGen.Fee(bp)) + " fee.", UiSkin.TextDim));
+            string blocker = gm.ManufactureBlocker(bp);
+            var row = Row();
+            if (blocker == null)
+            {
+                var build = Btn("Manufacture", () => { gm.Manufacture(bp); RefreshStationTab(); });
+                build.style.color = new Color(0.5f, 1f, 0.65f);
+                row.Add(build);
+            }
+            else row.Add(Cell(blocker, 460, UiSkin.TextDim));
+            _stationContent.Add(row);
+        }
+
         void BuildIndustryTab(GameManager gm)
         {
             var p = gm.Player;
-            _stationContent.Add(Section("SHIP MANUFACTURING"));
+            _stationContent.Add(Section("MANUFACTURING"));
             _stationContent.Add(WrapText("Each run consumes refined minerals from your cargo hold "
                 + "plus an assembly fee (shown per blueprint); your current hull is traded in. "
                 + "Refine ore on the Refine tab to source minerals.", UiSkin.TextDim));
@@ -1237,6 +1267,7 @@ namespace SpaceGame
             foreach (var bp in new List<Blueprint>(p.Blueprints))
             {
                 var b = bp;
+                if (bp.IsModule) { BuildModulePrintCard(gm, b); continue; }
                 var def = ShipGen.Def(bp);
                 _stationContent.Add(Section(def.Name + "  —  " + GameData.RarityNames[bp.Rarity]
                     + "  ·  " + bp.RunsLeft + " run" + (bp.RunsLeft == 1 ? "" : "s") + " left  ·  body #" + bp.Hash));

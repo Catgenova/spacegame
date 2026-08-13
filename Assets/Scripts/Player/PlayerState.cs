@@ -122,7 +122,7 @@ namespace SpaceGame
             foreach (var modId in Fitting[SlotType.Low])
             {
                 if (string.IsNullOrEmpty(modId)) continue;
-                var m = GameData.Modules[modId];
+                var m = GameData.ResolveModule(modId);
                 st.MaxArmor += m.ArmorBonus;
                 st.MaxCap += m.CapBonus;
                 st.CargoCap += m.CargoBonus;

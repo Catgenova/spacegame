@@ -540,7 +540,7 @@ namespace SpaceGame
                 {
                     GUILayout.BeginHorizontal();
                     string label = slotName + " " + (i + 1) + ":  "
-                        + (string.IsNullOrEmpty(arr[i]) ? "<empty>" : GameData.Modules[arr[i]].Name);
+                        + (string.IsNullOrEmpty(arr[i]) ? "<empty>" : GameData.ResolveModule(arr[i]).Name);
                     GUILayout.Label(label, GUILayout.Width(320));
                     if (!string.IsNullOrEmpty(arr[i])
                         && GUILayout.Button("Unfit", GUILayout.Width(80)))
@@ -555,8 +555,8 @@ namespace SpaceGame
             for (int i = 0; i < GM.Store.Modules.Count; i++)
             {
                 GUILayout.BeginHorizontal();
-                GUILayout.Label(GameData.Modules[GM.Store.Modules[i]].Name
-                    + "  [" + GameData.Modules[GM.Store.Modules[i]].Slot + "]", GUILayout.Width(320));
+                GUILayout.Label(GameData.ResolveModule(GM.Store.Modules[i]).Name
+                    + "  [" + GameData.ResolveModule(GM.Store.Modules[i]).Slot + "]", GUILayout.Width(320));
                 if (GUILayout.Button("Fit", GUILayout.Width(80))) { GM.FitModule(i); GUILayout.EndHorizontal(); break; }
                 GUILayout.EndHorizontal();
             }
@@ -599,7 +599,7 @@ namespace SpaceGame
         void DrawIndustryTab()
         {
             var p = GM.Player;
-            GUILayout.Label("— SHIP MANUFACTURING —", _smallStyle);
+            GUILayout.Label("— MANUFACTURING —", _smallStyle);
             if (p.Blueprints.Count == 0)
             {
                 GUILayout.Label("No blueprints. Loot pirate wrecks — convoy haulers are the best source.", _smallStyle);
@@ -607,6 +607,23 @@ namespace SpaceGame
             }
             foreach (var bp in new List<Blueprint>(p.Blueprints))
             {
+                if (bp.IsModule)
+                {
+                    var baseDef = GameData.ResolveModule(bp.ModuleId);
+                    int mods = GameData.ModBpMods[bp.Rarity];
+                    GUILayout.Label(ShipGen.DescribeBlueprint(bp));
+                    GUILayout.Label("    [" + baseDef.Slot + "]  "
+                        + (mods == 0 ? "base stats only" : mods + " modifier(s) per run")
+                        + " · " + GameData.ModBpMatMult[bp.Rarity] + "x materials", _smallStyle);
+                    string mBlock = GM.ManufactureBlocker(bp);
+                    if (mBlock == null)
+                    {
+                        if (GUILayout.Button("Manufacture", GUILayout.Width(110))) { GM.Manufacture(bp); break; }
+                    }
+                    else GUILayout.Label("    " + mBlock, _smallStyle);
+                    GUILayout.Space(6);
+                    continue;
+                }
                 var def = ShipGen.Def(bp);
                 GUILayout.Label(ShipGen.DescribeBlueprint(bp) + "  ·  body #" + bp.Hash);
                 GUILayout.Label("    " + def.Class + " · Turrets " + def.HighSlots + " · Webs " + def.WebSlots

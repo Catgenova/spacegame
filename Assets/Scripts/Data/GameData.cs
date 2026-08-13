@@ -55,10 +55,14 @@ namespace SpaceGame
     public class Blueprint
     {
         public string Hash;   // 10 digits — the body's identity
-        public string TypeId; // "hive"
-        public int Class;     // 1..n
-        public int Rarity;    // index into RarityNames/RarityRuns
+        public string TypeId; // "hive" ... or "mod" for a module blueprint
+        public int Class;     // 1..n (ships only)
+        public int Rarity;    // index into RarityNames
         public int RunsLeft;
+        /// <summary>Set only on module blueprints: the base module printed.</summary>
+        public string ModuleId;
+
+        public bool IsModule => !string.IsNullOrEmpty(ModuleId);
     }
 
     public class ModuleDef
@@ -299,6 +303,75 @@ namespace SpaceGame
                 Kind = ModuleKind.Collector, Price = 23000, Cycle = 4f, Range = 160f, CapUse = 5f,
                 Desc = "Tractor scoop. Reels salvage out of a targeted wreck from 16 km, one piece per 4s cycle. Requires a collector hardpoint (Trail hulls).",
             };
+            // ---- Tech II tier: printed from blueprints, not stocked cheap ----
+            Modules["claw2"] = new ModuleDef
+            {
+                Id = "claw2", Name = "Mining Claw II", Short = "CLAW II", Slot = SlotType.Claw,
+                Kind = ModuleKind.Claw, Price = 74000, Cycle = 3f, Yield = 44f, Range = 14f, CapUse = 7f,
+                Desc = "Heavy hydraulic rock claw. 44 m3 per 3s cycle at point-blank range. Requires a claw hardpoint.",
+            };
+            Modules["web2"] = new ModuleDef
+            {
+                Id = "web2", Name = "Stasis Webifier II", Short = "WEB II", Slot = SlotType.Web,
+                Kind = ModuleKind.Web, Price = 52000, Cycle = 2f, Range = 165f, CapUse = 4f,
+                Desc = "Long-reach stasis field. Halves target velocity from 16.5 km. Requires a web slot.",
+            };
+            Modules["disrupt2"] = new ModuleDef
+            {
+                Id = "disrupt2", Name = "Warp Disruptor II", Short = "DISR II", Slot = SlotType.Disruptor,
+                Kind = ModuleKind.Disruptor, Price = 88000, Cycle = 2f, Range = 200f, CapUse = 5f,
+                Desc = "Extended warp jammer — nothing inside 20 km leaves the field. Requires a disruptor slot.",
+            };
+            Modules["sensor2"] = new ModuleDef
+            {
+                Id = "sensor2", Name = "Pathfinder Array II", Short = "SNSR II", Slot = SlotType.Sensor,
+                Kind = ModuleKind.Sensor, Price = 96000, Cycle = 7f, CapUse = 14f,
+                Desc = "Deep-space sweep on a 7s cycle — finds drifting caches far faster. Requires a sensor hardpoint.",
+            };
+            Modules["collector2"] = new ModuleDef
+            {
+                Id = "collector2", Name = "Salvage Collector II", Short = "COLL II", Slot = SlotType.Collector,
+                Kind = ModuleKind.Collector, Price = 78000, Cycle = 2.5f, Range = 240f, CapUse = 6f,
+                Desc = "Wide-aperture tractor scoop. Strips a wreck from 24 km on a 2.5s cycle. Requires a collector hardpoint.",
+            };
+            Modules["drone2"] = new ModuleDef
+            {
+                Id = "drone2", Name = "Drone Controller II", Short = "DRN II", Slot = SlotType.Drone,
+                Kind = ModuleKind.Drone, Price = 84000, Cycle = 2f, Dmg = 22f, Range = 280f, CapUse = 3f,
+                Tracking = 3f,
+                Desc = "Heavier autonomous drone with a longer leash. Requires a drone hardpoint.",
+            };
+            Modules["shieldboost2"] = new ModuleDef
+            {
+                Id = "shieldboost2", Name = "Shield Booster II", Short = "SBST II", Slot = SlotType.Mid,
+                Kind = ModuleKind.ShieldBooster, Price = 79000, Cycle = 2.5f, BoostAmount = 58f, CapUse = 15f,
+                Desc = "Active shield repair. 58 shield per 2.5s cycle — thirsty but decisive.",
+            };
+            Modules["afterburner2"] = new ModuleDef
+            {
+                Id = "afterburner2", Name = "Afterburner II", Short = "AB II", Slot = SlotType.Mid,
+                Kind = ModuleKind.Afterburner, Price = 58000, Cycle = 1f, SpeedMult = 2.3f, CapUse = 3f,
+                Desc = "While running: +130% max speed.",
+            };
+            Modules["cargo2"] = new ModuleDef
+            {
+                Id = "cargo2", Name = "Cargo Expander II", Short = "CRG++", Slot = SlotType.Low,
+                Kind = ModuleKind.Passive, Price = 44000, CargoBonus = 400f,
+                Desc = "Passive: +400 m3 cargo capacity.",
+            };
+            Modules["plate2"] = new ModuleDef
+            {
+                Id = "plate2", Name = "Armor Plate II", Short = "ARM++", Slot = SlotType.Low,
+                Kind = ModuleKind.Passive, Price = 68000, ArmorBonus = 560f,
+                Desc = "Passive: +560 armor HP.",
+            };
+            Modules["capbattery2"] = new ModuleDef
+            {
+                Id = "capbattery2", Name = "Cap Battery II", Short = "CAP++", Slot = SlotType.Low,
+                Kind = ModuleKind.Passive, Price = 61000, CapBonus = 185f,
+                Desc = "Passive: +185 capacitor.",
+            };
+
             Modules["drone1"] = new ModuleDef
             {
                 Id = "drone1", Name = "Drone Controller I", Short = "DRN", Slot = SlotType.Drone,
@@ -360,6 +433,12 @@ namespace SpaceGame
         public static readonly string[] RarityNames = { "Common", "Uncommon", "Rare", "Pristine" };
         public static readonly int[] RarityRuns = { 1, 2, 3, 5 };
 
+        // Module blueprints run the other way round: a Common print is a
+        // production line of plain gear, a Pristine print is one masterwork.
+        public static readonly int[] ModBpRuns = { 5, 3, 2, 1 };
+        public static readonly int[] ModBpMods = { 0, 1, 3, 5 };
+        public static readonly int[] ModBpMatMult = { 1, 2, 3, 5 };
+
         /// <summary>Resolve any hull id: the static catalog or a generated body.</summary>
         public static ShipDef ResolveShip(string id)
         {
@@ -369,6 +448,17 @@ namespace SpaceGame
 
         public static bool ShipExists(string id)
             => Ships.ContainsKey(id) || ShipGen.IsGeneratedId(id);
+
+        /// <summary>Look up a module by id, resolving crafted modules (which
+        /// carry rolled modifiers) as well as the catalogue ones.</summary>
+        public static ModuleDef ResolveModule(string id)
+        {
+            if (Modules.TryGetValue(id, out var def)) return def;
+            return ModGen.Resolve(id);
+        }
+
+        public static bool ModuleExists(string id)
+            => Modules.ContainsKey(id) || ModGen.Resolve(id) != null;
 
         // ---- faction standing (with the Frontier Authority) ----
         // Kills raise it; tiers grant better mission pay and cheaper repairs.

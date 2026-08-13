@@ -85,6 +85,16 @@ too, so an early warp-out beats their first volley.
   manufacture runs at any station's **Industry** tab using refined
   minerals from your hold. When the runs are spent, that body is gone
   from the universe forever — and if you lose the ship, so is yours.
+- **Print gear from module blueprints** — pirate wrecks also drop blueprints
+  for **Tech I and Tech II** hardpoint gear (claws, webs, disruptors, drones,
+  sensors, collectors) and mid/low slot gear (boosters, afterburners, cargo,
+  armour, capacitor). These run **opposite to ship blueprints**: a Common
+  print gives **5 runs of plain, base-stat gear**, while a Pristine print is
+  a **single run at 5x material cost that rolls 5 modifiers** onto the
+  finished piece. Modifiers only touch stats the module actually uses — a
+  Cavernous Cargo Expander II gains capacity, an Overclocked claw cycles
+  faster — and each print names itself after what it rolled. Finished
+  modules land in that station's storage bay.
 - **Web them** — Hive hulls carry a dedicated web slot for the Stasis
   Webifier (half target speed): pin fleeing pirates before they warp out.
   Their single hardpoint takes turrets only; wasps don't mine.
