@@ -10,6 +10,14 @@ namespace SpaceGame
     /// </summary>
     public static class ShipGen
     {
+        /// <summary>Every generated line, in catalogue order.</summary>
+        public static readonly string[] TypeIds =
+        {
+            HiveGenerator.TypeId, FinGenerator.TypeId, ClawGenerator.TypeId,
+            TalonGenerator.TypeId, ScaleGenerator.TypeId, TrailGenerator.TypeId,
+            PackGenerator.TypeId,
+        };
+
         public static bool IsGeneratedId(string id)
             => HiveGenerator.IsHiveId(id) || FinGenerator.IsFinId(id)
                || ClawGenerator.IsClawId(id) || TalonGenerator.IsTalonId(id)
@@ -96,13 +104,25 @@ namespace SpaceGame
             return HiveGenerator.RollBlueprint(npcId);
         }
 
-        static string TypeName(Blueprint bp)
-            => bp.TypeId == FinGenerator.TypeId ? "Fin"
-             : bp.TypeId == ClawGenerator.TypeId ? "Claw"
-             : bp.TypeId == TalonGenerator.TypeId ? "Talon"
-             : bp.TypeId == ScaleGenerator.TypeId ? "Scale"
-             : bp.TypeId == TrailGenerator.TypeId ? "Trail"
-             : bp.TypeId == PackGenerator.TypeId ? "Pack" : "Hive";
+        /// <summary>Hull id for a body on a named line, e.g. ("fin","0421…",1).</summary>
+        public static string IdFromHash(string typeId, string hash, int cls)
+            => typeId == FinGenerator.TypeId ? FinGenerator.IdFromHash(hash, cls)
+             : typeId == ClawGenerator.TypeId ? ClawGenerator.IdFromHash(hash, cls)
+             : typeId == TalonGenerator.TypeId ? TalonGenerator.IdFromHash(hash, cls)
+             : typeId == ScaleGenerator.TypeId ? ScaleGenerator.IdFromHash(hash, cls)
+             : typeId == TrailGenerator.TypeId ? TrailGenerator.IdFromHash(hash, cls)
+             : typeId == PackGenerator.TypeId ? PackGenerator.IdFromHash(hash, cls)
+             : HiveGenerator.IdFromHash(hash, cls);
+
+        public static string LineName(string typeId)
+            => typeId == FinGenerator.TypeId ? "Fin"
+             : typeId == ClawGenerator.TypeId ? "Claw"
+             : typeId == TalonGenerator.TypeId ? "Talon"
+             : typeId == ScaleGenerator.TypeId ? "Scale"
+             : typeId == TrailGenerator.TypeId ? "Trail"
+             : typeId == PackGenerator.TypeId ? "Pack" : "Hive";
+
+        static string TypeName(Blueprint bp) => LineName(bp.TypeId);
 
         public static string DescribeBlueprint(Blueprint bp)
         {

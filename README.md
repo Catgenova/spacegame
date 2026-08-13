@@ -134,7 +134,20 @@ too, so an early warp-out beats their first volley.
 - **Fit** your ship at stations: weapons, miners, shield boosters,
   afterburners, cargo/armor/cap passives.
 - **Upgrade** hulls: Wasp → Prospector (miner) / Talon (fighter) →
-  Mule (hauler) → Aurora (cruiser).
+  Mule (hauler) → Aurora (cruiser). These five are stocked everywhere.
+- **Buy a real hull at a Shipyard** — three of the five stations hold
+  production licences and keep finished **Class 1** hulls of the generated
+  lines on the pad, so you don't need a blueprint to fly one. Solara Prime
+  licences **Hive / Claw / Fin**, Krios Bastion **Fin / Talon / Scale**, and
+  Nadir Freeport **Claw / Trail / Pack** — no yard holds all seven, so the
+  hull you want may be a few jumps away. Each pad carries two distinct rolled
+  bodies per line, listed with their traits so you can compare before signing.
+  Verdant Refinery and the Outlaw Den have no yard at all.
+  A licence costs money: pad prices run about **1.7x to 2.9x** what the same
+  hull costs to build. Blueprints stay the cheap route to a hull, the *only*
+  route to Class 2 and Class 3, and the only route to a body nobody else will
+  ever fly. Yard stock is fixed and deterministic — "the Fennec on the pad at
+  Nadir" is something you can plan a trip around.
 - **Train skills** passively (Mining, Gunnery, Engineering, Navigation,
   Trade) — pick one in the `K` menu; it trains in real time.
 - **Run missions** from the station **Agent** tab: bounty hunts, ore

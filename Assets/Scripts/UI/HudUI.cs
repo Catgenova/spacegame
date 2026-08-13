@@ -593,28 +593,50 @@ namespace SpaceGame
 
         void DrawShipsTab()
         {
-            var p = GM.Player;
-            int trade = p.SkillLevel("trade");
             foreach (var s in GameData.Ships.Values)
+                DrawHullOffer(s, false);
+
+            var station = GM.Station;
+            if (!Shipyard.Has(station))
             {
-                bool current = s.Id == p.HullId;
-                long price = Market.ApplyTradeSkill(Market.ShipBuyPrice(GM.StationId, s.Id), trade, false);
-                long tradeIn = Market.ShipTradeInValue(GM.StationId, p.HullId);
-                GUILayout.BeginHorizontal();
-                GUILayout.Label((current ? "▶ " : "") + s.Name + "  (" + s.Class + ")", GUILayout.Width(260));
-                GUILayout.Label(current ? "ACTIVE" : GameData.FmtCredits(price - tradeIn) + " after trade-in", GUILayout.Width(220));
-                if (!current)
-                {
-                    GUI.enabled = p.Credits >= price - tradeIn;
-                    if (GUILayout.Button("Buy & Board", GUILayout.Width(110))) GM.BuyShip(s.Id);
-                    GUI.enabled = true;
-                }
-                GUILayout.EndHorizontal();
-                GUILayout.Label("    " + s.Desc + "  |  Cargo " + s.Cargo + " m3, "
-                    + s.HighSlots + "H/" + s.MidSlots + "M/" + s.LowSlots + "L, "
-                    + Mathf.Round(s.Speed * GameData.UnitsToMs) + " m/s", _smallStyle);
-                GUILayout.Space(6);
+                GUILayout.Label("— NO SHIPYARD —", _smallStyle);
+                GUILayout.Label("This station has no production licences. Finished Class 1 hulls are"
+                    + " sold at: " + Shipyard.YardNames(GM.Universe) + ".", _smallStyle);
+                return;
             }
+
+            GUILayout.Label("— SHIPYARD: " + Shipyard.LineNames(station).ToUpper() + " CLASS 1 —", _smallStyle);
+            GUILayout.Label("Licensed production bodies, finished and on the pad. Class 2 and 3 hulls"
+                + " are blueprint-only.", _smallStyle);
+            foreach (var hullId in Shipyard.Stock(station))
+            {
+                var def = GameData.ResolveShip(hullId);
+                if (def != null) DrawHullOffer(def, true);
+            }
+        }
+
+        void DrawHullOffer(ShipDef s, bool licensed)
+        {
+            var p = GM.Player;
+            bool current = s.Id == p.HullId;
+            long price = GM.ShipPriceHere(s.Id);
+            long tradeIn = Market.ShipTradeInValue(GM.StationId, p.HullId);
+            GUILayout.BeginHorizontal();
+            GUILayout.Label((current ? "▶ " : "") + s.Name + "  (" + s.Class + ")", GUILayout.Width(260));
+            GUILayout.Label(current ? "ACTIVE" : GameData.FmtCredits(price - tradeIn) + " after trade-in", GUILayout.Width(220));
+            if (!current)
+            {
+                GUI.enabled = p.Credits >= price - tradeIn;
+                if (GUILayout.Button("Buy & Board", GUILayout.Width(110))) GM.BuyShip(s.Id);
+                GUI.enabled = true;
+            }
+            GUILayout.EndHorizontal();
+            GUILayout.Label("    " + (licensed ? "Body " + s.BodyHash + ". " + s.Role : s.Desc)
+                + "  |  Cargo " + s.Cargo + " m3, " + s.HighSlots + "H/" + s.MidSlots + "M/"
+                + s.LowSlots + "L, " + Mathf.Round(s.Speed * GameData.UnitsToMs) + " m/s", _smallStyle);
+            if (licensed && s.Features != null)
+                foreach (var f in s.Features) GUILayout.Label("    + " + f, _smallStyle);
+            GUILayout.Space(6);
         }
 
         void DrawIndustryTab()

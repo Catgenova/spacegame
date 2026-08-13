@@ -1216,26 +1216,66 @@ namespace SpaceGame
 
         void BuildShipsTab(GameManager gm)
         {
-            var p = gm.Player;
-            int trade = p.SkillLevel("trade");
             foreach (var s in GameData.Ships.Values)
+                BuildHullOffer(gm, s, false);
+
+            var station = gm.Station;
+            if (!Shipyard.Has(station))
             {
-                bool current = s.Id == p.HullId;
-                string sid = s.Id;
-                long price = Market.ApplyTradeSkill(Market.ShipBuyPrice(gm.StationId, s.Id), trade, false);
-                long tradeIn = Market.ShipTradeInValue(gm.StationId, p.HullId);
-                var row = Row(
-                    Cell((current ? "▶ " : "") + s.Name + "  (" + s.Class + ")", 270,
-                        current ? new Color(0.5f, 1f, 0.65f) : UiSkin.TextMain),
-                    Cell(current ? "ACTIVE" : GameData.FmtCredits(price - tradeIn) + " after trade-in", 230,
-                        UiSkin.AccentWarm));
-                if (!current)
-                    row.Add(Btn("Buy & Board", () => { gm.BuyShip(sid); RefreshStationTab(); }));
-                _stationContent.Add(row);
-                _stationContent.Add(WrapText("    " + s.Desc + "  |  Cargo " + s.Cargo + " m3, "
-                    + s.HighSlots + "H/" + s.MidSlots + "M/" + s.LowSlots + "L, "
-                    + Mathf.Round(s.Speed * GameData.UnitsToMs) + " m/s", UiSkin.TextDim));
+                _stationContent.Add(Section("— NO SHIPYARD —"));
+                _stationContent.Add(WrapText("This station has no production licences. Finished Class 1 "
+                    + "hulls are sold at: " + Shipyard.YardNames(gm.Universe) + ".", UiSkin.TextDim));
+                return;
             }
+
+            _stationContent.Add(Section("— SHIPYARD: " + Shipyard.LineNames(station).ToUpper()
+                + " CLASS 1 —"));
+            _stationContent.Add(WrapText("Licensed production bodies, finished and on the pad. "
+                + "Every hull is a distinct roll, so compare the traits. Class 2 and 3 hulls are "
+                + "blueprint-only — and a blueprint builds cheaper than this pad sells.",
+                UiSkin.TextDim));
+            foreach (var hullId in Shipyard.Stock(station))
+            {
+                var def = GameData.ResolveShip(hullId);
+                if (def != null) BuildHullOffer(gm, def, true);
+            }
+        }
+
+        /// <summary>One purchasable hull: catalogue or licensed yard stock.</summary>
+        void BuildHullOffer(GameManager gm, ShipDef s, bool licensed)
+        {
+            var p = gm.Player;
+            bool current = s.Id == p.HullId;
+            string sid = s.Id;
+            long price = gm.ShipPriceHere(s.Id);
+            long tradeIn = Market.ShipTradeInValue(gm.StationId, p.HullId);
+            var row = Row(
+                Cell((current ? "▶ " : "") + s.Name + "  (" + s.Class + ")", 270,
+                    current ? new Color(0.5f, 1f, 0.65f) : UiSkin.TextMain),
+                Cell(current ? "ACTIVE" : GameData.FmtCredits(price - tradeIn) + " after trade-in", 230,
+                    UiSkin.AccentWarm));
+            if (!current)
+                row.Add(Btn("Buy & Board", () => { gm.BuyShip(sid); RefreshStationTab(); }));
+            _stationContent.Add(row);
+            _stationContent.Add(WrapText("    " + (licensed ? "Body " + s.BodyHash + ". " + s.Role : s.Desc)
+                + "  |  Cargo " + s.Cargo + " m3, " + SlotSummary(s) + ", "
+                + Mathf.Round(s.Speed * GameData.UnitsToMs) + " m/s", UiSkin.TextDim));
+            if (licensed && s.Features != null)
+                foreach (var f in s.Features)
+                    _stationContent.Add(WrapText("    + " + f, UiSkin.AccentWarm));
+        }
+
+        /// <summary>Slot line that also names the specialist racks generated hulls carry.</summary>
+        static string SlotSummary(ShipDef s)
+        {
+            string t = s.HighSlots + "H/" + s.MidSlots + "M/" + s.LowSlots + "L";
+            if (s.WebSlots > 0) t += "/" + s.WebSlots + "W";
+            if (s.DisruptorSlots > 0) t += "/" + s.DisruptorSlots + "D";
+            if (s.ClawSlots > 0) t += "/" + s.ClawSlots + "C";
+            if (s.DroneSlots > 0) t += "/" + s.DroneSlots + "Dr";
+            if (s.SensorSlots > 0) t += "/" + s.SensorSlots + "S";
+            if (s.CollectorSlots > 0) t += "/" + s.CollectorSlots + "Co";
+            return t;
         }
 
         /// <summary>One module blueprint: what it makes, and at what cost.</summary>

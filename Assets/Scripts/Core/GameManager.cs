@@ -740,14 +740,31 @@ namespace SpaceGame
             SaveSystem.Save(this);
         }
 
+        /// <summary>What this station charges for a hull, trade skill included.
+        /// Licensed yard stock carries a premium over the catalogue.</summary>
+        public long ShipPriceHere(string shipId)
+        {
+            long price = Shipyard.Sells(Station, shipId)
+                ? Shipyard.Price(StationId, shipId)
+                : Market.ShipBuyPrice(StationId, shipId);
+            return Market.ApplyTradeSkill(price, TradeLevel, false);
+        }
+
         public void BuyShip(string shipId)
         {
             if (!Docked || shipId == Player.HullId) return;
-            long price = Market.ApplyTradeSkill(Market.ShipBuyPrice(StationId, shipId), TradeLevel, false);
+            bool onThePad = Shipyard.Sells(Station, shipId);
+            if (!GameData.Ships.ContainsKey(shipId) && !onThePad)
+            {
+                Log("That hull is not for sale here.");
+                return;
+            }
+            var def = GameData.ResolveShip(shipId);
+            long price = ShipPriceHere(shipId);
             long tradeIn = Market.ShipTradeInValue(StationId, Player.HullId);
             long cost = price - tradeIn;
             if (Player.Credits < cost) { Log("Not enough credits (even with trade-in)."); return; }
-            if (Player.CargoUsed() > GameData.Ships[shipId].Cargo)
+            if (Player.CargoUsed() > def.Cargo)
             {
                 Log("Your cargo will not fit in the new ship. Sell some ore first.");
                 return;
@@ -756,7 +773,8 @@ namespace SpaceGame
             StripModulesToHangar();
             Player.SetHull(shipId);
             Ship.RebuildVisual();
-            Log("Now flying a " + GameData.Ships[shipId].Name + ". Net cost "
+            Log((onThePad ? "Signed for a licensed " + def.Name + " off the pad. Net cost "
+                          : "Now flying a " + def.Name + ". Net cost ")
                 + GameData.FmtCredits(cost) + " after trade-in.");
             SaveSystem.Save(this);
         }

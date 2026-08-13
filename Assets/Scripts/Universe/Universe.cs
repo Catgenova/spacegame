@@ -10,6 +10,10 @@ namespace SpaceGame
         public Vector3 Pos;
         public string GateTo; // gates only: destination system id
         public float Hue;     // planets only
+
+        /// <summary>Stations only: the generated ship lines this station holds
+        /// production licences for. Null or empty means no shipyard here.</summary>
+        public string[] YardLines;
     }
 
     public class AsteroidData
@@ -71,19 +75,22 @@ namespace SpaceGame
         {
             var u = new UniverseData();
             AddSystem(u, "solara", "Solara", 1.0f, "Solara Prime", 4, 2,
-                new[] { "hematite", "pyroxene" }, 0.7f, null);
+                new[] { "hematite", "pyroxene" }, 0.7f, null,
+                new[] { "hive", "claw", "fin" });
             AddSystem(u, "verdant", "Verdant", 0.7f, "Verdant Refinery", 3, 3,
                 new[] { "hematite", "pyroxene", "plagioclase" }, 1.0f,
-                new PirateConfig { Types = new[] { "rookie" }, Max = 1, Interval = 90f });
+                new PirateConfig { Types = new[] { "rookie" }, Max = 1, Interval = 90f }, null);
             AddSystem(u, "krios", "Krios", 0.5f, "Krios Bastion", 5, 4,
                 new[] { "pyroxene", "plagioclase", "ilmenite" }, 1.3f,
-                new PirateConfig { Types = new[] { "rookie", "rookie", "marauder" }, Max = 2, Interval = 60f });
+                new PirateConfig { Types = new[] { "rookie", "rookie", "marauder" }, Max = 2, Interval = 60f },
+                new[] { "fin", "talon", "scale" });
             AddSystem(u, "nadir", "Nadir", 0.3f, "Nadir Freeport", 3, 4,
                 new[] { "plagioclase", "ilmenite", "beryl" }, 1.7f,
-                new PirateConfig { Types = new[] { "rookie", "marauder", "marauder" }, Max = 3, Interval = 45f });
+                new PirateConfig { Types = new[] { "rookie", "marauder", "marauder" }, Max = 3, Interval = 45f },
+                new[] { "claw", "trail", "pack" });
             AddSystem(u, "abyss", "Abyss", 0.0f, "Outlaw Den", 2, 5,
                 new[] { "ilmenite", "beryl", "beryl" }, 2.4f,
-                new PirateConfig { Types = new[] { "marauder", "overlord" }, Max = 4, Interval = 40f });
+                new PirateConfig { Types = new[] { "marauder", "overlord" }, Max = 4, Interval = 40f }, null);
 
             foreach (var pair in GatePairs)
             {
@@ -94,7 +101,8 @@ namespace SpaceGame
         }
 
         static void AddSystem(UniverseData u, string id, string name, float sec, string station,
-            int planets, int belts, string[] ores, float richness, PirateConfig pirates)
+            int planets, int belts, string[] ores, float richness, PirateConfig pirates,
+            string[] yardLines)
         {
             var rng = Rng.Seeded(id);
             var sys = new StarSystemData
@@ -142,6 +150,7 @@ namespace SpaceGame
                 {
                     Id = id + "_station", Name = station,
                     Kind = ObjKind.Station,
+                    YardLines = yardLines,
                     Pos = near + new Vector3(2500f, 150f, 1200f),
                 });
             }
