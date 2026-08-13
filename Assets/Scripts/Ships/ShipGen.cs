@@ -18,6 +18,53 @@ namespace SpaceGame
             PackGenerator.TypeId,
         };
 
+        /// <summary>The free hull a new — or freshly cloned — pilot is issued.
+        ///
+        /// It is a Claw-class Urchin: the generated fleet's mining line, and the
+        /// only line whose hulls are not turret-only up top. It carries a Mining
+        /// Claw, has no gun, and mines at 1.6x, so a rookie starts by working
+        /// safe Solara rock and buys their way into a gunship. Fixed body, so
+        /// every pilot's loaner is the same recognisable hull.</summary>
+        public const string RookieLine = ClawGenerator.TypeId;
+
+        public static string RookieHullId => IdFromHash(RookieLine, BodyHash("rookie"), 1);
+
+        /// <summary>Ten digits from a stable key, for hulls the game itself has
+        /// to mint (the loaner, and replacements for retired catalogue ships).</summary>
+        public static string BodyHash(string key)
+        {
+            var rng = Rng.Stream("hull:" + key);
+            var s = "";
+            for (int i = 0; i < 10; i++) s += rng.Next(10).ToString();
+            return s;
+        }
+
+        /// <summary>The hand-written catalogue hulls (Wasp, Prospector, Talon,
+        /// Mule, Aurora) are gone — every ship is generated now. A save from
+        /// before that holds one of their ids, and SaveSystem rejects a save
+        /// whose hull does not resolve, so without this the whole save would be
+        /// discarded and the pilot would lose everything. Each retires into a
+        /// Class 1 body on the line that took over its job.</summary>
+        static readonly Dictionary<string, string> LegacyHullLines = new Dictionary<string, string>
+        {
+            { "wasp", ClawGenerator.TypeId },        // rookie   -> the loaner itself
+            { "prospector", ClawGenerator.TypeId },  // miner    -> Claw Urchin
+            { "talon", TalonGenerator.TypeId },      // gunboat  -> Talon Kestrel
+            { "mule", PackGenerator.TypeId },        // hauler   -> Pack Bactrian
+            { "aurora", ScaleGenerator.TypeId },     // cruiser  -> Scale Python
+        };
+
+        /// <summary>Map a possibly-retired hull id onto a current one. Unknown
+        /// ids pass through untouched for the caller to reject.</summary>
+        public static string MigrateHullId(string id)
+        {
+            if (id == null) return null;
+            if (id == "wasp") return RookieHullId;
+            return LegacyHullLines.TryGetValue(id, out var line)
+                ? IdFromHash(line, BodyHash("legacy:" + id), 1)
+                : id;
+        }
+
         public static bool IsGeneratedId(string id)
             => HiveGenerator.IsHiveId(id) || FinGenerator.IsFinId(id)
                || ClawGenerator.IsClawId(id) || TalonGenerator.IsTalonId(id)

@@ -588,15 +588,13 @@ namespace SpaceGame
 
         void DrawShipsTab()
         {
-            foreach (var s in GameData.Ships.Values)
-                DrawHullOffer(s, false);
-
             var station = GM.Station;
             if (!Shipyard.Has(station))
             {
                 GUILayout.Label("— NO SHIPYARD —", _smallStyle);
-                GUILayout.Label("This station has no production licences. Finished Class 1 hulls are"
-                    + " sold at: " + Shipyard.YardNames(GM.Universe) + ".", _smallStyle);
+                GUILayout.Label("This station has no production licences, and there is no catalogue"
+                    + " any more — every hull is a generated body.\nFinished Class 1 hulls are sold"
+                    + " at: " + Shipyard.YardNames(GM.Universe) + ".", _smallStyle);
                 return;
             }
 
@@ -606,11 +604,11 @@ namespace SpaceGame
             foreach (var hullId in Shipyard.Stock(station))
             {
                 var def = GameData.ResolveShip(hullId);
-                if (def != null) DrawHullOffer(def, true);
+                if (def != null) DrawHullOffer(def);
             }
         }
 
-        void DrawHullOffer(ShipDef s, bool licensed)
+        void DrawHullOffer(ShipDef s)
         {
             var p = GM.Player;
             bool current = s.Id == p.HullId;
@@ -626,10 +624,10 @@ namespace SpaceGame
                 GUI.enabled = true;
             }
             GUILayout.EndHorizontal();
-            GUILayout.Label("    " + (licensed ? "Body " + s.BodyHash + ". " + s.Role : s.Desc)
+            GUILayout.Label("    Body " + s.BodyHash + ". " + s.Role
                 + "  |  Cargo " + s.Cargo + " m3, " + s.HighSlots + "H/" + s.MidSlots + "M/"
                 + s.LowSlots + "L, " + Mathf.Round(s.Speed * GameData.UnitsToMs) + " m/s", _smallStyle);
-            if (licensed && s.Features != null)
+            if (s.Features != null)
                 foreach (var f in s.Features) GUILayout.Label("    + " + f, _smallStyle);
             GUILayout.Space(6);
         }

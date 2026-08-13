@@ -40,8 +40,12 @@ created from code. No prefabs, no serialized assets, no scene wiring.
 
 ## How to play
 
-You start docked at **Solara Prime** with 5,000 credits, a rookie **Wasp**
-frigate, a mining laser, and a blaster.
+Every ship in the game is procedurally generated — there is no hand-written
+ship list. You start docked at **Solara Prime** with 5,000 credits and a loaner
+**Claw-class Urchin**: a Class 1 mining driller with a Mining Claw, a big ore
+hold and no gun at all. Solara is 1.0 security and spawns no pirates, so the
+opening move is to work the local rock, sell it, and buy your first armed hull
+off the shipyard pad.
 
 | Input | Action |
 | --- | --- |
@@ -62,7 +66,7 @@ Warp** from the target panel. Warp to an asteroid belt, select a rock, activate
 your miner, fill your hold, warp back, **Dock**, and sell on the Market tab.
 
 Selecting an asteroid or a pirate starts a **target lock** (EVE-style) — the
-target panel shows lock progress, and mining lasers / weapons only fire on a
+target panel shows lock progress, and mining gear / weapons only fire on a
 locked target within lock range (60 km). Pirates need a moment to lock you
 too, so an early warp-out beats their first volley.
 
@@ -110,7 +114,7 @@ too, so an early warp-out beats their first volley.
 - **Everything you fit is found or built.** Credits cannot buy gear anywhere
   in the game, so there are exactly two routes to a module: **drifting
   caches** turned up by a sensor sweep, which hold basic Tech I pieces
-  (including a mining laser and a gun, so a wiped-out pilot always has a way
+  (including a Mining Claw and a gun, so a wiped-out pilot always has a way
   back), and **module blueprints** off pirate wrecks, which cover the entire
   catalogue up to Tech II. A better gun is something you earn, not something
   you shop for.
@@ -150,8 +154,8 @@ too, so an early warp-out beats their first volley.
   clearing a field and losing it. Richer tiers hide in lower security, so the
   best fields sit where the law does not.
 - **Print gear from module blueprints** — pirate wrecks also drop blueprints
-  for **Tech I and Tech II** hardpoint gear (**turrets, mining lasers**,
-  claws, webs, disruptors, drones, sensors, collectors) and mid/low slot gear
+  for **Tech I and Tech II** hardpoint gear (**turrets**, mining claws,
+  webs, disruptors, drones, sensors, collectors) and mid/low slot gear
   (boosters, afterburners, cargo, armour, capacitor) — the whole catalogue,
   since nothing is for sale. These run **opposite to ship blueprints**: a Common
   print gives **5 runs of plain, base-stat gear**, while a Pristine print is
@@ -177,8 +181,10 @@ too, so an early warp-out beats their first volley.
   local bay too, so plan where you stage your gear.
 - **Fit** your ship at stations from what you have recovered or printed:
   weapons, miners, shield boosters, afterburners, cargo/armor/cap passives.
-- **Upgrade** hulls: Wasp → Prospector (miner) / Talon (fighter) →
-  Mule (hauler) → Aurora (cruiser). These five are stocked everywhere.
+- **Upgrade** hulls within and across the seven generated lines — Claw
+  (mining) / Hive and Fin (fighters) / Talon (drones) / Trail (exploration) /
+  Pack (hauling) / Scale (battleship). Class 1 of a line is bought finished
+  off a shipyard pad; Class 2 and 3 only ever come from a blueprint.
 - **Buy a real hull at a Shipyard** — three of the five stations hold
   production licences and keep finished **Class 1** hulls of the generated
   lines on the pad, so you don't need a blueprint to fly one. Solara Prime
@@ -199,7 +205,7 @@ too, so an early warp-out beats their first volley.
   One active mission at a time; turn in at the agent for the reward.
 
 Dying costs you your ship and cargo; you respawn docked at Solara Prime in a
-loaner Wasp. Progress autosaves (PlayerPrefs) every 20 seconds and on every
+loaner Urchin driller. Progress autosaves (PlayerPrefs) every 20 seconds and on every
 dock/jump.
 
 ## The universe

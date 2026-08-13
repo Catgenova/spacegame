@@ -22,57 +22,11 @@ namespace SpaceGame
             return p;
         }
 
+        /// <summary>Every hull in the game is a generated body, so this just
+        /// routes to the line's mesh builder. The fallback covers an id that is
+        /// somehow not generated: better a loaner hull than an invisible ship.</summary>
         public static GameObject BuildHull(string hullId, Transform shipRoot)
-        {
-            // Generated bodies build their own unique mesh from the hash.
-            if (ShipGen.IsGeneratedId(hullId))
-                return ShipGen.BuildHull(hullId, shipRoot);
-
-            var root = new GameObject("Hull");
-            root.transform.SetParent(shipRoot, false);
-            var t = root.transform;
-            var steel = new Color(0.45f, 0.62f, 0.85f);
-            var dark = new Color(0.25f, 0.34f, 0.48f);
-            var engine = new Color(0.45f, 0.8f, 1f);
-
-            switch (hullId)
-            {
-                case "prospector":
-                    Part(t, PrimitiveType.Cube, Vector3.zero, new Vector3(3.2f, 2.2f, 4.5f), Vector3.zero, new Color(0.75f, 0.68f, 0.45f));
-                    Part(t, PrimitiveType.Cylinder, new Vector3(-1.6f, 0f, 2.6f), new Vector3(0.7f, 1.2f, 0.7f), new Vector3(90f, 0f, 0f), dark);
-                    Part(t, PrimitiveType.Cylinder, new Vector3(1.6f, 0f, 2.6f), new Vector3(0.7f, 1.2f, 0.7f), new Vector3(90f, 0f, 0f), dark);
-                    Part(t, PrimitiveType.Cube, new Vector3(0f, 0f, -2.6f), new Vector3(1.6f, 1.2f, 0.6f), Vector3.zero, engine, true);
-                    break;
-                case "talon":
-                    Part(t, PrimitiveType.Capsule, Vector3.zero, new Vector3(1.3f, 3.6f, 1.3f), new Vector3(90f, 0f, 0f), steel);
-                    Part(t, PrimitiveType.Cube, new Vector3(-1.4f, 0f, 0.8f), new Vector3(1.6f, 0.25f, 1.6f), new Vector3(0f, 0f, 8f), dark);
-                    Part(t, PrimitiveType.Cube, new Vector3(1.4f, 0f, 0.8f), new Vector3(1.6f, 0.25f, 1.6f), new Vector3(0f, 0f, -8f), dark);
-                    Part(t, PrimitiveType.Cube, new Vector3(-0.7f, 0.5f, 1.8f), new Vector3(0.25f, 0.25f, 1.8f), Vector3.zero, dark);
-                    Part(t, PrimitiveType.Cube, new Vector3(0.7f, 0.5f, 1.8f), new Vector3(0.25f, 0.25f, 1.8f), Vector3.zero, dark);
-                    Part(t, PrimitiveType.Cube, new Vector3(0f, 0f, -3.4f), new Vector3(1.1f, 0.8f, 0.6f), Vector3.zero, engine, true);
-                    break;
-                case "mule":
-                    Part(t, PrimitiveType.Cube, new Vector3(0f, 0f, -0.8f), new Vector3(3.6f, 3.2f, 6.5f), Vector3.zero, new Color(0.6f, 0.58f, 0.52f));
-                    Part(t, PrimitiveType.Cube, new Vector3(0f, 0.6f, 3.4f), new Vector3(2.2f, 1.6f, 1.6f), Vector3.zero, steel);
-                    Part(t, PrimitiveType.Cube, new Vector3(-1.3f, -0.8f, -4.4f), new Vector3(1.1f, 1.1f, 0.7f), Vector3.zero, engine, true);
-                    Part(t, PrimitiveType.Cube, new Vector3(1.3f, -0.8f, -4.4f), new Vector3(1.1f, 1.1f, 0.7f), Vector3.zero, engine, true);
-                    break;
-                case "aurora":
-                    Part(t, PrimitiveType.Capsule, Vector3.zero, new Vector3(1.8f, 5.5f, 1.8f), new Vector3(90f, 0f, 0f), new Color(0.55f, 0.7f, 0.95f));
-                    Part(t, PrimitiveType.Cube, new Vector3(0f, 0.9f, -1f), new Vector3(0.5f, 1.4f, 3.5f), Vector3.zero, dark);
-                    Part(t, PrimitiveType.Cube, new Vector3(-2.4f, 0f, -1.5f), new Vector3(2.8f, 0.3f, 2.4f), new Vector3(0f, 0f, 6f), dark);
-                    Part(t, PrimitiveType.Cube, new Vector3(2.4f, 0f, -1.5f), new Vector3(2.8f, 0.3f, 2.4f), new Vector3(0f, 0f, -6f), dark);
-                    Part(t, PrimitiveType.Cube, new Vector3(0f, 0f, -5.2f), new Vector3(1.5f, 1f, 0.8f), Vector3.zero, engine, true);
-                    break;
-                default: // wasp
-                    Part(t, PrimitiveType.Capsule, Vector3.zero, new Vector3(1.4f, 2.6f, 1.4f), new Vector3(90f, 0f, 0f), steel);
-                    Part(t, PrimitiveType.Cube, new Vector3(-1.1f, 0f, -0.4f), new Vector3(1.2f, 0.2f, 1.2f), Vector3.zero, dark);
-                    Part(t, PrimitiveType.Cube, new Vector3(1.1f, 0f, -0.4f), new Vector3(1.2f, 0.2f, 1.2f), Vector3.zero, dark);
-                    Part(t, PrimitiveType.Cube, new Vector3(0f, 0f, -2.4f), new Vector3(0.9f, 0.6f, 0.5f), Vector3.zero, engine, true);
-                    break;
-            }
-            return root;
-        }
+            => ShipGen.BuildHull(ShipGen.IsGeneratedId(hullId) ? hullId : ShipGen.RookieHullId, shipRoot);
 
         public static void BuildNpcVisual(NpcDef def, Transform root)
         {

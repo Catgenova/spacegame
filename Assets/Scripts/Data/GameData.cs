@@ -220,63 +220,21 @@ namespace SpaceGame
             Loot["cache"] = new LootTable
             {
                 Chance = 1f, MaxItems = 2,
-                Pool = new[] { "miner1", "blaster1", "rail1", "shieldboost1",
+                Pool = new[] { "claw1", "blaster1", "rail1", "shieldboost1",
                                "afterburner1", "cargo1", "plate1", "capbattery1" },
             };
 
-            Ships["wasp"] = new ShipDef
-            {
-                Id = "wasp", Name = "Wasp", Class = "Rookie Frigate", Price = 8000,
-                Desc = "Issued free to capsuleers who lose everything.",
-                Cargo = 120, HighSlots = 2, MidSlots = 1, LowSlots = 1,
-                Shield = 150, Armor = 110, Hull = 130, Cap = 120, CapRegen = 6,
-                Speed = 3.2f, Turn = 90f, MiningBonus = 1f,
-            };
-            Ships["prospector"] = new ShipDef
-            {
-                Id = "prospector", Name = "Prospector", Class = "Mining Frigate", Price = 52000,
-                Desc = "Purpose-built ore harvester. +60% mining yield.",
-                Cargo = 450, HighSlots = 2, MidSlots = 2, LowSlots = 2,
-                Shield = 220, Armor = 160, Hull = 200, Cap = 180, CapRegen = 8,
-                Speed = 2.5f, Turn = 70f, MiningBonus = 1.6f,
-            };
-            Ships["talon"] = new ShipDef
-            {
-                Id = "talon", Name = "Talon", Class = "Destroyer", Price = 140000,
-                Desc = "A gun platform with an ego. Four hardpoints and a grudge.",
-                Cargo = 250, HighSlots = 4, MidSlots = 2, LowSlots = 2,
-                Shield = 350, Armor = 300, Hull = 320, Cap = 240, CapRegen = 10,
-                Speed = 3.0f, Turn = 80f, MiningBonus = 1f,
-            };
-            Ships["mule"] = new ShipDef
-            {
-                Id = "mule", Name = "Mule", Class = "Hauler", Price = 300000,
-                Desc = "A warehouse that reluctantly agreed to fly.",
-                Cargo = 3200, HighSlots = 1, MidSlots = 2, LowSlots = 3,
-                Shield = 400, Armor = 450, Hull = 600, Cap = 200, CapRegen = 8,
-                Speed = 1.6f, Turn = 50f, MiningBonus = 1f,
-            };
-            Ships["aurora"] = new ShipDef
-            {
-                Id = "aurora", Name = "Aurora", Class = "Cruiser", Price = 950000,
-                Desc = "Top of the line. The pirates of Abyss know its silhouette.",
-                Cargo = 600, HighSlots = 5, MidSlots = 3, LowSlots = 3,
-                Shield = 900, Armor = 800, Hull = 850, Cap = 500, CapRegen = 20,
-                Speed = 2.8f, Turn = 65f, MiningBonus = 1.2f,
-            };
+            // No hand-written hulls: every ship in the game comes out of the
+            // seven generator lines, so this catalogue stays empty and
+            // ResolveShip falls straight through to ShipGen. Class 1 bodies are
+            // sold finished at shipyards; Class 2 and 3 are blueprint-only.
 
-            Modules["miner1"] = new ModuleDef
-            {
-                Id = "miner1", Name = "Miner I", Short = "MIN I", Slot = SlotType.High,
-                Kind = ModuleKind.Miner, Price = 9000, Cycle = 3f, Yield = 9f, Range = 150f, CapUse = 4f,
-                Desc = "Basic mining laser. 9 m3 per 3s cycle, 15 km range.",
-            };
-            Modules["miner2"] = new ModuleDef
-            {
-                Id = "miner2", Name = "Miner II", Short = "MIN II", Slot = SlotType.High,
-                Kind = ModuleKind.Miner, Price = 46000, Cycle = 3f, Yield = 16f, Range = 180f, CapUse = 6f,
-                Desc = "Improved mining laser. 16 m3 per 3s cycle, 18 km range.",
-            };
+            // Mining is done with Mining Claws on Claw-line hulls (SlotType.Claw).
+            // High-slot mining lasers had no hull left that could mount them —
+            // every generated line is turret-only up top except the Claw, which
+            // has no high slots at all — so they are gone rather than left as
+            // unfittable loot.
+
             Modules["blaster1"] = new ModuleDef
             {
                 Id = "blaster1", Name = "Light Blaster", Short = "BLAS", Slot = SlotType.High,

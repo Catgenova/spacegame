@@ -31,11 +31,12 @@ namespace SpaceGame
             => !string.IsNullOrEmpty(id) && id.StartsWith(Prefix);
 
         /// <summary>Base module ids that can be printed, by slot family.</summary>
-        // Turrets and mining lasers print here too. Stations sell no gear at
-        // all, so blueprints are the only route to a second miner, a bigger
-        // gun, or a replacement for anything you flew into a rock.
+        // Turrets print here too. Stations sell no gear at all, so blueprints are
+        // the only route to a bigger gun, a second mining claw, or a replacement
+        // for anything you flew into a rock. Mining is the Claw line's job now,
+        // so the mining tools here are claws — there are no high-slot lasers.
         public static readonly string[] Hardpoint =
-            { "miner1", "miner2", "blaster1", "rail1", "rail2",
+            { "blaster1", "rail1", "rail2",
               "claw1", "claw2", "web1", "web2", "disrupt1", "disrupt2",
               "sensor1", "sensor2", "collector1", "collector2", "drone1", "drone2" };
         public static readonly string[] MidSlot =

@@ -1215,15 +1215,14 @@ namespace SpaceGame
 
         void BuildShipsTab(GameManager gm)
         {
-            foreach (var s in GameData.Ships.Values)
-                BuildHullOffer(gm, s, false);
-
             var station = gm.Station;
             if (!Shipyard.Has(station))
             {
                 _stationContent.Add(Section("— NO SHIPYARD —"));
-                _stationContent.Add(WrapText("This station has no production licences. Finished Class 1 "
-                    + "hulls are sold at: " + Shipyard.YardNames(gm.Universe) + ".", UiSkin.TextDim));
+                _stationContent.Add(WrapText("This station has no production licences, and there is no "
+                    + "catalogue any more — every hull in the game is a generated body. Finished "
+                    + "Class 1 hulls are sold at: " + Shipyard.YardNames(gm.Universe) + ".",
+                    UiSkin.TextDim));
                 return;
             }
 
@@ -1236,12 +1235,12 @@ namespace SpaceGame
             foreach (var hullId in Shipyard.Stock(station))
             {
                 var def = GameData.ResolveShip(hullId);
-                if (def != null) BuildHullOffer(gm, def, true);
+                if (def != null) BuildHullOffer(gm, def);
             }
         }
 
-        /// <summary>One purchasable hull: catalogue or licensed yard stock.</summary>
-        void BuildHullOffer(GameManager gm, ShipDef s, bool licensed)
+        /// <summary>One licensed hull on the pad.</summary>
+        void BuildHullOffer(GameManager gm, ShipDef s)
         {
             var p = gm.Player;
             bool current = s.Id == p.HullId;
@@ -1256,10 +1255,10 @@ namespace SpaceGame
             if (!current)
                 row.Add(Btn("Buy & Board", () => { gm.BuyShip(sid); RefreshStationTab(); }));
             _stationContent.Add(row);
-            _stationContent.Add(WrapText("    " + (licensed ? "Body " + s.BodyHash + ". " + s.Role : s.Desc)
+            _stationContent.Add(WrapText("    Body " + s.BodyHash + ". " + s.Role
                 + "  |  Cargo " + s.Cargo + " m3, " + SlotSummary(s) + ", "
                 + Mathf.Round(s.Speed * GameData.UnitsToMs) + " m/s", UiSkin.TextDim));
-            if (licensed && s.Features != null)
+            if (s.Features != null)
                 foreach (var f in s.Features)
                     _stationContent.Add(WrapText("    + " + f, UiSkin.AccentWarm));
         }

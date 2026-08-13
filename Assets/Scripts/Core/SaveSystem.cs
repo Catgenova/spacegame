@@ -152,6 +152,10 @@ namespace SpaceGame
             {
                 var d = JsonUtility.FromJson<SaveData>(PlayerPrefs.GetString(Key));
                 if (d == null || d.V < 1 || d.V > 3) return false;
+                // Retire the hand-written catalogue hulls onto generated bodies
+                // before the check below, which would otherwise throw the entire
+                // save away for a hull id that no longer exists.
+                d.HullId = ShipGen.MigrateHullId(d.HullId);
                 if (!GameData.ShipExists(d.HullId)) return false;
                 if (!gm.Universe.Systems.ContainsKey(d.SystemId)) return false;
 

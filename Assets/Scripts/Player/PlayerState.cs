@@ -82,9 +82,8 @@ namespace SpaceGame
             var p = new PlayerState { Credits = 5000 };
             foreach (var id in GameData.Skills.Keys)
                 p.Skills[id] = new SkillState();
-            p.SetHull("wasp");
-            p.Fitting[SlotType.High][0] = "miner1";
-            p.Fitting[SlotType.High][1] = "blaster1";
+            p.SetHull(ShipGen.RookieHullId);
+            p.Fitting[SlotType.Claw][0] = "claw1";
             return p;
         }
 

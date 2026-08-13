@@ -302,11 +302,11 @@ namespace SpaceGame
             Player.ExtraCargo = 0f;
             Player.Cargo.Clear();
             Player.CargoModules.Clear();
-            Player.SetHull("wasp");
-            // The loaner comes with a laser AND a gun. Nothing sells modules, so
-            // waking up unarmed would leave no route back to combat at all.
-            Player.Fitting[SlotType.High][0] = "miner1";
-            Player.Fitting[SlotType.High][1] = "blaster1";
+            Player.SetHull(ShipGen.RookieHullId);
+            // The loaner is a Claw driller with a Mining Claw: no gun, but it can
+            // always earn. Nothing sells modules, so the one tool you are handed
+            // has to be the one that makes money on its own.
+            Player.Fitting[SlotType.Claw][0] = "claw1";
             SystemId = HomeSystem;
             StationId = HomeStation;
             Docked = true;
@@ -314,7 +314,7 @@ namespace SpaceGame
             PlaceAtStation();
             Ship.RefreshRack();
             Ship.RebuildVisual();
-            Log("You wake up in a fresh clone at Solara Prime, in a loaner Wasp.");
+            Log("You wake up in a fresh clone at Solara Prime, in a loaner Urchin driller.");
             SaveSystem.Save(this);
         }
 
@@ -749,8 +749,9 @@ namespace SpaceGame
         public void BuyShip(string shipId)
         {
             if (!Docked || shipId == Player.HullId) return;
-            bool onThePad = Shipyard.Sells(Station, shipId);
-            if (!GameData.Ships.ContainsKey(shipId) && !onThePad)
+            // Yard stock is the only thing anyone sells: no catalogue hulls
+            // exist, and Class 2 and 3 never reach a pad.
+            if (!Shipyard.Sells(Station, shipId))
             {
                 Log("That hull is not for sale here.");
                 return;
@@ -769,8 +770,7 @@ namespace SpaceGame
             StripModulesToHangar();
             Player.SetHull(shipId);
             Ship.RebuildVisual();
-            Log((onThePad ? "Signed for a licensed " + def.Name + " off the pad. Net cost "
-                          : "Now flying a " + def.Name + ". Net cost ")
+            Log("Signed for a licensed " + def.Name + " off the pad. Net cost "
                 + GameData.FmtCredits(cost) + " after trade-in.");
             SaveSystem.Save(this);
         }
@@ -792,7 +792,7 @@ namespace SpaceGame
             var m = GameData.ResolveModule(modId);
             if (m.Slot == SlotType.High && Player.Hull.TurretOnly && m.Kind != ModuleKind.Weapon)
             {
-                Log("Hive hardpoints only accept turrets — no " + m.Name + " here.");
+                Log("This hull's hardpoints only accept turrets — no " + m.Name + " here.");
                 return;
             }
             if (!Player.Fitting.ContainsKey(m.Slot) || Player.Fitting[m.Slot].Length == 0)
