@@ -304,9 +304,13 @@ namespace SpaceGame
                 y += 17;
             }
 
-            // Expected hit quality for the first fitted weapon vs this target.
+            // What it pays out, then expected hit quality for the first weapon.
             if (sel is NpcPirate target)
             {
+                var reward = new GUIStyle(_smallStyle) { wordWrap = true };
+                GUI.Label(new Rect(r.x + 8, y, r.width - 16, 28),
+                    GameData.NpcRewardLine(target.Def), reward);
+                y += 28;
                 foreach (var entry in GM.Ship.Rack)
                 {
                     if (entry.Def.Kind != ModuleKind.Weapon) continue;

@@ -120,6 +120,30 @@ namespace SpaceGame
         /// <summary>The escape pod every pilot starts in and falls back to.</summary>
         public const string ProbeHull = "probe";
 
+        /// <summary>Of the blueprint chips that do drop, this share are module
+        /// prints and the rest are hulls. Named so the HUD can quote the real
+        /// number rather than a copy of it.</summary>
+        public const float ModuleBpShare = 0.55f;
+
+        /// <summary>What a pirate is worth killing for: bounty, the scrap its
+        /// hulk leaves, and the odds of a blueprint chip in the wreck. Shown on
+        /// the target panel, so the decision to engage is an informed one.</summary>
+        public static string NpcRewardLine(NpcDef d)
+        {
+            if (d == null) return "";
+            var scrap = Scraps[ScrapIdForClass(d.ScrapClass)];
+            string line = "Bounty " + FmtCredits(d.Bounty)
+                + "  ·  " + scrap.Name + " " + Mathf.Round(d.ScrapMin) + "-"
+                + Mathf.Round(d.ScrapMax) + " m3";
+            if (d.BpChance > 0f)
+                line += "  ·  blueprint " + (d.BpChance * 100f).ToString("0.#") + "%"
+                     + " (" + Mathf.Round(ModuleBpShare * 100f) + "% gear / "
+                     + Mathf.Round((1f - ModuleBpShare) * 100f) + "% hull)";
+            else
+                line += "  ·  no blueprints";
+            return line;
+        }
+
         /// <summary>XP required to go from `level` to `level + 1`.</summary>
         public static float XpForLevel(int level) => 300f * Mathf.Pow(4f, level);
 

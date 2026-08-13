@@ -123,6 +123,18 @@ too, so an early warp-out beats their first volley.
   hulks yield **graded scrap** (Class 1/2/3, priced 45/130/380 cr per m3)
   and, rarely, a blueprint chip. Tougher targets leave a richer grade and
   more of it, so a full hold of Class 3 scrap is worth the trip.
+  **Select a pirate and the target panel tells you what it pays** — bounty,
+  scrap grade and volume, and the blueprint chance — so engaging is an
+  informed decision rather than a guess:
+
+  | Target | Bounty | Scrap | Blueprint chance |
+  | --- | --- | --- | --- |
+  | Pirate Rookie | 3,500 cr | Class 1, 6-12 m3 | 4% |
+  | Pirate Marauder | 11,000 cr | Class 2, 10-20 m3 | 10% |
+  | Pirate Overlord | 38,000 cr | Class 3, 18-32 m3 | 25% |
+  | Convoy Hauler | 60,000 cr | Class 3, 30-50 m3 | **60%** |
+
+  Of the chips that do drop, **55% are module prints and 45% are hulls**.
 - **Everything you fit is found or built.** Credits cannot buy gear anywhere
   in the game, so there are exactly two routes to a module: **drifting
   caches** turned up by a sensor sweep, which hold basic Tech I pieces

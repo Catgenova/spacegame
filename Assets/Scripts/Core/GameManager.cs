@@ -352,7 +352,7 @@ namespace SpaceGame
 
             // Ship blueprint chips: rarer, and the real reason to hunt convoys.
             if (Random.value < npc.Def.BpChance)
-                wreck.BpLoot.Add(Random.value < 0.55f
+                wreck.BpLoot.Add(Random.value < GameData.ModuleBpShare
                     ? ModGen.RollBlueprint(npc.Def.Id)
                     : ShipGen.RollBlueprint(npc.Def.Id));
 

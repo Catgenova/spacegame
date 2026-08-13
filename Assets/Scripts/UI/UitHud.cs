@@ -872,17 +872,20 @@ namespace SpaceGame
             }
             else if (sel is NpcPirate target2)
             {
+                // What it pays, then how well you can actually hit it.
+                extra = GameData.NpcRewardLine(target2.Def);
                 foreach (var entry in gm.Ship.Rack)
                 {
                     if (entry.Def.Kind != ModuleKind.Weapon) continue;
                     float angVel = Combat.AngularVelocity(
                         target2.transform.position - gm.Ship.transform.position,
                         target2.Vel - gm.Ship.Vel);
-                    extra = entry.Def.Short + " tracking: ~"
+                    extra += "\n" + entry.Def.Short + " tracking: ~"
                         + Mathf.RoundToInt(Combat.HitChance(entry.Def.Tracking, angVel) * 100f) + "% hit";
                     break;
                 }
             }
+            _targetExtra.style.whiteSpace = WhiteSpace.Normal;
             _targetExtra.text = extra;
             _targetExtra.style.display = extra.Length > 0 ? DisplayStyle.Flex : DisplayStyle.None;
 

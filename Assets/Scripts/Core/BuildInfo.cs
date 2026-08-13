@@ -14,13 +14,13 @@ namespace SpaceGame
     /// </summary>
     public static class BuildInfo
     {
-        public const string Version = "0.18.0";
-        public const string Codename = "Local Industry";
+        public const string Version = "0.19.0";
+        public const string Codename = "Know The Odds";
         public const string Date = "2026-08-13";
 
         /// <summary>What landed in this build — the thing to go and look at.</summary>
         public const string Headline =
-            "manufacturing draws on the station bay as well as your hold";
+            "the target panel shows bounty, scrap and blueprint drop rate";
 
         /// <summary>"v0.11.0 Shipyards" — for the HUD top bar.</summary>
         public static string Short => "v" + Version + " " + Codename;
