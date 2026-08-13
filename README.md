@@ -119,6 +119,13 @@ too, so an early warp-out beats their first volley.
   Solara (1.0) is safe; Abyss (0.0) is overlord country. Turrets have
   tracking speeds: orbit fast and close to make big slow guns miss you
   (the target panel shows your expected hit quality).
+  Every pirate hull is a scavenged **animal skull** welded to a spine of dark
+  segmented armour — bone cranium, hollow sockets with a red pinpoint burning
+  inside, glow ports down the plating, brass banding, and a torn flag on a mast.
+  You can tell what is coming for you by its skull: a **corvid** with a long
+  black beak is a rookie, a **fanged predator** with a cannon in its mouth is a
+  marauder, a **horned rhino** under stacked crates is an overlord, and a
+  **rounded skull trailing six curled claws** is a convoy hauler.
 - **Salvage** wrecks — destroyed pirates never carry fittable gear. Their
   hulks yield **graded scrap** (Class 1/2/3, priced 45/130/380 cr per m3)
   and, rarely, a blueprint chip. Tougher targets leave a richer grade and

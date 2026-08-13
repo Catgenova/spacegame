@@ -430,6 +430,32 @@ namespace SpaceGame
                     b.QuadUDS(pts[i][k], pts[i][(k + 1) % lon], pts[i + 1][(k + 1) % lon], pts[i + 1][k], mat);
         }
 
+        /// <summary>An ellipsoid: Ball with a half-size per axis. Skulls, pods and
+        /// anything else that wants a squashed sphere.</summary>
+        public static void Blob(Builder b, Vector3 c, Vector3 half, int mat, int lat, int lon)
+        {
+            var pts = new Vector3[lat + 1][];
+            for (int i = 0; i <= lat; i++)
+            {
+                float v = Mathf.PI * i / lat;
+                pts[i] = new Vector3[lon];
+                for (int j = 0; j < lon; j++)
+                {
+                    float u = Mathf.PI * 2f * j / lon;
+                    pts[i][j] = c + new Vector3(
+                        Mathf.Sin(v) * Mathf.Cos(u) * half.x,
+                        Mathf.Cos(v) * half.y,
+                        Mathf.Sin(v) * Mathf.Sin(u) * half.z);
+                }
+            }
+            for (int i = 0; i < lat; i++)
+                for (int j = 0; j < lon; j++)
+                {
+                    int j2 = (j + 1) % lon;
+                    b.QuadUDS(pts[i][j], pts[i][j2], pts[i + 1][j2], pts[i + 1][j], mat);
+                }
+        }
+
         public static void Box(Builder b, Vector3 c, Vector3 half, int mat)
         {
             var p000 = c + new Vector3(-half.x, -half.y, -half.z);
