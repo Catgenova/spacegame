@@ -14,13 +14,13 @@ namespace SpaceGame
     /// </summary>
     public static class BuildInfo
     {
-        public const string Version = "0.24.1";
-        public const string Codename = "Lit Properly";
+        public const string Version = "0.25.0";
+        public const string Codename = "Glow";
         public const string Date = "2026-08-13";
 
         /// <summary>What landed in this build — the thing to go and look at.</summary>
         public const string Headline =
-            "the boot log now names your render pipeline and shader";
+            "bloom: engines, glow ports and eye pinpoints now actually glow";
 
         /// <summary>"v0.11.0 Shipyards" — for the HUD top bar.</summary>
         public static string Short => "v" + Version + " " + Codename;

@@ -59,6 +59,11 @@ namespace SpaceGame
             cam.allowMSAA = true;
             cam.allowHDR = true;
             if (cam.GetComponent<CameraRig>() == null) cam.gameObject.AddComponent<CameraRig>();
+            // Bloom, so emissive surfaces read as light rather than bright paint.
+            // Built-in pipeline only; it disables itself if the shader is missing.
+            if (UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline == null
+                && cam.GetComponent<BloomEffect>() == null)
+                cam.gameObject.AddComponent<BloomEffect>();
 
             // Background starfield (pinned to the camera — a cheap skybox).
             ShipVisuals.BuildStarfield();
@@ -96,8 +101,11 @@ namespace SpaceGame
             var rp = UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline;
             string pipe = rp == null ? "Built-in Render Pipeline" : rp.GetType().Name;
             string shader = SystemView.ShaderName();
+            var cam = Camera.main;
+            bool bloom = cam != null && cam.GetComponent<BloomEffect>() != null
+                && cam.GetComponent<BloomEffect>().enabled;
             return "Renderer: " + pipe + "  ·  shader \"" + shader + "\"  ·  MSAA "
-                + QualitySettings.antiAliasing + "x";
+                + QualitySettings.antiAliasing + "x  ·  bloom " + (bloom ? "on" : "off");
         }
 
         static void AddLight(string name, Color c, float intensity, float pitch, float yaw)

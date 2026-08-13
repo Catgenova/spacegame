@@ -38,6 +38,12 @@ There is deliberately nothing to set up in the editor: `GameBootstrap` builds
 the entire game at runtime — camera, lighting, universe, ships, and UI are all
 created from code. No prefabs, no serialized assets, no scene wiring.
 
+The single exception is `Assets/Shaders/Bloom.shader`. Unity removed runtime
+compilation of ShaderLab from strings, so a post-process shader is the one thing
+that cannot be generated the way everything else here is. It is still plain
+source text with nothing to wire up, and the effect disables itself if the
+shader is missing or unsupported.
+
 ## How to play
 
 Every ship in the game is procedurally generated — there is no hand-written
