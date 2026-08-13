@@ -13,7 +13,21 @@ namespace SpaceGame
         public class Builder
         {
             public readonly List<Vector3> V = new List<Vector3>();
-            public readonly List<int>[] Sub = { new List<int>(), new List<int>(), new List<int>(), new List<int>() };
+            // Five material slots. Hulls that only need four leave Sub[4] empty
+            // and keep subMeshCount at 4; the trim slot exists for lines whose
+            // reference art has metallic edging over the base plating.
+            public readonly List<int>[] Sub =
+                { new List<int>(), new List<int>(), new List<int>(), new List<int>(), new List<int>() };
+
+            public int TriCount
+            {
+                get
+                {
+                    int n = 0;
+                    foreach (var s in Sub) n += s.Count;
+                    return n / 3;
+                }
+            }
 
             public int Add(Vector3 v) { V.Add(v); return V.Count - 1; }
 

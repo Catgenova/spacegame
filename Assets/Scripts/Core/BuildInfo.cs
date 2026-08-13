@@ -14,13 +14,13 @@ namespace SpaceGame
     /// </summary>
     public static class BuildInfo
     {
-        public const string Version = "0.20.0";
-        public const string Codename = "Kill Your Class";
+        public const string Version = "0.21.0";
+        public const string Codename = "Berkut";
         public const string Date = "2026-08-13";
 
         /// <summary>What landed in this build — the thing to go and look at.</summary>
         public const string Headline =
-            "blueprint drops now match the class of pirate you killed";
+            "Talon C2 reworked into the layered Berkut strike cruiser";
 
         /// <summary>"v0.11.0 Shipyards" — for the HUD top bar.</summary>
         public static string Short => "v" + Version + " " + Codename;

@@ -243,6 +243,23 @@ namespace SpaceGame
         // One thin feather blade lofted between two straight chains, with a
         // raised rachis shaft down the centerline, a dark tip, and barb
         // vanes off the trailing edge.
+        /// <summary>One Berkut blade: a broad plate whose outer length is a
+        /// second, darker plate, so a single feather reads white at the root and
+        /// slate at the tip the way the reference art does. The two plates
+        /// overlap slightly so the seam never opens.</summary>
+        static void TwoToneBlade(Builder b, Vector3 root, Vector3 spanDir, float span,
+            float rootChord, float tipChord, float thick, int rootTop, int tipTop, int bot,
+            int rootEdge, int tipEdge)
+        {
+            var d = spanDir.normalized;
+            const float cut = 0.62f;
+            float midChord = Mathf.Lerp(rootChord, tipChord, cut);
+            PlateFin(b, root, d, Vector3.forward, span * (cut + 0.03f),
+                rootChord, midChord, thick, rootTop, bot, rootEdge);
+            PlateFin(b, root + d * (span * cut), d, Vector3.forward, span * (1f - cut),
+                midChord, tipChord, thick * 0.85f, tipTop, bot, tipEdge);
+        }
+
         static void Feather(Builder b, Vector3 rootF, Vector3 rootB, Vector3 tipF, Vector3 tipB, bool flip)
         {
             // the two tip corners converge so each feather ends in a needle
@@ -388,7 +405,7 @@ namespace SpaceGame
                     var b2 = new Vector3(p1.x * W * scC, p1.y * H * scC + liftC, z + 0.10f);
                     var c = new Vector3(p1.x * W * scC, p1.y * H * scC + liftC, z - 0.10f);
                     var d = new Vector3(p0.x * W * scC, p0.y * H * scC + liftC, z - 0.10f);
-                    b.QuadUDS(a, b2, c, d, k % 2 == 0 ? 1 : 0);
+                    b.QuadUDS(a, b2, c, d, k % 2 == 0 ? 1 : (k % 4 == 1 ? 4 : 0));
                 }
             }
 
@@ -586,6 +603,9 @@ namespace SpaceGame
             public float Hue, Sat, Val, WhiteVal, MarkOdds, SurfAmp, SurfPhase;
             public int BandMode, BandCount;
             public float BandPhase;
+            /// <summary>Berkut layering: shell plate length, dorsal blade span,
+            /// and the twin prow reach and hook drop.</summary>
+            public float ShellLen, DorsalSpan, ProwLen, ProwDrop;
             public Color Green, White;
         }
 
@@ -618,6 +638,12 @@ namespace SpaceGame
             g.BandMode = rng.Next(3);
             g.BandCount = 2 + rng.Next(3);
             g.BandPhase = R(0f, 1f);
+            // Appended after the original rolls so every earlier field — and so
+            // every existing body's proportions — is untouched.
+            g.ShellLen = R(3.0f, 3.7f);
+            g.DorsalSpan = R(1.15f, 1.55f);
+            g.ProwLen = R(1.5f, 2.0f);
+            g.ProwDrop = R(0.34f, 0.52f);
             g.Green = Color.HSVToRGB(g.Hue, g.Sat, g.Val);
             g.White = new Color(g.WhiteVal, g.WhiteVal + 0.01f, g.WhiteVal + 0.02f);
             return g;
@@ -638,7 +664,7 @@ namespace SpaceGame
             if (tm < 0.16f) return 0;
 
             // Dark saddle over back and shoulders, pale patches punched out.
-            if ((deck || upper) && tm > 0.20f && tm < 0.78f)
+            if ((deck || upper) && tm > 0.30f && tm < 0.62f)
             {
                 float ft = tm - 0.20f - p * 0.015f;
                 int cell = Mathf.Min(4, (int)(ft / 0.116f));
@@ -699,13 +725,6 @@ namespace SpaceGame
                 float sc2 = CrSample(cts, csc, t);
                 return HalfPtT(k, t).y * H * sc2 + CrSample(cts, clf, t) * H;
             };
-            System.Func<int, float, Vector3> surf = (li, t) =>
-            {
-                float sc2 = CrSample(cts, csc, t);
-                float lift2 = CrSample(cts, clf, t) * H;
-                var pt = LoopPtT(((li % LoopPts) + LoopPts) % LoopPts, t);
-                return new Vector3(pt.x * W * sc2, pt.y * H * sc2 + lift2, zAt(t));
-            };
 
             // ---- continuous loft with a hooked bill ----
             const int beakRings = 16;
@@ -725,6 +744,24 @@ namespace SpaceGame
             CapFan(b, billTip, stripVerts, 0, true, 1);
             var sternC = new Vector3(0f, CrSample(cts, clf, 1f) * H, -0.5f * L - 0.06f);
             CapFan(b, sternC, stripVerts, stripVerts[0].Length - 1, false, 1);
+
+            // ---- twin hooked prows flanking the bill ----
+            // The reference leads with a pair of long hooked prongs either side
+            // of the central beak, gold at the point.
+            for (int side = -1; side <= 1; side += 2)
+            {
+                float scP = CrSample(cts, csc, 0.10f);
+                float liftP = CrSample(cts, clf, 0.10f) * H;
+                var root = new Vector3(side * W * scP * 0.92f, liftP - H * 0.06f, zAt(0.12f));
+                var fwd = new Vector3(-side * 0.26f, 0f, 1f).normalized;
+                var p1 = root + fwd * (g.ProwLen * 0.45f);
+                var p2 = root + fwd * (g.ProwLen * 0.80f) + new Vector3(0f, -g.ProwDrop * 0.45f, 0f);
+                var p3 = root + fwd * g.ProwLen + new Vector3(0f, -g.ProwDrop, 0f);
+                Tube(b, new[] { root, p1, p2 }, new[] { 0.155f, 0.115f, 0.070f }, 7, 0, false);
+                Tube(b, new[] { p2, p3 }, new[] { 0.070f, 0.012f }, 7, 4, true);
+                // A thin blade fairing along the top of each prong.
+                b.TriUDS(root + new Vector3(0f, 0.10f, 0f), p1 + new Vector3(0f, 0.06f, 0f), p2, 1);
+            }
 
             // ---- eyes + heavy brow wedges ----
             for (int side = -1; side <= 1; side += 2)
@@ -755,16 +792,15 @@ namespace SpaceGame
                 Canopy(b, zC + halfLen, zC - halfLen, 0.28f, 0.17f, deckAt, 3, 1, 1);
             }
 
-            // ---- nape crest: four swept spikes ----
+            // ---- dorsal blade row: the top tier of the stack, on the spine ----
             for (int i = 0; i < 4; i++)
             {
-                float xoff = (i - 1.5f) * 0.08f;
-                float len = (i == 1 || i == 2) ? 0.95f : 0.65f;
-                float tN = g.CanopyStart + g.CanopyLen + 0.06f;
+                float tN = g.CanopyStart + g.CanopyLen + 0.04f + i * 0.10f;
+                float xoff = (i % 2 == 0 ? 1f : -1f) * 0.05f;
                 var basePt = new Vector3(xoff, hullY(0, tN) - 0.01f, zAt(tN));
-                var dir = new Vector3((i - 1.5f) * 0.08f, 0.42f, -0.90f).normalized;
-                Tube(b, new[] { basePt, basePt + dir * (len * 0.5f), basePt + dir * len },
-                    new[] { 0.055f, 0.035f, 0.005f }, 5, 1, true);
+                var dir = new Vector3(xoff * 0.9f, 0.50f, -1.35f);
+                TwoToneBlade(b, basePt, dir, g.DorsalSpan * (1f - i * 0.13f),
+                    0.70f - i * 0.06f, 0.30f, 0.055f, 0, 0, 1, 0, 4);
             }
 
             // ---- faceted collar where the white head meets the saddle ----
@@ -783,33 +819,33 @@ namespace SpaceGame
                     var b2 = new Vector3(p1.x * W * scC, p1.y * H * scC + liftC, z + 0.11f);
                     var c = new Vector3(p1.x * W * scC, p1.y * H * scC + liftC, z - 0.11f);
                     var d = new Vector3(p0.x * W * scC, p0.y * H * scC + liftC, z - 0.11f);
-                    b.QuadUDS(a, b2, c, d, k % 2 == 0 ? 1 : 0);
+                    b.QuadUDS(a, b2, c, d, k % 2 == 0 ? 1 : (k % 4 == 1 ? 4 : 0));
                 }
             }
 
-            // ---- plumage shingles: four overlapping rows over the back ----
+            // ---- stacked shell pods: the layered white body of the reference ----
+            // Three broad plates lying along the back, each overlapping the one
+            // behind it, so the hull reads as a stack of shells rather than one
+            // smooth loft. The gaps between them are lit from inside.
             for (int side = -1; side <= 1; side += 2)
             {
-                for (int r2 = 0; r2 < 4; r2++)
+                for (int r2 = 0; r2 < 3; r2++)
                 {
-                    float t0 = 0.22f + r2 * 0.12f;
-                    float t1 = t0 + 0.07f;
-                    for (int li = 1; li <= 3; li++)
-                    {
-                        int liA = side > 0 ? li : LoopPts - li;
-                        int liB = side > 0 ? li + 1 : LoopPts - li - 1;
-                        var a = surf(liA, t0); var b2 = surf(liB, t0);
-                        var c = surf(liB, t1); var d = surf(liA, t1);
-                        var raise = new Vector3(0f, 0.035f, 0f);
-                        a += raise + new Vector3(a.x * 0.03f, 0f, 0f);
-                        b2 += raise + new Vector3(b2.x * 0.03f, 0f, 0f);
-                        c += raise + new Vector3(c.x * 0.03f, -0.05f, 0f);
-                        d += raise + new Vector3(d.x * 0.03f, -0.05f, 0f);
-                        int mat = markCell[(r2 * 6 + li + (side > 0 ? 0 : 3)) % 30] ? 1 : 0;
-                        b.QuadUDS(a, b2, c, d, mat);
-                        var apex = (c + d) * 0.5f + new Vector3(0f, -0.03f, -0.14f);
-                        b.TriUDS(c, d, apex, 1);
-                    }
+                    float t0 = 0.19f + r2 * 0.20f;
+                    float sc2 = CrSample(cts, csc, t0);
+                    float liftS = CrSample(cts, clf, t0) * H;
+                    var rootS = new Vector3(side * W * sc2 * 0.30f,
+                        H * sc2 * (0.62f - r2 * 0.10f) + liftS, zAt(t0));
+                    // Span runs aft and outboard: a shell, not a fin.
+                    var spanS = new Vector3(side * 0.42f, -0.10f - r2 * 0.04f, -1f);
+                    PlateFin(b, rootS, spanS, Vector3.right, g.ShellLen * (0.64f - r2 * 0.07f),
+                        W * 0.62f, W * 0.26f, 0.085f, 0, 1, r2 == 1 ? 4 : 0);
+                    // Lit recess under the leading lip of each shell.
+                    var lipA = rootS + new Vector3(side * 0.06f, -0.10f, 0.16f);
+                    var lipB = rootS + new Vector3(side * (W * 0.72f), -0.15f, 0.06f);
+                    b.QuadUDS(lipA, lipB,
+                        lipB + new Vector3(0f, -0.055f, -0.05f),
+                        lipA + new Vector3(0f, -0.055f, -0.05f), 2);
                 }
             }
 
@@ -825,73 +861,53 @@ namespace SpaceGame
                 b.QuadUDS(kB + xoff, kB - xoff, kC - xoff, kC + xoff, 1);
             }
 
-            // ---- dorsal ridge plates down the falling spine ----
-            for (int r2 = 0; r2 < 5; r2++)
-            {
-                float t0 = 0.36f + r2 * 0.09f;
-                float z = zAt(t0);
-                float y0 = hullY(0, t0);
-                var a = new Vector3(0f, y0 + 0.01f, z + 0.11f);
-                var apex = new Vector3(0f, y0 + 0.16f, z - 0.02f);
-                var c = new Vector3(0f, y0 + 0.01f, z - 0.15f);
-                b.TriUDS(a, apex, c, r2 % 2 == 0 ? 1 : 0);
-            }
-
-            // ---- folded wing stacks: four primaries over three coverts ----
+            // ---- four tiers of swept blades, stacked like layered plumage ----
+            // The signature of the Berkut art: rows of long tapered plates
+            // climbing up the flank, each row shorter and more raked than the one
+            // below, white at the root and slate at the tip with a gold edge.
             for (int side = -1; side <= 1; side += 2)
             {
                 float s = side;
-                for (int f = 0; f < 4; f++)
+                for (int tier = 0; tier < 3; tier++)
                 {
-                    float t0 = 0.20f + f * 0.075f;
-                    float span = g.FeatherSpan * (1f - f * 0.13f);
-                    float sweep = g.FeatherSweep * (1f + f * 0.05f);
-                    float liftW = CrSample(cts, clf, t0) * H;
-                    var rootF2 = new Vector3(s * W * 0.44f, H * (0.32f - f * 0.05f) + liftW, zAt(t0));
-                    var rootB2 = rootF2 + new Vector3(-s * 0.03f, -0.02f, -0.60f);
-                    var tipF2 = rootF2 + new Vector3(s * span, span * g.FeatherRake, -sweep);
-                    var tipB2 = rootB2 + new Vector3(s * span * 0.94f, span * g.FeatherRake * 0.9f, -sweep * 1.06f);
-                    Feather(b, rootF2, rootB2, tipF2, tipB2, side < 0);
-                }
-                for (int f = 0; f < 3; f++)
-                {
-                    float t0 = 0.36f + f * 0.08f;
-                    float span = g.FeatherSpan * (0.58f - f * 0.11f);
-                    float sweep = g.FeatherSweep * (0.72f - f * 0.08f);
-                    float liftW = CrSample(cts, clf, t0) * H;
-                    var rootF2 = new Vector3(s * W * 0.52f, -H * 0.02f + liftW, zAt(t0));
-                    var rootB2 = rootF2 + new Vector3(-s * 0.03f, -0.02f, -0.45f);
-                    var tipF2 = rootF2 + new Vector3(s * span, -span * 0.06f, -sweep);
-                    var tipB2 = rootB2 + new Vector3(s * span * 0.94f, -span * 0.06f, -sweep * 1.06f);
-                    Feather(b, rootF2, rootB2, tipF2, tipB2, side < 0);
+                    int perTier = 2;
+                    for (int f = 0; f < perTier; f++)
+                    {
+                        float t0 = 0.23f + tier * 0.07f + f * 0.155f;
+                        float span = g.FeatherSpan * (1.10f - tier * 0.15f - f * 0.08f);
+                        float liftW = CrSample(cts, clf, t0) * H;
+                        // Roots climb the flank and draw inboard as the stack rises.
+                        var rt = new Vector3(s * W * (0.52f - tier * 0.10f),
+                            H * (-0.14f + tier * 0.26f) + liftW, zAt(t0));
+                        var spanD = new Vector3(s,
+                            0.05f + tier * 0.12f + g.FeatherRake * 0.4f,
+                            -(g.FeatherSweep / g.FeatherSpan) * (1.05f + tier * 0.12f + f * 0.09f));
+                        // Broad at the root, still broad at three quarters, then a
+                        // point: a plate, not a quill.
+                        // Wide enough to read as armour plate at game distance.
+                        TwoToneBlade(b, rt, spanD, span,
+                            2.30f - tier * 0.26f - f * 0.14f, 0.78f - tier * 0.10f,
+                            0.055f, 0, 1, 0, 0, 4);
+                        BevelBox(b, rt + spanD.normalized * 0.09f,
+                            new Vector3(0.13f, 0.08f, 0.30f), 0.03f, 1);
+                    }
                 }
             }
 
-            // ---- fanned tail: three feathers per side + center vane ----
+            // ---- rear fan: the same blade language, spread across the stern ----
             for (int side = -1; side <= 1; side += 2)
             {
                 float s = side;
-                for (int f = 0; f < 3; f++)
+                for (int f = 0; f < 2; f++)
                 {
-                    float spread = 0.30f + f * 0.35f;
+                    float spread = 0.38f + f * 0.34f;
                     float liftT = CrSample(cts, clf, 0.86f) * H;
-                    var rootF2 = new Vector3(s * W * 0.16f, liftT + 0.05f * H, zAt(0.86f));
-                    var rootB2 = rootF2 + new Vector3(0f, -0.02f, -0.44f);
-                    var tipF2 = rootF2 + new Vector3(s * g.TailSpan * spread, 0.10f, -g.TailSweep);
-                    var tipB2 = rootB2 + new Vector3(s * g.TailSpan * spread * 0.94f, 0.08f, -g.TailSweep * 1.08f);
-                    Feather(b, rootF2, rootB2, tipF2, tipB2, side < 0);
+                    var rt = new Vector3(s * W * 0.18f, liftT + (0.02f + f * 0.07f) * H, zAt(0.86f));
+                    var spanD = new Vector3(s * spread, 0.10f + f * 0.06f,
+                        -(g.TailSweep / g.TailSpan) * 1.05f);
+                    TwoToneBlade(b, rt, spanD, g.TailSpan * (1.02f - f * 0.10f),
+                        1.55f - f * 0.18f, 0.55f, 0.055f, 0, 1, 0, 0, 4);
                 }
-            }
-            {
-                float y0 = hullY(0, 0.84f);
-                var rootF2 = new Vector3(0f, y0 - 0.02f, zAt(0.84f));
-                var rootB2 = new Vector3(0f, y0 - 0.02f, zAt(0.94f));
-                var tipF2 = new Vector3(0f, y0 + 0.65f, zAt(0.84f) - g.TailSweep * 0.60f);
-                var tipB2 = new Vector3(0f, y0 + 0.56f, zAt(0.94f) - g.TailSweep * 0.68f);
-                var lead = new[] { rootF2, tipF2 };
-                var trail = new[] { rootB2, tipB2 };
-                var ts = new[] { 0f, 1f };
-                LoftWing(b, lead, ts, trail, ts, 0.055f, 0.012f, 5, true, 1);
             }
 
             // ---- chin gun: stubby underslung cannon, tucked behind the bill ----
@@ -949,8 +965,8 @@ namespace SpaceGame
             go.transform.SetParent(shipRoot, false);
             var mesh = new Mesh { name = "talon2_" + hash };
             mesh.SetVertices(b.V);
-            mesh.subMeshCount = 4;
-            for (int m = 0; m < 4; m++) mesh.SetTriangles(b.Sub[m], m);
+            mesh.subMeshCount = 5;
+            for (int m = 0; m < 5; m++) mesh.SetTriangles(b.Sub[m], m);
             mesh.RecalculateNormals();
             mesh.RecalculateBounds();
             go.AddComponent<MeshFilter>().mesh = mesh;
@@ -961,6 +977,7 @@ namespace SpaceGame
                 Metal(g.Green, 0.90f, 0.75f),
                 SystemView.Mat(new Color(0.35f, 0.95f, 0.85f), true),
                 Metal(new Color(0.04f, 0.07f, 0.08f), 0.9f, 0.95f),
+                Metal(new Color(0.72f, 0.56f, 0.24f), 0.55f, 0.95f),   // gold edge trim
             };
             return go;
         }
@@ -1184,7 +1201,7 @@ namespace SpaceGame
                     var b2 = new Vector3(p1.x * W * scC, p1.y * H * scC + liftC, z + 0.11f);
                     var c = new Vector3(p1.x * W * scC, p1.y * H * scC + liftC, z - 0.11f);
                     var d = new Vector3(p0.x * W * scC, p0.y * H * scC + liftC, z - 0.11f);
-                    b.QuadUDS(a, b2, c, d, k % 2 == 0 ? 1 : 0);
+                    b.QuadUDS(a, b2, c, d, k % 2 == 0 ? 1 : (k % 4 == 1 ? 4 : 0));
                 }
             }
 
