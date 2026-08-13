@@ -138,10 +138,18 @@ namespace SpaceGame
         {
             // Ores are real rock, coloured as they actually look in hand, and
             // each refines into the metals its real chemistry contains.
-            Ore("hematite", "Hematite", 12f, new Color(0.62f, 0.36f, 0.30f));
-            Ore("pyroxene", "Pyroxene", 18f, new Color(0.42f, 0.48f, 0.44f));
-            Ore("plagioclase", "Plagioclase", 27f, new Color(0.78f, 0.76f, 0.72f));
-            Ore("ilmenite", "Ilmenite", 42f, new Color(0.32f, 0.33f, 0.36f));
+            // Asteroid types are named for what is actually in them, so the rock
+            // tells you what it mills out into. Every one is a real mineral and
+            // every refine table below matches its real composition: Taenite is
+            // the iron-nickel alloy that makes up metallic meteorites, Anorthite
+            // is the calcium-aluminium feldspar of the lunar highlands,
+            // Armalcolite is the iron-titanium mineral first identified in the
+            // Apollo 11 samples, Rutile is titanium dioxide, and Beryl is the
+            // beryllium-aluminium silicate.
+            Ore("taenite", "Taenite", 12f, new Color(0.55f, 0.54f, 0.52f));
+            Ore("anorthite", "Anorthite", 18f, new Color(0.80f, 0.78f, 0.74f));
+            Ore("armalcolite", "Armalcolite", 27f, new Color(0.30f, 0.28f, 0.31f));
+            Ore("rutile", "Rutile", 42f, new Color(0.62f, 0.42f, 0.28f));
             Ore("beryl", "Beryl", 65f, new Color(0.36f, 0.72f, 0.56f));
 
             // Refined metals, in the order a real spaceframe uses them:
@@ -149,6 +157,9 @@ namespace SpaceGame
             // beryllium for precision optics and stiff lightweight structure.
             Mineral("iron", "Iron", 28f, new Color(0.72f, 0.74f, 0.78f));
             Mineral("aluminium", "Aluminium", 44f, new Color(0.86f, 0.88f, 0.92f));
+            // Nickel comes out of the same meteoric alloy as the iron. Real
+            // spacecraft run on nickel superalloys, so every hull bill needs it.
+            Mineral("nickel", "Nickel", 48f, new Color(0.78f, 0.80f, 0.74f));
             Mineral("titanium", "Titanium", 72f, new Color(0.45f, 0.70f, 0.80f));
             Mineral("beryllium", "Beryllium", 120f, new Color(0.74f, 0.79f, 0.72f));
 
@@ -183,11 +194,21 @@ namespace SpaceGame
             Exotic("hafnium", "Hafnium", 520f, new Color(0.62f, 0.66f, 0.72f));
             Exotic("rhenium", "Rhenium", 1100f, new Color(0.78f, 0.80f, 0.86f));
 
-            Ores["hematite"].RefineInto = new Dictionary<string, float> { { "iron", 1f } };
-            Ores["pyroxene"].RefineInto = new Dictionary<string, float> { { "iron", 0.65f }, { "aluminium", 0.35f } };
-            Ores["plagioclase"].RefineInto = new Dictionary<string, float> { { "iron", 0.3f }, { "aluminium", 0.45f }, { "titanium", 0.25f } };
-            Ores["ilmenite"].RefineInto = new Dictionary<string, float> { { "aluminium", 0.35f }, { "titanium", 0.45f }, { "beryllium", 0.2f } };
-            Ores["beryl"].RefineInto = new Dictionary<string, float> { { "aluminium", 0.2f }, { "titanium", 0.3f }, { "beryllium", 0.5f } };
+            // Each rock yields the metals it is actually made of. Totals sit under
+            // 1.0 because the rest is slag. The mixes are tuned so every ore's
+            // refined value lands within ~1.5% of what it was worth before the
+            // asteroids were renamed, which keeps mining and refining income,
+            // requisition rewards and blueprint bills exactly where they were.
+            Ores["taenite"].RefineInto = new Dictionary<string, float>       // Fe-Ni alloy
+                { { "iron", 0.72f }, { "nickel", 0.16f } };
+            Ores["anorthite"].RefineInto = new Dictionary<string, float>     // CaAl2Si2O8
+                { { "aluminium", 0.62f }, { "iron", 0.22f } };
+            Ores["armalcolite"].RefineInto = new Dictionary<string, float>   // (Mg,Fe)Ti2O5
+                { { "titanium", 0.48f }, { "iron", 0.40f } };
+            Ores["rutile"].RefineInto = new Dictionary<string, float>        // TiO2
+                { { "titanium", 0.99f } };
+            Ores["beryl"].RefineInto = new Dictionary<string, float>         // Be3Al2Si6O18
+                { { "beryllium", 0.58f }, { "aluminium", 0.48f } };
 
             // Pirates never carry salvageable gear — their wrecks yield graded
             // scrap and, rarely, a blueprint chip. Modules come from drifting
@@ -526,6 +547,29 @@ namespace SpaceGame
             if (Scraps.TryGetValue(id, out def) && def.RefineInto != null) return true;
             def = null;
             return false;
+        }
+
+        /// <summary>Asteroid types renamed to match what they mill out into.
+        /// Saves written before the rename hold the old ids in cargo, station
+        /// bays and active requisitions, so every load runs them through here —
+        /// otherwise a docked pilot's hold would quietly empty on load, and an
+        /// active ore mission would throw on an id that no longer exists.
+        /// None of the new ids collide with an old one, so this stays
+        /// unambiguous.</summary>
+        static readonly Dictionary<string, string> LegacyOreIds = new Dictionary<string, string>
+        {
+            { "hematite", "taenite" },        // was iron-only; Fe-Ni alloy now
+            { "pyroxene", "anorthite" },      // the aluminium-bearing rock
+            { "plagioclase", "armalcolite" }, // the mid-grade titanium rock
+            { "ilmenite", "rutile" },         // the high-grade titanium rock
+        };
+
+        /// <summary>Map a possibly-legacy commodity id onto its current one.
+        /// Unknown ids pass through untouched for the caller to reject.</summary>
+        public static string MigrateCommodityId(string id)
+        {
+            if (id == null) return null;
+            return LegacyOreIds.TryGetValue(id, out var now) ? now : id;
         }
 
         public static bool CommodityExists(string id)

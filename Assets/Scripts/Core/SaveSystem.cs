@@ -175,7 +175,10 @@ namespace SpaceGame
                         var store = p.StoreAt(ss.StationId);
                         if (ss.Cargo != null)
                             foreach (var c in ss.Cargo)
-                                if (GameData.CommodityExists(c.Id)) store.AddCargo(c.Id, c.Amount);
+                            {
+                                string cid = GameData.MigrateCommodityId(c.Id);
+                                if (GameData.CommodityExists(cid)) store.AddCargo(cid, c.Amount);
+                            }
                         if (ss.Modules != null)
                             foreach (var modId in ss.Modules)
                                 if (GameData.ModuleExists(modId)) store.Modules.Add(modId);
@@ -199,7 +202,10 @@ namespace SpaceGame
                     foreach (var modId in d.CargoMods)
                         if (GameData.ModuleExists(modId)) p.CargoModules.Add(modId);
                 foreach (var o in d.Cargo)
-                    if (GameData.CommodityExists(o.Id)) p.Cargo[o.Id] = o.Amount;
+                {
+                    string oid = GameData.MigrateCommodityId(o.Id);
+                    if (GameData.CommodityExists(oid)) p.Cargo[oid] = o.Amount;
+                }
                 if (d.Blueprints != null)
                     foreach (var bp in d.Blueprints)
                         if (!string.IsNullOrEmpty(bp.Hash))
@@ -235,7 +241,10 @@ namespace SpaceGame
                         TargetSystemId = d.MsnTargetSystem,
                         KillsRequired = d.MsnKillsRequired,
                         KillsDone = d.MsnKillsDone,
-                        OreId = d.MsnOre,
+                        // An ore requisition saved under an old asteroid name has
+                        // to be remapped: the mission tracker indexes
+                        // GameData.Ores directly and would throw every frame.
+                        OreId = GameData.MigrateCommodityId(d.MsnOre),
                         OreAmount = d.MsnOreAmount,
                         DestStationId = d.MsnDestStation,
                         DestSystemId = d.MsnDestSystem,

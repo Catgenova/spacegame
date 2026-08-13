@@ -244,6 +244,7 @@ namespace SpaceGame
             {
                 ["iron"] = Mathf.Round(unit * 6f * mult),
                 ["aluminium"] = Mathf.Round(unit * 3.5f * mult),
+                ["nickel"] = Mathf.Round(unit * 1.8f * mult),
                 ["titanium"] = Mathf.Round(unit * 1.4f * mult),
             };
             // The finest builds need beryllium for their precision internals.

@@ -75,21 +75,21 @@ namespace SpaceGame
         {
             var u = new UniverseData();
             AddSystem(u, "solara", "Solara", 1.0f, "Solara Prime", 4, 2,
-                new[] { "hematite", "pyroxene" }, 0.7f, null,
+                new[] { "taenite", "anorthite" }, 0.7f, null,
                 new[] { "hive", "claw", "fin" });
             AddSystem(u, "verdant", "Verdant", 0.7f, "Verdant Refinery", 3, 3,
-                new[] { "hematite", "pyroxene", "plagioclase" }, 1.0f,
+                new[] { "taenite", "anorthite", "armalcolite" }, 1.0f,
                 new PirateConfig { Types = new[] { "rookie" }, Max = 1, Interval = 90f }, null);
             AddSystem(u, "krios", "Krios", 0.5f, "Krios Bastion", 5, 4,
-                new[] { "pyroxene", "plagioclase", "ilmenite" }, 1.3f,
+                new[] { "anorthite", "armalcolite", "rutile" }, 1.3f,
                 new PirateConfig { Types = new[] { "rookie", "rookie", "marauder" }, Max = 2, Interval = 60f },
                 new[] { "fin", "talon", "scale" });
             AddSystem(u, "nadir", "Nadir", 0.3f, "Nadir Freeport", 3, 4,
-                new[] { "plagioclase", "ilmenite", "beryl" }, 1.7f,
+                new[] { "armalcolite", "rutile", "beryl" }, 1.7f,
                 new PirateConfig { Types = new[] { "rookie", "marauder", "marauder" }, Max = 3, Interval = 45f },
                 new[] { "claw", "trail", "pack" });
             AddSystem(u, "abyss", "Abyss", 0.0f, "Outlaw Den", 2, 5,
-                new[] { "ilmenite", "beryl", "beryl" }, 2.4f,
+                new[] { "rutile", "beryl", "beryl" }, 2.4f,
                 new PirateConfig { Types = new[] { "marauder", "overlord" }, Max = 4, Interval = 40f }, null);
 
             foreach (var pair in GatePairs)

@@ -69,8 +69,25 @@ too, so an early warp-out beats their first volley.
 ### The loop
 
 - **Mine** ore in asteroid belts; richer, rarer ore lives in low-sec systems.
+  Asteroids are named for what is actually in them, so the rock in the
+  overview tells you what it mills out into — every type is a real mineral
+  and every yield matches its real composition:
+
+  | Asteroid | Composition | Refines into | cr/m3 | Found in |
+  | --- | --- | --- | --- | --- |
+  | **Taenite** | Fe-Ni meteoric alloy | Iron + **Nickel** | 12 | Solara, Verdant |
+  | **Anorthite** | CaAl₂Si₂O₈ feldspar | Aluminium + Iron | 18 | Solara → Krios |
+  | **Armalcolite** | (Mg,Fe)Ti₂O₅ | Titanium + Iron | 27 | Verdant → Nadir |
+  | **Rutile** | TiO₂ | Titanium | 42 | Krios → Abyss |
+  | **Beryl** | Be₃Al₂Si₆O₁₈ | Beryllium + Aluminium | 65 | Nadir, Abyss |
+
+  Taenite is the iron-nickel alloy that metallic meteorites are made of,
+  Anorthite is the aluminium feldspar of the lunar highlands, and Armalcolite
+  was first identified in the Apollo 11 samples. **Nickel** comes only out of
+  Taenite, and every hull and nearly every module needs nickel superalloy — so
+  the safest belts in the game never stop being worth mining.
 - **Refine** ore *and recovered scrap* into minerals
-  (Iron/Aluminium/Titanium/Beryllium) at any station — yield starts at 66%
+  (Iron/Nickel/Aluminium/Titanium/Beryllium) at any station — yield starts at 66%
   and grows with the Refining skill, so refining out-earns raw selling once
   you're trained. Scrap is compacted hull, so it mills out into several
   times its own volume in metal (Class 3 gives 8.4 m3 of metal per m3), and

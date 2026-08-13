@@ -60,10 +60,14 @@ namespace SpaceGame
         {
             var basis = BaseMaterialCost(bp);
             var cost = new Dictionary<string, float>(basis);
+            float bulk = 0f;
+            foreach (var kv in basis) bulk += kv.Value;
+            // Nickel superalloy for the drive and the hot structure — every hull
+            // in the game needs some, which is what makes the common Fe-Ni rock
+            // worth mining rather than just the rich stuff.
+            cost["nickel"] = Mathf.Max(4f, Mathf.Round(bulk * 0.07f));
             if (bp.Class >= 3)
             {
-                float bulk = 0f;
-                foreach (var kv in basis) bulk += kv.Value;
                 cost["tantalum"] = Mathf.Max(2f, Mathf.Round(bulk * 0.006f));
                 cost["hafnium"] = Mathf.Max(1f, Mathf.Round(bulk * 0.0025f));
             }
