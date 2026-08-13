@@ -13,17 +13,34 @@ namespace SpaceGame
         {
             if (GameManager.I != null) return;
 
-            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
-            RenderSettings.ambientLight = new Color(0.12f, 0.14f, 0.20f);
-            RenderSettings.fog = false;
+            // Anti-aliasing. Nothing else sets this, and without it every hull
+            // edge in the game is a staircase. Under URP the pipeline asset owns
+            // MSAA instead, so this is a no-op there and the camera flag below
+            // does the work.
+            QualitySettings.antiAliasing = 4;
 
-            // Sunlight.
-            var lightGo = new GameObject("Sunlight");
-            var light = lightGo.AddComponent<Light>();
-            light.type = LightType.Directional;
-            light.intensity = 1.1f;
-            light.color = new Color(1f, 0.96f, 0.88f);
-            lightGo.transform.rotation = Quaternion.Euler(35f, 140f, 0f);
+            // Lighting. Three-point: a key sun, a cool fill from the opposite
+            // side so unlit faces are readable rather than black, and a dim rim
+            // from behind to separate hulls from the starfield.
+            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Trilight;
+            RenderSettings.ambientSkyColor = new Color(0.20f, 0.24f, 0.34f);
+            RenderSettings.ambientEquatorColor = new Color(0.13f, 0.15f, 0.21f);
+            RenderSettings.ambientGroundColor = new Color(0.06f, 0.06f, 0.09f);
+            RenderSettings.fog = false;
+            AddLight("Sunlight", new Color(1f, 0.96f, 0.88f), 1.15f, 35f, 140f);
+            AddLight("Fill", new Color(0.42f, 0.55f, 0.80f), 0.38f, 12f, -40f);
+            AddLight("Rim", new Color(0.65f, 0.72f, 0.95f), 0.28f, -20f, -150f);
+
+            // Give the metal something to reflect. Nearly every material in the
+            // game is metallic, and a metallic surface with no environment
+            // resolves to flat dark colour — which is most of why the hulls read
+            // as blocks of paint. There is no skybox here (the camera clears to
+            // solid colour and the stars are geometry), so the reflection probe
+            // has nothing to capture; a tiny procedural cubemap stands in.
+            RenderSettings.defaultReflectionMode =
+                UnityEngine.Rendering.DefaultReflectionMode.Custom;
+            RenderSettings.customReflectionTexture = SpaceCubemap();
+            RenderSettings.reflectionIntensity = 1f;
 
             // Camera: adopt the scene's main camera or create one.
             var cam = Camera.main;
@@ -35,8 +52,12 @@ namespace SpaceGame
             }
             cam.clearFlags = CameraClearFlags.SolidColor;
             cam.backgroundColor = new Color(0.012f, 0.02f, 0.045f);
-            cam.farClipPlane = 2000000f;
-            cam.nearClipPlane = 1f;
+            // The starfield sits at 450k-900k units, so a million is enough far
+            // plane. Halving it halves the depth range the buffer has to cover.
+            cam.farClipPlane = 1000000f;
+            cam.nearClipPlane = 2f;
+            cam.allowMSAA = true;
+            cam.allowHDR = true;
             if (cam.GetComponent<CameraRig>() == null) cam.gameObject.AddComponent<CameraRig>();
 
             // Background starfield (pinned to the camera — a cheap skybox).
@@ -62,6 +83,53 @@ namespace SpaceGame
             gameGo.AddComponent<UiSwitcher>();
             gameGo.AddComponent<AudioDirector>();
             if (!UitHud.TryCreate()) gameGo.AddComponent<HudUI>();
+        }
+
+        static void AddLight(string name, Color c, float intensity, float pitch, float yaw)
+        {
+            var go = new GameObject(name);
+            var l = go.AddComponent<Light>();
+            l.type = LightType.Directional;
+            l.color = c;
+            l.intensity = intensity;
+            l.shadows = LightShadows.None;   // nothing here casts useful shadows
+            go.transform.rotation = Quaternion.Euler(pitch, yaw, 0f);
+        }
+
+        /// <summary>A 16px cubemap of deep space: near-black below, a faint cold
+        /// glow above and a warm hint toward the star. Costs nothing and gives
+        /// every metallic surface a gradient to catch instead of flat black.</summary>
+        static Cubemap SpaceCubemap()
+        {
+            const int n = 16;
+            var cm = new Cubemap(n, TextureFormat.RGBA32, false);
+            var faces = new[]
+            {
+                CubemapFace.PositiveX, CubemapFace.NegativeX, CubemapFace.PositiveY,
+                CubemapFace.NegativeY, CubemapFace.PositiveZ, CubemapFace.NegativeZ,
+            };
+            foreach (var face in faces)
+            {
+                var px = new Color[n * n];
+                for (int y = 0; y < n; y++)
+                    for (int x = 0; x < n; x++)
+                    {
+                        float v = y / (float)(n - 1);
+                        var c = face == CubemapFace.PositiveY
+                            ? new Color(0.16f, 0.20f, 0.30f)
+                            : face == CubemapFace.NegativeY
+                                ? new Color(0.02f, 0.02f, 0.04f)
+                                : Color.Lerp(new Color(0.03f, 0.04f, 0.07f),
+                                             new Color(0.13f, 0.16f, 0.24f), v);
+                        // A warm smear on one face, standing in for the star.
+                        if (face == CubemapFace.PositiveX)
+                            c = Color.Lerp(c, new Color(0.45f, 0.38f, 0.28f), 0.35f);
+                        px[y * n + x] = c;
+                    }
+                cm.SetPixels(px, face);
+            }
+            cm.Apply();
+            return cm;
         }
     }
 }
