@@ -18,14 +18,17 @@ namespace SpaceGame
             PackGenerator.TypeId,
         };
 
-        /// <summary>The free hull a new — or freshly cloned — pilot is issued.
+        /// <summary>The hull a new pilot starts in: a Hive-class Scout.
         ///
-        /// It is a Claw-class Urchin: the generated fleet's mining line, and the
-        /// only line whose hulls are not turret-only up top. It carries a Mining
-        /// Claw, has no gun, and mines at 1.6x, so a rookie starts by working
-        /// safe Solara rock and buys their way into a gunship. Fixed body, so
-        /// every pilot's loaner is the same recognisable hull.</summary>
-        public const string RookieLine = ClawGenerator.TypeId;
+        /// A turret, a web and a low — the swarm doctrine in miniature, and a
+        /// real fighting hull rather than a mining barge. It cannot mine at all
+        /// (Hive hardpoints take turrets only), so a rookie's first credits come
+        /// from bounties, not rock. Fixed body, so every pilot's first ship is
+        /// the same recognisable Scout.
+        ///
+        /// Losing it does not put you back in one of these — see
+        /// GameData.Ships["probe"], the escape pod, which can mine.</summary>
+        public const string RookieLine = HiveGenerator.TypeId;
 
         public static string RookieHullId => IdFromHash(RookieLine, BodyHash("rookie"), 1);
 

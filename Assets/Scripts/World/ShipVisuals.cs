@@ -22,11 +22,49 @@ namespace SpaceGame
             return p;
         }
 
-        /// <summary>Every hull in the game is a generated body, so this just
-        /// routes to the line's mesh builder. The fallback covers an id that is
-        /// somehow not generated: better a loaner hull than an invisible ship.</summary>
+        /// <summary>Every ship is a generated body and builds its own mesh from
+        /// its hash. The Probe is the one hand-built hull; anything else that is
+        /// not generated falls back to it rather than flying invisibly.</summary>
         public static GameObject BuildHull(string hullId, Transform shipRoot)
-            => ShipGen.BuildHull(ShipGen.IsGeneratedId(hullId) ? hullId : ShipGen.RookieHullId, shipRoot);
+            => ShipGen.IsGeneratedId(hullId)
+                ? ShipGen.BuildHull(hullId, shipRoot)
+                : BuildProbe(shipRoot);
+
+        /// <summary>The escape pod: a cramped sphere, a mining head on a stalk,
+        /// a pair of stub radiators and one oversized drive bell. It should read
+        /// instantly as "this is not a ship", because it isn't.</summary>
+        static GameObject BuildProbe(Transform shipRoot)
+        {
+            var root = new GameObject("Hull");
+            root.transform.SetParent(shipRoot, false);
+            var t = root.transform;
+            var shell = new Color(0.78f, 0.72f, 0.36f);   // scuffed rescue yellow
+            var dark = new Color(0.22f, 0.24f, 0.28f);
+            var glow = new Color(0.45f, 0.8f, 1f);
+
+            // Pressure sphere, slightly squashed, with a dark equatorial band.
+            Part(t, PrimitiveType.Sphere, Vector3.zero, new Vector3(1.6f, 1.35f, 1.7f), Vector3.zero, shell);
+            Part(t, PrimitiveType.Cylinder, Vector3.zero, new Vector3(1.68f, 0.22f, 1.68f), Vector3.zero, dark);
+            // Canopy blister, forward and up.
+            Part(t, PrimitiveType.Sphere, new Vector3(0f, 0.45f, 0.62f), new Vector3(0.78f, 0.5f, 0.8f),
+                Vector3.zero, new Color(0.30f, 0.52f, 0.68f));
+            // Mining head on a short ventral stalk.
+            Part(t, PrimitiveType.Cylinder, new Vector3(0f, -0.72f, 0.75f), new Vector3(0.16f, 0.5f, 0.16f),
+                new Vector3(70f, 0f, 0f), dark);
+            Part(t, PrimitiveType.Cylinder, new Vector3(0f, -0.95f, 1.35f), new Vector3(0.34f, 0.3f, 0.34f),
+                new Vector3(70f, 0f, 0f), new Color(0.62f, 0.44f, 0.30f));
+            // Stub radiators — no mid or low slots to cool, just the drive.
+            Part(t, PrimitiveType.Cube, new Vector3(-1.15f, 0.1f, -0.5f), new Vector3(0.9f, 0.08f, 0.7f),
+                new Vector3(0f, 0f, 14f), dark);
+            Part(t, PrimitiveType.Cube, new Vector3(1.15f, 0.1f, -0.5f), new Vector3(0.9f, 0.08f, 0.7f),
+                new Vector3(0f, 0f, -14f), dark);
+            // Oversized drive bell: the instant-warp coil is most of the pod.
+            Part(t, PrimitiveType.Cylinder, new Vector3(0f, 0f, -1.35f), new Vector3(0.95f, 0.45f, 0.95f),
+                new Vector3(90f, 0f, 0f), dark);
+            Part(t, PrimitiveType.Cylinder, new Vector3(0f, 0f, -1.85f), new Vector3(0.7f, 0.1f, 0.7f),
+                new Vector3(90f, 0f, 0f), glow, true);
+            return root;
+        }
 
         public static void BuildNpcVisual(NpcDef def, Transform root)
         {

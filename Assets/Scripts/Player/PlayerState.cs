@@ -82,8 +82,11 @@ namespace SpaceGame
             var p = new PlayerState { Credits = 5000 };
             foreach (var id in GameData.Skills.Keys)
                 p.Skills[id] = new SkillState();
+            // A Hive Scout flies the swarm doctrine: pin with the web, saw with
+            // the gun. It cannot mine, so a rookie's first income is bounties.
             p.SetHull(ShipGen.RookieHullId);
-            p.Fitting[SlotType.Claw][0] = "claw1";
+            p.Fitting[SlotType.High][0] = "blaster1";
+            p.Fitting[SlotType.Web][0] = "web1";
             return p;
         }
 

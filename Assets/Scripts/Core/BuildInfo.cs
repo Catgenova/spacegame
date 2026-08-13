@@ -14,13 +14,13 @@ namespace SpaceGame
     /// </summary>
     public static class BuildInfo
     {
-        public const string Version = "0.14.0";
-        public const string Codename = "Generated Fleet";
+        public const string Version = "0.15.0";
+        public const string Codename = "Scout and Probe";
         public const string Date = "2026-08-13";
 
         /// <summary>What landed in this build — the thing to go and look at.</summary>
         public const string Headline =
-            "the hand-written hulls are retired; every ship is generated now";
+            "new pilots fly a Hive Scout; dying drops you into a Probe";
 
         /// <summary>"v0.11.0 Shipyards" — for the HUD top bar.</summary>
         public static string Short => "v" + Version + " " + Codename;

@@ -41,6 +41,7 @@ namespace SpaceGame
         public float Turn;         // deg/s
         public float MiningBonus;  // multiplier on mining yield
         public bool TurretOnly;    // high slots accept weapons only (Hive hardpoints)
+        public bool InstantWarp;   // escape pod: no alignment, no travel time
         public string Role;        // generated ships: doctrine line
         public string[] Features;  // generated ships: rolled trait descriptions
         public string BodyHash;    // generated ships: the 10-digit body identity
@@ -224,16 +225,43 @@ namespace SpaceGame
                                "afterburner1", "cargo1", "plate1", "capbattery1" },
             };
 
-            // No hand-written hulls: every ship in the game comes out of the
-            // seven generator lines, so this catalogue stays empty and
-            // ResolveShip falls straight through to ShipGen. Class 1 bodies are
-            // sold finished at shipyards; Class 2 and 3 are blueprint-only.
+            // Every *ship* in the game comes out of the seven generator lines.
+            // The one exception is the Probe: not a ship you fly by choice but
+            // the pod you wake up in after losing everything. It cannot be
+            // bought — BuyShip only accepts licensed yard stock — and it is
+            // deliberately miserable: one T0 mining head at half efficiency, a
+            // 50 m3 hold, no mid or low slots, and no gun. What it does have is
+            // an instant warp drive, so digging yourself out of a wipe is slow
+            // but never tedious.
+            Ships["probe"] = new ShipDef
+            {
+                Id = "probe", Name = "Probe", Class = "Escape Pod", Price = 1000,
+                Desc = "Emergency hull. One mining head, a thimble of cargo, and a warp drive"
+                     + " that does not wait. Mine your way back to a real ship.",
+                Role = "Survival: dig out, sell up, get back in a hull that shoots.",
+                Cargo = 50, HighSlots = 1, MidSlots = 0, LowSlots = 0,
+                Shield = 40, Armor = 30, Hull = 60, Cap = 60, CapRegen = 5f,
+                Speed = 3.0f,        // 300 m/s
+                Turn = 140f,
+                MiningBonus = 0.5f,  // the T0 head runs at half efficiency
+                InstantWarp = true,
+            };
 
             // Mining is done with Mining Claws on Claw-line hulls (SlotType.Claw).
-            // High-slot mining lasers had no hull left that could mount them —
-            // every generated line is turret-only up top except the Claw, which
-            // has no high slots at all — so they are gone rather than left as
-            // unfittable loot.
+            // The Tech I and II high-slot mining lasers are gone: every generated
+            // line is turret-only up top except the Claw, which has no high slots
+            // at all, so nothing could mount them.
+            //
+            // The T0 head is the exception, and exists only for the Probe — the
+            // one hull with a high slot that accepts something other than a gun.
+            // It is not printable and not lootable: you get it with the pod.
+            Modules["miner0"] = new ModuleDef
+            {
+                Id = "miner0", Name = "Mining Head T0", Short = "MIN 0", Slot = SlotType.High,
+                Kind = ModuleKind.Miner, Price = 1200, Cycle = 3f, Yield = 9f, Range = 120f, CapUse = 3f,
+                Desc = "Salvage-grade cutting head bolted to an escape pod. Runs at half"
+                     + " efficiency on the Probe's power — about 4.5 m3 a cycle.",
+            };
 
             Modules["blaster1"] = new ModuleDef
             {

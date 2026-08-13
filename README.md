@@ -41,11 +41,12 @@ created from code. No prefabs, no serialized assets, no scene wiring.
 ## How to play
 
 Every ship in the game is procedurally generated — there is no hand-written
-ship list. You start docked at **Solara Prime** with 5,000 credits and a loaner
-**Claw-class Urchin**: a Class 1 mining driller with a Mining Claw, a big ore
-hold and no gun at all. Solara is 1.0 security and spawns no pirates, so the
-opening move is to work the local rock, sell it, and buy your first armed hull
-off the shipyard pad.
+ship list. You start docked at **Solara Prime** with 5,000 credits and a
+**Hive-class Scout**: a Class 1 swarm frigate with a blaster and a stasis web.
+It flies the Hive doctrine — dart in, pin the target, saw it down — and it
+cannot mine at all, so your first credits are bounties. Solara itself is 1.0
+security and spawns nothing, so the opening move is one jump to **Verdant** for
+rookie pirates.
 
 | Input | Action |
 | --- | --- |
@@ -204,9 +205,29 @@ too, so an early warp-out beats their first volley.
   requisitions, and courier runs (the package really occupies your hold).
   One active mission at a time; turn in at the agent for the reward.
 
-Dying costs you your ship and cargo; you respawn docked at Solara Prime in a
-loaner Urchin driller. Progress autosaves (PlayerPrefs) every 20 seconds and on every
+Dying costs you your ship, your fitting and your cargo; you respawn docked at Solara Prime in a
+**Probe** (see below). Progress autosaves (PlayerPrefs) every 20 seconds and on every
 dock/jump.
+
+### The Probe
+
+Lose your ship and you wake up in a **Probe** — not a ship so much as a pod with
+ambitions. It is deliberately meagre:
+
+| | |
+| --- | --- |
+| Cargo | **50 m3** |
+| Slots | **1 high** — no mids, no lows, no specialist racks |
+| Fitting | one **Mining Head T0**, running at **50% efficiency** (~4.5 m3 a cycle) |
+| Speed | **300 m/s** |
+| Warp | **instant** — no alignment, no tunnel, you are simply there |
+
+So a wipe costs you everything except the ability to earn. You mine slow ore
+into a thimble of a hold and sell it until you can afford a real hull off a
+shipyard pad. The instant warp drive is the one kindness: crawling back should
+be humbling, not tedious. The Probe cannot be bought, is worth almost nothing
+as a trade-in, and its T0 head is the only module in the game that is neither
+lootable nor printable — you get it with the pod.
 
 ## The universe
 

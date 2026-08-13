@@ -15,6 +15,9 @@ namespace SpaceGame
         public const string HomeSystem = "solara";
         public const string HomeStation = "solara_station";
 
+        /// <summary>The escape pod a destroyed pilot wakes up in.</summary>
+        public const string ProbeHull = "probe";
+
         public UniverseData Universe;
         public string SystemId;
         public bool Docked;
@@ -302,11 +305,13 @@ namespace SpaceGame
             Player.ExtraCargo = 0f;
             Player.Cargo.Clear();
             Player.CargoModules.Clear();
-            Player.SetHull(ShipGen.RookieHullId);
-            // The loaner is a Claw driller with a Mining Claw: no gun, but it can
-            // always earn. Nothing sells modules, so the one tool you are handed
-            // has to be the one that makes money on its own.
-            Player.Fitting[SlotType.Claw][0] = "claw1";
+            // You do not wake up in another Scout. You wake up in a Probe: one
+            // T0 mining head at half efficiency, 50 m3 of hold, no gun and no
+            // mid or low slots. Nothing sells modules, so the tool you are handed
+            // has to be the one that earns on its own — and the instant warp
+            // drive is what keeps clawing back out of a wipe bearable.
+            Player.SetHull(ProbeHull);
+            Player.Fitting[SlotType.High][0] = "miner0";
             SystemId = HomeSystem;
             StationId = HomeStation;
             Docked = true;
@@ -314,7 +319,8 @@ namespace SpaceGame
             PlaceAtStation();
             Ship.RefreshRack();
             Ship.RebuildVisual();
-            Log("You wake up in a fresh clone at Solara Prime, in a loaner Urchin driller.");
+            Log("You wake up in a fresh clone at Solara Prime, in a Probe. One mining head, "
+                + "50 m3 of hold, no guns — but the warp drive is instant. Get to work.");
             SaveSystem.Save(this);
         }
 

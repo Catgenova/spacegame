@@ -153,12 +153,27 @@ namespace SpaceGame
             off.y *= 0.2f;
             _warpFrom = transform.position;
             _warpTo = target + off.normalized * Random.Range(80f, 140f);
+            _cmd = CmdMode.None;
+            DeactivateAll();
+
+            // The Probe's drive does not align and does not travel: it is simply
+            // somewhere else. Getting back on your feet after a wipe should not
+            // be spent watching the warp tunnel.
+            if (P.Hull.InstantWarp)
+            {
+                transform.position = _warpTo;
+                transform.rotation = Quaternion.LookRotation((_warpTo - _warpFrom).normalized, Vector3.up);
+                Vel = Vector3.zero;
+                InWarp = false;
+                Sfx.WarpExit();
+                GM.Log("Instant warp — " + label + ".");
+                return true;
+            }
+
             _warpDur = Mathf.Clamp(3f + d / 45000f, 4f, 10f);
             _warpT = 0f;
             _warpAligning = true;
             InWarp = true;
-            _cmd = CmdMode.None;
-            DeactivateAll();
             Sfx.WarpEnter();
             GM.Log("Warp drive active — " + label + ".");
             return true;
