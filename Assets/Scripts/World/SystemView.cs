@@ -199,11 +199,16 @@ namespace SpaceGame
                 can.DisplayName = "Sealed Container " + (i + 1);
                 can.Site = site;
                 can.Exotics[exoticId] = Mathf.Round(perCan * Random.Range(0.7f, 1.4f));
-                // The deepest container in a rich field may hold a print.
+                // The deepest container in a rich field may hold a print, of the
+                // field's own tier — a Tier 3 anomaly teaches Class 3 work.
                 if (Random.value < (tier == 3 ? 0.26f : tier == 2 ? 0.14f : 0.06f))
+                {
+                    string src = tier == 3 ? "overlord" : "marauder";
+                    int rarity = GameData.BpRarityForClass(tier);
                     can.BpLoot.Add(Random.value < 0.6f
-                        ? ModGen.RollBlueprint(tier == 3 ? "overlord" : "marauder")
-                        : ShipGen.RollBlueprint(tier == 3 ? "overlord" : "marauder"));
+                        ? ModGen.RollBlueprint(src, rarity)
+                        : ShipGen.RollBlueprint(src, tier, rarity));
+                }
                 site.Containers.Add(can);
                 Objects.Add(can);
             }

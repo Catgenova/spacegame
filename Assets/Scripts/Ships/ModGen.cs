@@ -277,15 +277,19 @@ namespace SpaceGame
 
         /// <summary>Roll a module blueprint. Tougher targets bias toward the
         /// rarer, fewer-run, better-outcome prints and toward Tech II bases.</summary>
-        public static Blueprint RollBlueprint(string npcId)
+        /// <summary>Print blueprint for a wreck. The pirate's class fixes the
+        /// print's rarity — that is how "an equivalent-class module" is
+        /// expressed, since module prints have no class of their own — while how
+        /// tough the target was still decides Tech I versus Tech II.</summary>
+        public static Blueprint RollBlueprint(string npcId, int rarity)
         {
-            float pT2, r3, r2, r1;
+            float pT2;
             switch (npcId)
             {
-                case "convoyhauler": pT2 = 0.55f; r3 = 0.14f; r2 = 0.30f; r1 = 0.34f; break;
-                case "overlord": pT2 = 0.40f; r3 = 0.09f; r2 = 0.24f; r1 = 0.34f; break;
-                case "marauder": pT2 = 0.22f; r3 = 0.04f; r2 = 0.15f; r1 = 0.31f; break;
-                default: pT2 = 0.08f; r3 = 0.01f; r2 = 0.07f; r1 = 0.24f; break;
+                case "convoyhauler": pT2 = 0.55f; break;
+                case "overlord": pT2 = 0.40f; break;
+                case "marauder": pT2 = 0.22f; break;
+                default: pT2 = 0.08f; break;
             }
 
             // Pick a family, then a tier within it.
@@ -298,9 +302,7 @@ namespace SpaceGame
             if (choices.Count == 0) choices.AddRange(family);
             string baseId = choices[Random.Range(0, choices.Count)];
 
-            float rr = Random.value;
-            int rarity = rr < r3 ? 3 : rr < r3 + r2 ? 2 : rr < r3 + r2 + r1 ? 1 : 0;
-
+            rarity = Mathf.Clamp(rarity, 0, GameData.ModBpRuns.Length - 1);
             return new Blueprint
             {
                 Hash = NewHash(),

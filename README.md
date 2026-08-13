@@ -124,17 +124,33 @@ too, so an early warp-out beats their first volley.
   and, rarely, a blueprint chip. Tougher targets leave a richer grade and
   more of it, so a full hold of Class 3 scrap is worth the trip.
   **Select a pirate and the target panel tells you what it pays** — bounty,
-  scrap grade and volume, and the blueprint chance — so engaging is an
-  informed decision rather than a guess:
+  hull class, scrap grade and volume, and the blueprint odds — so engaging is
+  an informed decision rather than a guess.
+- **Blueprints come off the class you kill.** Every pirate is a **Class 1, 2 or
+  3** hull, and every wreck rolls four independent chances:
 
-  | Target | Bounty | Scrap | Blueprint chance |
-  | --- | --- | --- | --- |
-  | Pirate Rookie | 3,500 cr | Class 1, 6-12 m3 | 4% |
-  | Pirate Marauder | 11,000 cr | Class 2, 10-20 m3 | 10% |
-  | Pirate Overlord | 38,000 cr | Class 3, 18-32 m3 | 25% |
-  | Convoy Hauler | 60,000 cr | Class 3, 30-50 m3 | **60%** |
+  | Roll | Chance | What you get |
+  | --- | --- | --- |
+  | Equivalent module print | **10%** | its own class |
+  | Equivalent hull print | **5%** | its own class |
+  | Class + 1 module print | **2%** | one class above it |
+  | Class + 1 hull print | **1%** | one class above it |
 
-  Of the chips that do drop, **55% are module prints and 45% are hulls**.
+  The rates are flat — a rookie drops chips as often as an overlord. What
+  scales is the **class** of what drops, and a print's class *is* its grade:
+  Class 1 prints are **Common**, Class 2 **Uncommon**, Class 3 **Rare**,
+  Class 4 **Pristine**. So farming rookies caps you at Uncommon no matter how
+  long you grind, and the only way to see the tier above your comfort zone is
+  the slim upper pair — which is the whole reason to punch above your weight.
+  Since the four rolls are independent, one wreck occasionally yields two or
+  more chips (about 1% of kills).
+
+  | Target | Bounty | Scrap | Prints | Bonus roll |
+  | --- | --- | --- | --- | --- |
+  | Pirate Rookie | 3,500 cr | Class 1, 6-12 m3 | Common | Uncommon |
+  | Pirate Marauder | 11,000 cr | Class 2, 10-20 m3 | Uncommon | Rare |
+  | Pirate Overlord | 38,000 cr | Class 3, 18-32 m3 | Rare | **Pristine** |
+  | Convoy Hauler | 60,000 cr | Class 3, 30-50 m3 | Rare | **Pristine** |
 - **Everything you fit is found or built.** Credits cannot buy gear anywhere
   in the game, so there are exactly two routes to a module: **drifting
   caches** turned up by a sensor sweep, which hold basic Tech I pieces
@@ -154,7 +170,7 @@ too, so an early warp-out beats their first volley.
 - **More contracts** — salvage recovery jobs, RUSH couriers with hard
   deadlines and 1.8× pay, and low-sec agents pay up to +50% on everything.
 - **Hunt blueprints, build Hive ships** — pirate wrecks can carry blueprint
-  chips (convoy haulers are the best source). Each blueprint holds a
+  chips. Each blueprint holds a
   10-digit body hash that deterministically generates a one-of-a-kind
   **Hive-class scout**: stats, rolled traits, and a procedurally generated
   faceted wasp-metal mesh — angular gold/black hull, swept antennae, wing

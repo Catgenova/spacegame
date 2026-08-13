@@ -90,8 +90,9 @@ namespace SpaceGame
         public long Bounty;
         public float StandingGain; // faction standing awarded per kill
         public bool NeverFlees;    // overlords fight to the death
-        public float BpChance;     // chance a wreck contains a ship blueprint
-        public int ScrapClass;     // 1..3 — grade of scrap this hull leaves
+        /// <summary>1..3 — the class of hull this is. Sets the grade of scrap it
+        /// leaves and the class of blueprint its wreck can carry.</summary>
+        public int Class;
         public float ScrapMin, ScrapMax; // m3 of scrap in the wreck
     }
 
@@ -120,28 +121,43 @@ namespace SpaceGame
         /// <summary>The escape pod every pilot starts in and falls back to.</summary>
         public const string ProbeHull = "probe";
 
-        /// <summary>Of the blueprint chips that do drop, this share are module
-        /// prints and the rest are hulls. Named so the HUD can quote the real
-        /// number rather than a copy of it.</summary>
-        public const float ModuleBpShare = 0.55f;
+        // Blueprint drops. Every pirate rolls these four chances independently,
+        // so the rate is flat across the game and it is the *class* of what drops
+        // that scales: a Class 1 rookie hands out Class 1 prints, a Class 3
+        // overlord hands out Class 3 ones. The slim upper pair is the reason to
+        // pick fights above your weight — it is the only way to see the tier
+        // above what you can comfortably kill.
+        public const float BpModuleChance = 0.10f;   // module print, same class
+        public const float BpShipChance = 0.05f;     // hull print, same class
+        public const float BpModuleUpChance = 0.02f; // module print, class + 1
+        public const float BpShipUpChance = 0.01f;   // hull print, class + 1
+        public const int MaxShipClass = 3;
+
+        /// <summary>A blueprint's class expressed as print rarity: Class 1 is a
+        /// Common print, Class 4 a Pristine one. Module prints have no class of
+        /// their own, so this is how "an equivalent-class module" is expressed —
+        /// and it is what makes the class+1 roll worth something even for the
+        /// toughest targets, where there is no hull class above them.</summary>
+        public static int BpRarityForClass(int cls)
+            => Mathf.Clamp(cls - 1, 0, RarityNames.Length - 1);
 
         /// <summary>What a pirate is worth killing for: bounty, the scrap its
-        /// hulk leaves, and the odds of a blueprint chip in the wreck. Shown on
-        /// the target panel, so the decision to engage is an informed one.</summary>
+        /// hulk leaves, and the blueprint odds. Shown on the target panel, so
+        /// engaging is an informed decision.</summary>
         public static string NpcRewardLine(NpcDef d)
         {
             if (d == null) return "";
-            var scrap = Scraps[ScrapIdForClass(d.ScrapClass)];
-            string line = "Bounty " + FmtCredits(d.Bounty)
-                + "  ·  " + scrap.Name + " " + Mathf.Round(d.ScrapMin) + "-"
-                + Mathf.Round(d.ScrapMax) + " m3";
-            if (d.BpChance > 0f)
-                line += "  ·  blueprint " + (d.BpChance * 100f).ToString("0.#") + "%"
-                     + " (" + Mathf.Round(ModuleBpShare * 100f) + "% gear / "
-                     + Mathf.Round((1f - ModuleBpShare) * 100f) + "% hull)";
-            else
-                line += "  ·  no blueprints";
-            return line;
+            var scrap = Scraps[ScrapIdForClass(d.Class)];
+            int up = Mathf.Min(d.Class + 1, MaxShipClass);
+            return "Bounty " + FmtCredits(d.Bounty)
+                + "  ·  Class " + d.Class + " hull  ·  " + scrap.Name + " "
+                + Mathf.Round(d.ScrapMin) + "-" + Mathf.Round(d.ScrapMax) + " m3"
+                + "\nBlueprints — Class " + d.Class + ": "
+                + Mathf.Round(BpModuleChance * 100f) + "% gear, "
+                + Mathf.Round(BpShipChance * 100f) + "% hull"
+                + "   ·   Class " + up + " (" + RarityNames[BpRarityForClass(d.Class + 1)] + "): "
+                + Mathf.Round(BpModuleUpChance * 100f) + "% gear, "
+                + Mathf.Round(BpShipUpChance * 100f) + "% hull";
         }
 
         /// <summary>XP required to go from `level` to `level + 1`.</summary>
@@ -454,16 +470,16 @@ namespace SpaceGame
                 Id = "rookie", Name = "Pirate Rookie",
                 Shield = 90, Armor = 70, Hull = 70,
                 Dmg = 7, Cycle = 2.5f, Range = 100f, Engage = 700f, Speed = 2.8f, Orbit = 60f,
-                Tracking = 0.30f, Bounty = 3500, StandingGain = 0.04f, BpChance = 0.04f,
-                ScrapClass = 1, ScrapMin = 6f, ScrapMax = 12f,
+                Tracking = 0.30f, Bounty = 3500, StandingGain = 0.04f,
+                Class = 1, ScrapMin = 6f, ScrapMax = 12f,
             };
             Npcs["marauder"] = new NpcDef
             {
                 Id = "marauder", Name = "Pirate Marauder",
                 Shield = 220, Armor = 180, Hull = 160,
                 Dmg = 16, Cycle = 2.8f, Range = 160f, Engage = 900f, Speed = 2.6f, Orbit = 100f,
-                Tracking = 0.13f, Bounty = 11000, StandingGain = 0.1f, BpChance = 0.1f,
-                ScrapClass = 2, ScrapMin = 10f, ScrapMax = 20f,
+                Tracking = 0.13f, Bounty = 11000, StandingGain = 0.1f,
+                Class = 2, ScrapMin = 10f, ScrapMax = 20f,
             };
             Npcs["overlord"] = new NpcDef
             {
@@ -471,16 +487,15 @@ namespace SpaceGame
                 Shield = 500, Armor = 420, Hull = 380,
                 Dmg = 34, Cycle = 3.2f, Range = 240f, Engage = 1200f, Speed = 2.2f, Orbit = 140f,
                 Tracking = 0.055f, Bounty = 38000, StandingGain = 0.25f, NeverFlees = true,
-                ScrapClass = 3, ScrapMin = 18f, ScrapMax = 32f,
-                BpChance = 0.25f,
+                Class = 3, ScrapMin = 18f, ScrapMax = 32f,
             };
             Npcs["convoyhauler"] = new NpcDef
             {
                 Id = "convoyhauler", Name = "Convoy Hauler",
                 Shield = 700, Armor = 800, Hull = 900,
                 Dmg = 8, Cycle = 3f, Range = 90f, Engage = 500f, Speed = 1.2f, Orbit = 220f,
-                Tracking = 0.2f, Bounty = 60000, StandingGain = 0.3f, BpChance = 0.6f,
-                ScrapClass = 3, ScrapMin = 30f, ScrapMax = 50f,
+                Tracking = 0.2f, Bounty = 60000, StandingGain = 0.3f,
+                Class = 3, ScrapMin = 30f, ScrapMax = 50f,
             };
 
             Skill("mining", "Mining", "+5% mining laser yield per level.");

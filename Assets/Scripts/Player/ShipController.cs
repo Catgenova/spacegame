@@ -564,8 +564,10 @@ namespace SpaceGame
                 for (int i = 0; i < n; i++)
                     loot.Add(cachePool[Random.Range(0, cachePool.Length)]);
                 var wreck = GM.View.SpawnWreck(CacheDef, pos, loot);
+                // A drifting cache is nobody's wreck, so it carries the entry
+                // class: a starting print, not a shortcut to the top.
                 if (Random.value < 0.08f)
-                    wreck.BpLoot.Add(ShipGen.RollBlueprint("cache"));
+                    wreck.BpLoot.Add(ShipGen.RollBlueprint("cache", 1, GameData.BpRarityForClass(1)));
                 GM.Log("Sensor sweep: CONTACT — drifting cache "
                     + GameData.FmtDist(Vector3.Distance(transform.position, pos))
                     + " out. It won't drift forever.");

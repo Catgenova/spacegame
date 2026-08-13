@@ -339,9 +339,9 @@ namespace SpaceGame
             // Leave a wreck. Pirates carry no fittable gear — the hulk yields
             // graded scrap, and rarely a blueprint chip.
             var wreck = View.SpawnWreck(npc.Def, npc.transform.position, null);
-            if (npc.Def.ScrapClass > 0 && npc.Def.ScrapMax > 0f)
+            if (npc.Def.Class > 0 && npc.Def.ScrapMax > 0f)
             {
-                string sid = GameData.ScrapIdForClass(npc.Def.ScrapClass);
+                string sid = GameData.ScrapIdForClass(npc.Def.Class);
                 float m3 = Mathf.Round(Random.Range(npc.Def.ScrapMin, npc.Def.ScrapMax));
                 if (m3 > 0f)
                 {
@@ -350,11 +350,21 @@ namespace SpaceGame
                 }
             }
 
-            // Ship blueprint chips: rarer, and the real reason to hunt convoys.
-            if (Random.value < npc.Def.BpChance)
-                wreck.BpLoot.Add(Random.value < GameData.ModuleBpShare
-                    ? ModGen.RollBlueprint(npc.Def.Id)
-                    : ShipGen.RollBlueprint(npc.Def.Id));
+            // Blueprint chips. Four independent rolls, so one wreck can hold
+            // several: gear and hull prints of the dead ship's own class, plus a
+            // slim chance at the class above it. That upper pair is the only way
+            // to see a tier before you can farm it, which is what makes punching
+            // above your weight worth the risk.
+            int cls = npc.Def.Class;
+            if (Random.value < GameData.BpModuleChance)
+                wreck.BpLoot.Add(ModGen.RollBlueprint(npc.Def.Id, GameData.BpRarityForClass(cls)));
+            if (Random.value < GameData.BpShipChance)
+                wreck.BpLoot.Add(ShipGen.RollBlueprint(npc.Def.Id, cls, GameData.BpRarityForClass(cls)));
+            if (Random.value < GameData.BpModuleUpChance)
+                wreck.BpLoot.Add(ModGen.RollBlueprint(npc.Def.Id, GameData.BpRarityForClass(cls + 1)));
+            if (Random.value < GameData.BpShipUpChance)
+                wreck.BpLoot.Add(ShipGen.RollBlueprint(npc.Def.Id, cls + 1,
+                    GameData.BpRarityForClass(cls + 1)));
 
             View.RemoveObject(npc);
 

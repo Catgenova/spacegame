@@ -127,20 +127,45 @@ namespace SpaceGame
              : bp.TypeId == PackGenerator.TypeId ? PackGenerator.Fee(bp.Class)
              : HiveGenerator.Fee(bp.Class);
 
-        /// <summary>Wreck loot: Fins drop often, Claws feed industry, Talons
-        /// command the flock, Scales anchor the line, Trails find what the
-        /// rest missed, Packs haul it all home, Hives carry the
-        /// exotics.</summary>
-        public static Blueprint RollBlueprint(string npcId)
+        /// <summary>Which line a dropped hull print is for: Fins drop often,
+        /// Claws feed industry, Talons command the flock, Scales anchor the line,
+        /// Trails find what the rest missed, Packs haul it all home, Hives carry
+        /// the exotics.</summary>
+        static string RollLine()
         {
             float r = Random.value;
-            if (r < 0.26f) return FinGenerator.RollBlueprint(npcId);
-            if (r < 0.44f) return ClawGenerator.RollBlueprint(npcId);
-            if (r < 0.58f) return TalonGenerator.RollBlueprint(npcId);
-            if (r < 0.64f) return ScaleGenerator.RollBlueprint(npcId);
-            if (r < 0.72f) return TrailGenerator.RollBlueprint(npcId);
-            if (r < 0.80f) return PackGenerator.RollBlueprint(npcId);
-            return HiveGenerator.RollBlueprint(npcId);
+            if (r < 0.26f) return FinGenerator.TypeId;
+            if (r < 0.44f) return ClawGenerator.TypeId;
+            if (r < 0.58f) return TalonGenerator.TypeId;
+            if (r < 0.64f) return ScaleGenerator.TypeId;
+            if (r < 0.72f) return TrailGenerator.TypeId;
+            if (r < 0.80f) return PackGenerator.TypeId;
+            return HiveGenerator.TypeId;
+        }
+
+        /// <summary>Ten random digits: a fresh body identity.</summary>
+        public static string NewHash()
+        {
+            var s = "";
+            for (int i = 0; i < 10; i++) s += Random.Range(0, 10).ToString();
+            return s;
+        }
+
+        /// <summary>Hull print for a wreck, at a class and rarity the caller
+        /// decides — the pirate's class picks both, so what a kill can teach you
+        /// to build is exactly what it was.</summary>
+        public static Blueprint RollBlueprint(string npcId, int cls, int rarity)
+        {
+            cls = Mathf.Clamp(cls, 1, GameData.MaxShipClass);
+            rarity = Mathf.Clamp(rarity, 0, GameData.RarityRuns.Length - 1);
+            return new Blueprint
+            {
+                Hash = NewHash(),
+                TypeId = RollLine(),
+                Class = cls,
+                Rarity = rarity,
+                RunsLeft = GameData.RarityRuns[rarity],
+            };
         }
 
         /// <summary>Hull id for a body on a named line, e.g. ("fin","0421…",1).</summary>

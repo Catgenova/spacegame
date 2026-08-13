@@ -14,13 +14,13 @@ namespace SpaceGame
     /// </summary>
     public static class BuildInfo
     {
-        public const string Version = "0.19.0";
-        public const string Codename = "Know The Odds";
+        public const string Version = "0.20.0";
+        public const string Codename = "Kill Your Class";
         public const string Date = "2026-08-13";
 
         /// <summary>What landed in this build — the thing to go and look at.</summary>
         public const string Headline =
-            "the target panel shows bounty, scrap and blueprint drop rate";
+            "blueprint drops now match the class of pirate you killed";
 
         /// <summary>"v0.11.0 Shipyards" — for the HUD top bar.</summary>
         public static string Short => "v" + Version + " " + Codename;
