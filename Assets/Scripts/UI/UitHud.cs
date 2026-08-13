@@ -339,6 +339,9 @@ namespace SpaceGame
             _sysLabel = Text("—", 13, UiSkin.TextMain, true);
             _creditsLabel = Text("0 cr", 13, UiSkin.AccentWarm, true);
             bar.Add(_sysLabel);
+            // Centre: which build is running. Cheap insurance against staring at
+            // stale code after a pull that did not land.
+            bar.Add(Text(BuildInfo.Short, 11, UiSkin.TextDim, false));
             bar.Add(_creditsLabel);
             _root.Add(bar);
         }

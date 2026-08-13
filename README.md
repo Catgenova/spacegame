@@ -8,6 +8,25 @@ on station markets, fight pirates, fit modules, and train skills in real time.
 
 - **Unity 6 (6000.x)** via Unity Hub
 
+## Which build am I running?
+
+The version is printed in the **middle of the HUD top bar** and written to the
+**message log** every time you press Play (see `BuildInfo.cs`). Double-clicking
+`update.bat` prints the version it just pulled, so the two should match.
+
+If the game shows an **older** version than `update.bat` reported, the pull
+landed but Unity has not recompiled. Click into the editor and watch for the
+spinner in the bottom right; if nothing happens, open **Window > General >
+Console** and look for red errors — a compile error makes Unity keep running
+the last assembly that built successfully, so the game silently stays on the
+previous version.
+
+If `update.bat` says **ALREADY UP TO DATE** but you expected changes, the
+folder Unity has open is not the folder that got updated. Right-click any
+script in Unity's Project window, choose *Show in Explorer*, and check the path
+matches the folder `update.bat` printed. Run `update.bat force` to discard
+local edits and match GitHub exactly.
+
 ## Getting started
 
 1. Open Unity Hub → **Add** → **Add project from disk** → select this folder.

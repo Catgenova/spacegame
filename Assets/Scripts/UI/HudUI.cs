@@ -133,6 +133,9 @@ namespace SpaceGame
             GUI.Label(new Rect(12, 4, 400, 20),
                 sys.Name.ToUpper() + "   <sec " + sec + ">" + (GM.Docked ? "   [DOCKED: " + GM.Station.Name + "]" : ""),
                 _titleStyle);
+            // Centre: which build is running, so stale code is obvious.
+            var mid = new GUIStyle(_smallStyle) { alignment = TextAnchor.MiddleCenter };
+            GUI.Label(new Rect(Screen.width * 0.5f - 120f, 5, 240, 18), BuildInfo.Short, mid);
             var right = new GUIStyle(_titleStyle) { alignment = TextAnchor.MiddleRight };
             GUI.Label(new Rect(Screen.width - 460, 4, 440, 20),
                 GameData.StandingTier(GM.Player.Standing) + "  ·  " + GameData.FmtCredits(GM.Player.Credits), right);

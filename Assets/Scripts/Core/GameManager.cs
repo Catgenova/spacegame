@@ -69,6 +69,10 @@ namespace SpaceGame
                 Log("Welcome to the frontier, capsuleer. Undock when ready.");
             }
 
+            // Always stamp the build into the log, so which code you are
+            // running is never a guess.
+            Log(BuildInfo.BootLine);
+
             LoadSystem(SystemId);
             PlaceAtStation();
             Ship.RefreshRack();
