@@ -509,13 +509,30 @@ namespace SpaceGame
             GUILayout.Label("Current yield: " + pct + "%  (base 66%, +4.5% per Refining level). "
                 + "Ore and recovered scrap both mill down here; scrap yields several times "
                 + "its own volume in metal.", _smallStyle);
+            GUILayout.Label("Output goes into " + GM.HereName() + "'s storage bay, not your hold,"
+                + " so a full load can go through in one go. Collect it on the Storage tab.",
+                _smallStyle);
             GUILayout.Space(8);
 
+            GUILayout.Label("— FROM YOUR HOLD —", _smallStyle);
+            if (!DrawRefineRows(p.Cargo, false))
+                GUILayout.Label("No refinable ore or scrap in your cargo hold.", _smallStyle);
+
+            GUILayout.Space(8);
+            GUILayout.Label("— FROM THE STORAGE BAY —", _smallStyle);
+            if (!DrawRefineRows(GM.Store.Cargo, true))
+                GUILayout.Label("Nothing refinable stored here.", _smallStyle);
+        }
+
+        /// <summary>Refinery rows for one feedstock source. Returns false if the
+        /// source held nothing refinable.</summary>
+        bool DrawRefineRows(Dictionary<string, float> source, bool fromStore)
+        {
             bool any = false;
-            foreach (var id in new List<string>(p.Cargo.Keys))
+            foreach (var id in new List<string>(source.Keys))
             {
                 if (!GameData.TryRefinable(id, out var def)) continue;
-                float qty = p.Cargo[id];
+                float qty = source[id];
                 if (qty <= 0f) continue;
                 any = true;
                 string outputs = "";
@@ -528,13 +545,13 @@ namespace SpaceGame
                 GUILayout.Label("→  " + outputs + " (m3)", GUILayout.Width(330));
                 if (GUILayout.Button("Refine", GUILayout.Width(80)))
                 {
-                    GM.RefineOre(id);
+                    if (fromStore) GM.RefineStored(id); else GM.RefineOre(id);
                     GUILayout.EndHorizontal();
                     break;
                 }
                 GUILayout.EndHorizontal();
             }
-            if (!any) GUILayout.Label("No refinable ore in your cargo hold.", _smallStyle);
+            return any;
         }
 
         void DrawFittingTab()

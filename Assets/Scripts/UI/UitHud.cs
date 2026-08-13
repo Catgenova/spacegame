@@ -1134,18 +1134,35 @@ namespace SpaceGame
 
         void BuildRefineTab(GameManager gm)
         {
-            var p = gm.Player;
             _stationContent.Add(Section("REFINERY"));
             _stationContent.Add(WrapText("Current yield: " + Mathf.RoundToInt(gm.RefineYield() * 100f)
                 + "%  (base 66%, +4.5% per Refining level). Ore and recovered scrap both mill down here — "
                 + "scrap is compacted hull, so it yields several times its own volume in metal, and Class 3 "
                 + "scrap is the only source of beryllium outside low-sec belts.",
                 UiSkin.TextDim));
+            _stationContent.Add(WrapText("Everything the refinery produces goes into "
+                + gm.HereName() + "'s storage bay, so you can run a full hold through it "
+                + "without worrying whether the metal will fit. Collect what you want to carry "
+                + "from the Storage tab.", UiSkin.AccentWarm));
+
+            _stationContent.Add(Section("FROM YOUR HOLD"));
+            if (!BuildRefineRows(gm, gm.Player.Cargo, false))
+                _stationContent.Add(WrapText("No refinable ore or scrap in your cargo hold.", UiSkin.TextDim));
+
+            _stationContent.Add(Section("FROM THE STORAGE BAY"));
+            if (!BuildRefineRows(gm, gm.Store.Cargo, true))
+                _stationContent.Add(WrapText("Nothing refinable stored here.", UiSkin.TextDim));
+        }
+
+        /// <summary>Refinery rows for one feedstock source. Returns false if the
+        /// source held nothing refinable.</summary>
+        bool BuildRefineRows(GameManager gm, Dictionary<string, float> source, bool fromStore)
+        {
             bool any = false;
-            foreach (var id in new List<string>(p.Cargo.Keys))
+            foreach (var id in new List<string>(source.Keys))
             {
                 if (!GameData.TryRefinable(id, out var def)) continue;
-                float qty = p.Cargo[id];
+                float qty = source[id];
                 if (qty <= 0f) continue;
                 any = true;
                 string oid = id;
@@ -1156,9 +1173,13 @@ namespace SpaceGame
                 _stationContent.Add(Row(
                     Cell(def.Name + "  ×" + Mathf.Round(qty) + " m3", 230, UiSkin.TextMain),
                     Cell("→  " + outputs + " (m3)", 350, UiSkin.TextDim, 10),
-                    Btn("Refine", () => { gm.RefineOre(oid); RefreshStationTab(); })));
+                    Btn("Refine", () =>
+                    {
+                        if (fromStore) gm.RefineStored(oid); else gm.RefineOre(oid);
+                        RefreshStationTab();
+                    })));
             }
-            if (!any) _stationContent.Add(WrapText("No refinable ore in your cargo hold.", UiSkin.TextDim));
+            return any;
         }
 
         void BuildFittingTab(GameManager gm)

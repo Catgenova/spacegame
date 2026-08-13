@@ -98,8 +98,13 @@ too, so an early warp-out beats their first volley.
   times its own volume in metal (Class 3 gives 8.4 m3 of metal per m3), and
   it is the only route to **titanium and beryllium that doesn't involve
   mining low-sec belts** — one convoy kill covers the exotic metals for a
-  hull, leaving you to top up bulk iron from ore. Anything that won't fit
-  your hold is banked in the station's storage bay.
+  hull, leaving you to top up bulk iron from ore.
+  The refinery is a station service, so it works out of the warehouse rather
+  than your cargo hold: **everything it produces goes straight into the
+  station's storage bay**, and it will happily take feedstock *from* that bay
+  too. You can dock, put a full hold of scrap through in one click without
+  doing volume arithmetic, and pick up only what you want to carry from the
+  Storage tab.
 - **Sell** at stations — each station has stable price personalities, so
   hauling ore and minerals between systems is a real career. Stations buy
   raw materials and sell hulls, refining, repairs and licences. **No station

@@ -708,37 +708,43 @@ namespace SpaceGame
         public float RefineYield()
             => GameData.BaseRefineYield + GameData.RefineYieldPerLevel * Player.SkillLevel("refining");
 
-        /// <summary>Run ore or scrap through the station refinery. Scrap mills
-        /// out into more volume than it occupied, so anything that will not fit
-        /// the hold is banked in this station's storage bay rather than lost.</summary>
-        public void RefineOre(string oreId)
+        /// <summary>Refine feedstock out of your hold. The metal goes to the
+        /// station's bay, not back into your ship.</summary>
+        public void RefineOre(string oreId) => Refine(oreId, false);
+
+        /// <summary>Refine feedstock that is already sitting in this station's
+        /// bay, without hauling it back aboard first.</summary>
+        public void RefineStored(string oreId) => Refine(oreId, true);
+
+        /// <summary>Run ore or scrap through the station refinery.
+        ///
+        /// Refining is a station service, so the output is warehoused here
+        /// rather than stuffed into your hold: every metal it produces lands in
+        /// this station's bay. That matters because scrap mills out into several
+        /// times its own volume, and because the bay is unlimited — you can put
+        /// a full hold through the refinery without first working out whether
+        /// the result will fit. Collect what you actually want to carry from the
+        /// Storage tab afterwards.
+        ///
+        /// Feedstock can come from your hold or straight out of the bay.</summary>
+        void Refine(string oreId, bool fromStore)
         {
             if (!Docked || !GameData.TryRefinable(oreId, out var def)) return;
-            if (!Player.Cargo.TryGetValue(oreId, out float qty) || qty <= 0f) return;
+            var source = fromStore ? Store.Cargo : Player.Cargo;
+            if (!source.TryGetValue(oreId, out float qty) || qty <= 0f) return;
             float yield = RefineYield();
-            Player.Cargo.Remove(oreId);
-            float cap = Player.ComputeStats().CargoCap;
+            source.Remove(oreId);
             var summary = "";
-            float spilled = 0f;
             foreach (var kv in def.RefineInto)
             {
                 float outM3 = qty * yield * kv.Value;
-                float room = Mathf.Max(0f, cap - Player.CargoUsed());
-                float toHold = Mathf.Min(outM3, room);
-                if (toHold > 0f)
-                {
-                    Player.Cargo.TryGetValue(kv.Key, out float have);
-                    Player.Cargo[kv.Key] = have + toHold;
-                }
-                float rest = outM3 - toHold;
-                if (rest > 0.01f) { Store.AddCargo(kv.Key, rest); spilled += rest; }
+                Store.AddCargo(kv.Key, outM3);
                 summary += (summary.Length > 0 ? ", " : "")
                     + Mathf.Round(outM3) + " m3 " + GameData.Commodity(kv.Key).Name;
             }
-            Log("Refined " + Mathf.Round(qty) + " m3 " + def.Name + " into " + summary + "."
-                + (spilled > 0.01f
-                    ? "  Hold was full — " + Mathf.Round(spilled) + " m3 went into station storage."
-                    : ""));
+            Log("Refined " + Mathf.Round(qty) + " m3 " + def.Name
+                + (fromStore ? " out of the bay" : "") + " into " + summary
+                + " — waiting in " + HereName() + "'s storage bay.");
             SaveSystem.Save(this);
         }
 
