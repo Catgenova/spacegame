@@ -653,6 +653,8 @@ namespace SpaceGame
         {
             var p = GM.Player;
             GUILayout.Label("— MANUFACTURING —", _smallStyle);
+            GUILayout.Label("The assembly line draws on your hold AND " + GM.HereName()
+                + "'s storage bay, bay first. Refine here and build here.", _smallStyle);
             if (p.Blueprints.Count == 0)
             {
                 GUILayout.Label("No blueprints. Loot pirate wrecks — convoy haulers are the best source.", _smallStyle);
@@ -668,6 +670,7 @@ namespace SpaceGame
                     GUILayout.Label("    [" + baseDef.Slot + "]  "
                         + (mods == 0 ? "base stats only" : mods + " modifier(s) per run")
                         + " · " + GameData.ModBpMatMult[bp.Rarity] + "x materials", _smallStyle);
+                    GUILayout.Label("    have/need: " + GM.MaterialLine(ModGen.MaterialCost(bp)), _smallStyle);
                     string mBlock = GM.ManufactureBlocker(bp);
                     if (mBlock == null)
                     {
@@ -686,6 +689,7 @@ namespace SpaceGame
                     + (def.SensorSlots > 0 ? " · Sensors " + def.SensorSlots : "")
                     + (def.CollectorSlots > 0 ? " · Collectors " + def.CollectorSlots : "")
                     + " · " + Mathf.Round(def.Speed * GameData.UnitsToMs) + " m/s", _smallStyle);
+                GUILayout.Label("    have/need: " + GM.MaterialLine(ShipGen.MaterialCost(bp)), _smallStyle);
                 string blocker = GM.ManufactureBlocker(bp);
                 if (blocker == null)
                 {

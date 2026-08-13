@@ -107,9 +107,10 @@ too, so an early warp-out beats their first volley.
   The refinery is a station service, so it works out of the warehouse rather
   than your cargo hold: **everything it produces goes straight into the
   station's storage bay**, and it will happily take feedstock *from* that bay
-  too. You can dock, put a full hold of scrap through in one click without
-  doing volume arithmetic, and pick up only what you want to carry from the
-  Storage tab.
+  too. The **Industry** tab draws on the same pool — your hold *and* the local
+  bay, spending the bay first — so the whole industrial loop runs without
+  shuttling metal in and out of the ship: dock, refine a hold of ore, build
+  straight out of the warehouse. Carry away only what you actually want.
 - **Sell** at stations — each station has stable price personalities, so
   hauling ore and minerals between systems is a real career. Stations buy
   raw materials and sell hulls, refining, repairs and licences. **No station

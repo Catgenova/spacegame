@@ -1310,10 +1310,8 @@ namespace SpaceGame
                     : "Each run rolls " + mods + " modifier" + (mods == 1 ? "" : "s") + " onto the finished piece.")
                 + "  " + GameData.ModBpMatMult[bp.Rarity] + "x material cost.", UiSkin.AccentWarm));
             _stationContent.Add(WrapText(baseDef.Desc, UiSkin.TextDim));
-            string cost = "";
-            foreach (var kv in ModGen.MaterialCost(bp))
-                cost += (cost.Length > 0 ? ", " : "") + kv.Value + " " + GameData.Commodity(kv.Key).Name;
-            _stationContent.Add(WrapText("Cost per run: " + cost + " (m3) + "
+            _stationContent.Add(WrapText("Per run (have/need, m3): "
+                + gm.MaterialLine(ModGen.MaterialCost(bp)) + "  +  "
                 + GameData.FmtCredits(ModGen.Fee(bp)) + " fee.", UiSkin.TextDim));
             string blocker = gm.ManufactureBlocker(bp);
             var row = Row();
@@ -1331,6 +1329,9 @@ namespace SpaceGame
         {
             var p = gm.Player;
             _stationContent.Add(Section("MANUFACTURING"));
+            _stationContent.Add(WrapText("The assembly line draws on your hold and " + gm.HereName()
+                + "'s storage bay together, spending the bay first — so you can refine here and "
+                + "build here without shuttling metal in and out of the ship.", UiSkin.AccentWarm));
             _stationContent.Add(WrapText("Each run consumes refined minerals from your cargo hold "
                 + "plus an assembly fee (shown per blueprint); your current hull is traded in. "
                 + "Refine ore on the Refine tab to source minerals.", UiSkin.TextDim));
@@ -1361,10 +1362,8 @@ namespace SpaceGame
                     + def.Shield + " · Cargo " + def.Cargo + " m3", UiSkin.TextDim));
                 if (def.Features != null)
                     _stationContent.Add(WrapText(string.Join("  ·  ", def.Features), UiSkin.AccentWarm));
-                string bpCost = "";
-                foreach (var kv in ShipGen.MaterialCost(bp))
-                    bpCost += (bpCost.Length > 0 ? ", " : "") + kv.Value + " " + GameData.Commodity(kv.Key).Name;
-                _stationContent.Add(WrapText("Cost per run: " + bpCost + " (m3) + "
+                _stationContent.Add(WrapText("Per run (have/need, m3): "
+                    + gm.MaterialLine(ShipGen.MaterialCost(bp)) + "  +  "
                     + GameData.FmtCredits(ShipGen.Fee(bp)) + " fee.", UiSkin.TextDim));
                 string blocker = gm.ManufactureBlocker(bp);
                 var row = Row();

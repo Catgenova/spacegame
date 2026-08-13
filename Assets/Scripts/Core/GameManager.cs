@@ -833,19 +833,81 @@ namespace SpaceGame
 
         // ---------- manufacturing (Industry tab) ----------
 
+        /// <summary>How much of a material the assembly line here can reach: this
+        /// station's bay plus your hold. The refinery banks its output locally, so
+        /// insisting on the hold would mean withdrawing metal just to feed it back
+        /// in.</summary>
+        public float MaterialOnHand(string id)
+        {
+            Store.Cargo.TryGetValue(id, out float bay);
+            Player.Cargo.TryGetValue(id, out float hold);
+            return bay + hold;
+        }
+
+        /// <summary>What a build will have to take out of your hold, because the
+        /// bay could not cover it. The hull swap needs this to know how much space
+        /// the build actually frees.</summary>
+        float HoldShareOfBuild(Dictionary<string, float> cost)
+        {
+            float fromHold = 0f;
+            foreach (var kv in cost)
+            {
+                Store.Cargo.TryGetValue(kv.Key, out float bay);
+                fromHold += Mathf.Max(0f, kv.Value - bay);
+            }
+            return fromHold;
+        }
+
+        /// <summary>Consume a material for a build, spending the station's bay
+        /// first so your hold is disturbed as little as possible.</summary>
+        void TakeMaterial(string id, float want)
+        {
+            Store.Cargo.TryGetValue(id, out float bay);
+            float fromBay = Mathf.Min(want, bay);
+            if (fromBay > 0f)
+            {
+                Store.Cargo[id] = bay - fromBay;
+                if (Store.Cargo[id] <= 0.01f) Store.Cargo.Remove(id);
+            }
+            float fromHold = want - fromBay;
+            if (fromHold <= 0f) return;
+            Player.Cargo.TryGetValue(id, out float hold);
+            Player.Cargo[id] = hold - fromHold;
+            if (Player.Cargo[id] <= 0.01f) Player.Cargo.Remove(id);
+        }
+
+        /// <summary>"336/320 Iron, 90/180 Aluminium" — what a build needs against
+        /// what your hold and this station's bay can supply between them.</summary>
+        public string MaterialLine(Dictionary<string, float> cost)
+        {
+            var line = "";
+            foreach (var kv in cost)
+                line += (line.Length > 0 ? ", " : "") + Mathf.Round(MaterialOnHand(kv.Key))
+                     + "/" + kv.Value + " " + GameData.Commodity(kv.Key).Name;
+            return line;
+        }
+
+        string MaterialBlocker(Dictionary<string, float> cost)
+        {
+            foreach (var kv in cost)
+            {
+                float have = MaterialOnHand(kv.Key);
+                if (have < kv.Value)
+                    return "Missing " + Mathf.Round(kv.Value - have) + " m3 "
+                        + GameData.Commodity(kv.Key).Name
+                        + " (counting your hold and " + HereName() + "'s bay).";
+            }
+            return null;
+        }
+
         /// <summary>Why this blueprint can't be built right now, or null if it can.</summary>
         public string ManufactureBlocker(Blueprint bp)
         {
             if (!Docked) return "Dock at a station to manufacture.";
             if (bp.RunsLeft <= 0) return "Blueprint exhausted.";
             if (bp.IsModule) return ModuleBlocker(bp);
-            foreach (var kv in ShipGen.MaterialCost(bp))
-            {
-                Player.Cargo.TryGetValue(kv.Key, out float have);
-                if (have < kv.Value)
-                    return "Missing " + Mathf.Round(kv.Value - have) + " m3 "
-                        + GameData.Commodity(kv.Key).Name + " (must be in your cargo hold).";
-            }
+            var missing = MaterialBlocker(ShipGen.MaterialCost(bp));
+            if (missing != null) return missing;
             if (Player.Credits < ShipGen.Fee(bp))
                 return "Assembly fee is " + GameData.FmtCredits(ShipGen.Fee(bp)) + ".";
             return null;
@@ -853,13 +915,8 @@ namespace SpaceGame
 
         string ModuleBlocker(Blueprint bp)
         {
-            foreach (var kv in ModGen.MaterialCost(bp))
-            {
-                Player.Cargo.TryGetValue(kv.Key, out float have);
-                if (have < kv.Value)
-                    return "Missing " + Mathf.Round(kv.Value - have) + " m3 "
-                        + GameData.Commodity(kv.Key).Name + " (must be in your cargo hold).";
-            }
+            var missing = MaterialBlocker(ModGen.MaterialCost(bp));
+            if (missing != null) return missing;
             if (Player.Credits < ModGen.Fee(bp))
                 return "Assembly fee is " + GameData.FmtCredits(ModGen.Fee(bp)) + ".";
             return null;
@@ -870,11 +927,7 @@ namespace SpaceGame
         /// station's storage bay.</summary>
         void ManufactureModule(Blueprint bp)
         {
-            foreach (var kv in ModGen.MaterialCost(bp))
-            {
-                Player.Cargo[kv.Key] -= kv.Value;
-                if (Player.Cargo[kv.Key] <= 0.01f) Player.Cargo.Remove(kv.Key);
-            }
+            foreach (var kv in ModGen.MaterialCost(bp)) TakeMaterial(kv.Key, kv.Value);
             Player.Credits -= ModGen.Fee(bp);
 
             // Each run is its own piece: mix the print's hash with the run index
@@ -900,20 +953,18 @@ namespace SpaceGame
             if (bp.IsModule) { ManufactureModule(bp); return; }
             var def = ShipGen.Def(bp);
 
-            // Everything left in the hold after the minerals burn must fit the new hull.
-            float materialVolume = 0f;
-            foreach (var kv in ShipGen.MaterialCost(bp)) materialVolume += kv.Value;
-            if (Player.CargoUsed() - materialVolume > def.Cargo)
+            // Everything left in the hold once the build has taken its share must
+            // fit the new hull. Only the part drawn from the hold frees space —
+            // materials spent out of the station's bay were never aboard.
+            var cost = ShipGen.MaterialCost(bp);
+            if (Player.CargoUsed() - HoldShareOfBuild(cost) > def.Cargo)
             {
-                Log("Your remaining cargo would not fit the " + def.Name + "'s hold. Sell some first.");
+                Log("Your remaining cargo would not fit the " + def.Name
+                    + "'s hold. Sell or store some first.");
                 return;
             }
 
-            foreach (var kv in ShipGen.MaterialCost(bp))
-            {
-                Player.Cargo[kv.Key] -= kv.Value;
-                if (Player.Cargo[kv.Key] <= 0.01f) Player.Cargo.Remove(kv.Key);
-            }
+            foreach (var kv in cost) TakeMaterial(kv.Key, kv.Value);
             Player.Credits -= ShipGen.Fee(bp);
             long tradeIn = Market.ShipTradeInValue(StationId, Player.HullId);
             Player.Credits += tradeIn;
